@@ -21,23 +21,23 @@ const ChatInput = ({ onSendMessage, disabled = false }: ChatInputProps) => {
   };
 
   return (
-    <div className="border-t border-border p-4 bg-background sticky bottom-0">
+    <div className="border-t border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky bottom-0 py-4">
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 max-w-4xl mx-auto"
+        className="flex items-center gap-2 max-w-3xl mx-auto px-4"
       >
         <Input
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           placeholder="Ask about Caritas University, study tips, or academic guidance..."
-          className="flex-1"
+          className="flex-1 bg-background border-slate-200 focus-visible:ring-caritas focus-visible:ring-opacity-50"
           disabled={disabled}
         />
         <Button 
           type="submit" 
           size="icon" 
           disabled={disabled || !inputValue.trim()}
-          className="bg-caritas hover:bg-caritas-light"
+          className="bg-caritas hover:bg-caritas-light transition-colors"
         >
           <SendIcon className="h-4 w-4" />
         </Button>

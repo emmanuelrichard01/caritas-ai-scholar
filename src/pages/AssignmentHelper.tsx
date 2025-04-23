@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/button";
 import { FileText, CheckCircle, Calendar, AlertCircle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useApiConfig } from "@/hooks/useApiConfig";
 
 const AssignmentHelper = () => {
   const [prompt, setPrompt] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const { analyzeAssignment } = useApiConfig();
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (!prompt.trim()) {
       toast.error("Please enter an assignment prompt");
       return;
@@ -20,47 +22,15 @@ const AssignmentHelper = () => {
     setIsAnalyzing(true);
     setResult(null);
     
-    // Simulate AI processing
-    setTimeout(() => {
+    try {
+      const response = await analyzeAssignment(prompt);
+      setResult(response);
+    } catch (error) {
+      console.error("Error analyzing assignment:", error);
+      toast.error("Failed to analyze assignment");
+    } finally {
       setIsAnalyzing(false);
-      
-      setResult(`# Assignment Breakdown
-
-## Understanding the Requirements
-• This appears to be an analytical essay assignment
-• Required word count: 1500-2000 words
-• Deadline: Approximately 2 weeks from now
-• Requires scholarly sources (min. 5 references)
-
-## Suggested Approach
-1. **Research Phase (Days 1-5)**
-   • Gather background information on the topic
-   • Identify key scholarly articles and books
-   • Take structured notes with citation information
-
-2. **Planning Phase (Days 6-7)**
-   • Develop thesis statement and main arguments
-   • Create outline with supporting evidence
-   • Plan introduction and conclusion
-
-3. **Writing Phase (Days 8-12)**
-   • Draft introduction with thesis statement
-   • Write body paragraphs with topic sentences
-   • Ensure logical flow between sections
-   • Craft conclusion that reinforces thesis
-
-4. **Revision Phase (Days 13-14)**
-   • Check for clarity, coherence, and conciseness
-   • Review citations and formatting
-   • Proofread for grammar and spelling errors
-
-## Potential Research Sources
-• JSTOR, Google Scholar, Academic Search Complete
-• University library databases
-• Course readings and lecture notes
-
-Need any specific help with one of these phases?`);
-    }, 2000);
+    }
   };
 
   // Function to render markdown-like content

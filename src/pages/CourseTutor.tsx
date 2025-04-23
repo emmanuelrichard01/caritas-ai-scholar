@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Book, FileUp, Search, X } from "lucide-react";
 import { toast } from "sonner";
+import { useApiConfig } from "@/hooks/useApiConfig";
 
 const CourseTutor = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<string | null>(null);
+  const { analyzeDocuments } = useApiConfig();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -26,21 +28,30 @@ const CourseTutor = () => {
     setFiles(newFiles);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) {
       toast.error("Please enter a question");
       return;
     }
     
+    if (files.length === 0) {
+      toast.error("Please upload at least one file");
+      return;
+    }
+    
     setIsLoading(true);
     setResults(null);
     
-    // Simulate AI processing
-    setTimeout(() => {
-      setResults(`Based on your course materials, here's what I found about "${query}":\n\n**Key Concepts:**\n\n• The topic appears in Chapter 3 of your uploaded materials\n• It relates to fundamental theories in this field\n• The main principles include structured analysis and systematic evaluation\n\n**Related Topics:**\n• Theoretical frameworks\n• Practical applications\n• Historical context\n\nWould you like me to explain any of these aspects in more detail?`);
+    try {
+      const response = await analyzeDocuments(files, query);
+      setResults(response);
+    } catch (error) {
+      console.error("Error analyzing documents:", error);
+      toast.error("Failed to analyze documents");
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   return (

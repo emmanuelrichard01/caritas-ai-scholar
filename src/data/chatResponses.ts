@@ -1,9 +1,17 @@
-
 export interface ChatResponseData {
   [key: string]: string | ((query: string) => string);
 }
 
 export const chatResponses: ChatResponseData = {
+  "What are the available courses at Caritas University?": 
+    "Caritas University offers a wide range of undergraduate programs across various faculties:\n\n• **Faculty of Natural Sciences**: Computer Science, Mathematics, Physics, Chemistry, Biology\n\n• **Faculty of Management Sciences**: Accounting, Business Administration, Economics\n\n• **Faculty of Social Sciences**: Mass Communication, Political Science, Psychology\n\n• **Faculty of Law**: Corporate Law, Civil Law, Criminal Law\n\n• **Faculty of Engineering**: Computer Engineering, Electrical Engineering, Mechanical Engineering\n\nEach program is designed to meet international standards while maintaining our commitment to academic excellence and moral education.",
+  
+  "How can I improve my study habits?": 
+    "Here are proven strategies to enhance your academic performance:\n\n• **The Pomodoro Technique**: Study in focused 25-minute blocks with 5-minute breaks\n\n• **Active Recall**: Test yourself instead of passive reading\n\n• **Mind Mapping**: Create visual connections between concepts\n\n• **Spaced Repetition**: Review material at increasing intervals\n\n• **Study Groups**: Form or join study groups for collaborative learning\n\n• **Note-Taking Methods**: Try the Cornell method or concept mapping\n\n• **Regular Reviews**: Schedule weekly review sessions\n\n• **Resource Utilization**: Take advantage of library resources and academic databases",
+  
+  "Tell me about the library resources": 
+    "Caritas University Library offers extensive resources for academic success:\n\n• **Digital Databases**: Access to JSTOR, IEEE, and other academic databases\n\n• **E-Books Collection**: Over 50,000 academic e-books\n\n• **Research Guides**: Subject-specific research assistance\n\n• **Study Spaces**: Individual and group study areas\n\n• **Online Catalogs**: Easy access to all library materials\n\n• **Research Support**: Librarians available for research consultation\n\n• **24/7 Online Access**: Remote access to digital resources\n\n• **Interlibrary Loan**: Access materials from partner institutions",
+  
   "What can you tell me about Caritas University?": 
     "Caritas University is a private Catholic institution founded in 2005, located in Enugu, Nigeria. It was established by the Catholic Diocese of Enugu and is known for its commitment to academic excellence and moral education.\n\nThe university offers a wide range of undergraduate and postgraduate programs across various faculties including Natural Sciences, Management Sciences, Social Sciences, Law, and Engineering.\n\nThe university's motto is 'Scientia Potestas Est' which means 'Knowledge is Power', emphasizing the importance of education in empowering individuals and communities.",
   
@@ -20,16 +28,13 @@ export const chatResponses: ChatResponseData = {
     "Achieving a perfect 5.0 GPA requires dedication and strategic approaches:\n\n• **Consistent Study Habits**: Develop and maintain a regular study schedule rather than cramming before exams.\n\n• **Active Class Participation**: Engage in lectures, ask questions, and participate in discussions to deepen your understanding.\n\n• **Effective Time Management**: Balance your academic work with other responsibilities and activities.\n\n• **Strategic Course Selection**: When possible, choose courses that align with your strengths and interests.\n\n• **Use All Available Resources**: Take advantage of office hours, tutoring services, study groups, and academic resources.\n\n• **Take Detailed Notes**: Develop a note-taking system that works for you and review notes regularly.\n\n• **Prioritize Understanding Over Memorization**: Focus on truly understanding concepts rather than just memorizing facts.\n\n• **Develop Strong Relationships with Professors**: They can provide valuable guidance and may be more willing to help you succeed.\n\n• **Practice Good Health Habits**: Ensure adequate sleep, regular exercise, and proper nutrition.\n\n• **Set High Personal Standards**: Challenge yourself to excel in all assignments, not just the heavily weighted ones.\n\n• **Learn from Mistakes**: Use feedback on assignments and exams to improve your understanding and performance.\n\n• **Stay Motivated**: Keep your long-term goals in mind to help maintain motivation during challenging periods.",
   
   "default": (query: string) => {
-    // Default response when no specific answer is available
-    return `Thank you for your question about "${query}". As a demo version of CARITAS AI, I have limited information available. In the full version, I would provide detailed information about Caritas University, academic advice, study techniques, and more.\n\nFeel free to try one of the example questions or topics like university information, study techniques, thesis writing, or tips for academic success.`;
+    return `I understand you're asking about "${query}". As your academic assistant, I aim to provide accurate information about Caritas University, study techniques, and academic resources. Please try asking about:\n\n• Available courses and programs\n• Study techniques and tips\n• Library resources and facilities\n• Academic calendar and schedules\n• Research guidance and support`;
   }
 };
 
 export const findResponse = (query: string): string => {
-  // Simple keyword matching for demo purposes
   const normalizedQuery = query.toLowerCase();
   
-  // Check for exact matches first
   for (const key in chatResponses) {
     if (key.toLowerCase() === normalizedQuery) {
       const response = chatResponses[key];
@@ -37,7 +42,6 @@ export const findResponse = (query: string): string => {
     }
   }
   
-  // Check for keyword matches
   const keywordMap: { [key: string]: string } = {
     "caritas university": "What can you tell me about Caritas University?",
     "about caritas": "What can you tell me about Caritas University?",
@@ -66,7 +70,6 @@ export const findResponse = (query: string): string => {
     }
   }
   
-  // Default response if no match is found
   const defaultResponse = chatResponses["default"];
   return typeof defaultResponse === 'function' ? defaultResponse(query) : defaultResponse;
 };

@@ -10,6 +10,7 @@ import CourseTutor from "./pages/CourseTutor";
 import StudyPlanner from "./pages/StudyPlanner";
 import AssignmentHelper from "./pages/AssignmentHelper";
 import ResearchAssistant from "./pages/ResearchAssistant";
+import History from "./pages/History";
 
 const queryClient = new QueryClient();
 
@@ -21,7 +22,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/history" element={<div className="pl-[70px] md:pl-[260px] p-8 dark:bg-slate-950 dark:text-white min-h-screen">History page (Coming soon)</div>} />
+          <Route path="/history" element={<History />} />
           <Route path="/course-tutor" element={<CourseTutor />} />
           <Route path="/study-planner" element={<StudyPlanner />} />
           <Route path="/assignment-helper" element={<AssignmentHelper />} />

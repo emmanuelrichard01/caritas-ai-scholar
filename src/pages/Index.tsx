@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ChatHeader from "@/components/ChatHeader";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
@@ -8,7 +9,10 @@ import Navigation from "@/components/Navigation";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useApiConfig } from "@/hooks/useApiConfig";
+import { useAIProcessor } from "@/hooks/useAIProcessor";
+import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   text: string;
@@ -17,17 +21,49 @@ interface Message {
 }
 
 const Index = () => {
+  const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [messages, setMessages] = useState<Message[]>([]);
   const [showWelcome, setShowWelcome] = useState(true);
   const [isResponseLoading, setIsResponseLoading] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { getAiResponse } = useApiConfig();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { processQuery } = useAIProcessor();
+  const queryClient = useQueryClient();
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Save chat to history
+  const saveChatMutation = useMutation({
+    mutationFn: async (data: { title: string, content: string }) => {
+      if (!user) throw new Error("User not authenticated");
+      
+      const { error } = await supabase
+        .from('chat_history')
+        .insert({
+          user_id: user.id,
+          title: data.title,
+          content: data.content,
+          category: 'general'
+        });
+        
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chatHistory'] });
+    }
+  });
 
   const handleStartChat = () => {
     setShowWelcome(false);
   };
 
   const handleSendMessage = async (message: string) => {
+    if (!message.trim()) return;
+    
     const newMessage = {
       text: message,
       isUser: true,
@@ -38,15 +74,26 @@ const Index = () => {
     setIsResponseLoading(true);
 
     try {
-      const aiResponse = await getAiResponse(message);
+      // Use the edge function to process the query
+      const aiResponse = await processQuery(message);
       
-      const response = {
-        text: aiResponse,
-        isUser: false,
-        id: (Date.now() + 1).toString()
-      };
-      
-      setMessages((prev) => [...prev, response]);
+      if (aiResponse) {
+        const response = {
+          text: aiResponse,
+          isUser: false,
+          id: (Date.now() + 1).toString()
+        };
+        
+        setMessages((prev) => [...prev, response]);
+        
+        // Save conversation to chat history
+        if (user) {
+          saveChatMutation.mutate({
+            title: message.length > 30 ? `${message.substring(0, 27)}...` : message,
+            content: `Q: ${message}\n\nA: ${aiResponse}`
+          });
+        }
+      }
     } catch (error) {
       console.error("Error getting AI response:", error);
       const errorResponse = {
@@ -71,10 +118,10 @@ const Index = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
       <div 
         className={cn(
-          "fixed inset-0 bg-black/50 z-20 md:hidden transition-opacity",
+          "fixed inset-0 bg-black/50 z-20 md:hidden transition-opacity duration-300",
           isMobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={toggleMobileMenu}
@@ -84,7 +131,7 @@ const Index = () => {
       
       <div className="flex-1 pl-[70px] md:pl-[260px] transition-all duration-300">
         <div className="relative flex h-full flex-col">
-          <div className="flex items-center md:hidden border-b px-4 h-16 bg-background/80 backdrop-blur dark:bg-slate-900/80 dark:border-slate-800">
+          <div className="flex items-center md:hidden border-b px-4 h-16 bg-background/80 backdrop-blur dark:bg-slate-800/80 dark:border-slate-700 sticky top-0 z-10">
             <Button
               variant="ghost"
               size="icon"
@@ -100,14 +147,14 @@ const Index = () => {
             <ChatHeader />
           </div>
           
-          <div className="flex-1 overflow-y-auto bg-slate-50/30 dark:bg-slate-900/30">
+          <div className="flex-1 overflow-y-auto bg-slate-50/30 dark:bg-slate-900/30 scrollbar-thin">
             {showWelcome ? (
               <WelcomeScreen 
                 onStartChat={handleStartChat} 
                 onSelectSuggestion={handleSelectSuggestion}
               />
             ) : (
-              <div className="pb-32">
+              <div className="pb-32 px-4">
                 {messages.map((message) => (
                   <ChatMessage
                     key={message.id}
@@ -122,15 +169,18 @@ const Index = () => {
                     isLoading
                   />
                 )}
+                <div ref={messagesEndRef} />
               </div>
             )}
           </div>
           
           {!showWelcome && (
-            <ChatInput 
-              onSendMessage={handleSendMessage} 
-              disabled={isResponseLoading}
-            />
+            <div className="sticky bottom-0 z-10">
+              <ChatInput 
+                onSendMessage={handleSendMessage} 
+                disabled={isResponseLoading}
+              />
+            </div>
           )}
         </div>
       </div>

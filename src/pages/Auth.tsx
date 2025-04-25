@@ -4,10 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { GraduationCap } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Auth = () => {
   const { user, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (user) {
@@ -16,23 +18,24 @@ const Auth = () => {
   }, [user, navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-slate-900 rounded-2xl shadow-lg">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 px-4">
+      <div className={`w-full ${isMobile ? 'max-w-sm' : 'max-w-md'} p-6 md:p-8 space-y-6 md:space-y-8 bg-white dark:bg-slate-800 rounded-xl shadow-lg transition-all duration-300`}>
         <div className="flex flex-col items-center space-y-4">
-          <div className="h-16 w-16 rounded-full bg-caritas flex items-center justify-center text-white">
+          <div className="h-16 w-16 rounded-full bg-caritas flex items-center justify-center text-white shadow-md">
             <GraduationCap className="h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-center dark:text-white">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-center dark:text-white">
             Welcome to CARITAS AI
           </h1>
-          <p className="text-sm text-muted-foreground text-center dark:text-slate-400">
+          <p className="text-sm text-muted-foreground text-center dark:text-slate-300">
             Sign in to access your personalized learning experience
           </p>
         </div>
 
         <Button
-          className="w-full bg-caritas hover:bg-caritas-light transition-colors"
+          className="w-full bg-caritas hover:bg-caritas-light transition-colors shadow-md"
           onClick={signInWithGoogle}
+          size={isMobile ? "sm" : "default"}
         >
           <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
             <path

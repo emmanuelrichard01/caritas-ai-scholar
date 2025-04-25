@@ -1,1 +1,5 @@
+
 project_id = "yvlrspteukuooobkvzdz"
+
+[functions.process-ai-query]
+verify_jwt = true

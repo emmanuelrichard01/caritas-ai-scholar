@@ -6,6 +6,8 @@ import { FileText, CheckCircle, Calendar, AlertCircle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useAIProcessor } from "@/hooks/useAIProcessor";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FormattedContent } from "@/components/FormattedContent";
+import { AssignmentTips } from "@/components/AssignmentTips";
 
 const AssignmentHelper = () => {
   const [prompt, setPrompt] = useState("");
@@ -14,100 +16,14 @@ const AssignmentHelper = () => {
   const { processQuery, isProcessing } = useAIProcessor();
 
   const handleAnalyze = async () => {
+    if (!prompt.trim()) {
+      return;
+    }
+    
     const response = await processQuery(prompt, 'assignment-helper');
     if (response) {
       setResult(response);
     }
-  };
-
-  // Function to render markdown-like content
-  const renderFormattedText = (text: string) => {
-    if (!text) return null;
-    
-    const lines = text.split('\n');
-    const renderedContent: JSX.Element[] = [];
-    
-    let currentListItems: JSX.Element[] = [];
-    let inList = false;
-    
-    lines.forEach((line, index) => {
-      // Handle headers
-      if (line.startsWith('# ')) {
-        if (inList) {
-          renderedContent.push(<ul key={`ul-${index}`} className="mb-4">{currentListItems}</ul>);
-          currentListItems = [];
-          inList = false;
-        }
-        renderedContent.push(<h2 key={index} className="text-xl font-bold mt-6 mb-3 dark:text-white">{line.substring(2)}</h2>);
-      } 
-      else if (line.startsWith('## ')) {
-        if (inList) {
-          renderedContent.push(<ul key={`ul-${index}`} className="mb-4">{currentListItems}</ul>);
-          currentListItems = [];
-          inList = false;
-        }
-        renderedContent.push(<h3 key={index} className="text-lg font-medium mt-5 mb-2 dark:text-white">{line.substring(3)}</h3>);
-      } 
-      else if (line.startsWith('• ')) {
-        inList = true;
-        currentListItems.push(
-          <li key={`li-${index}`} className="ml-2 flex gap-2 my-1">
-            <span className="text-emerald-500">•</span>
-            <span className="dark:text-slate-300">{line.substring(2)}</span>
-          </li>
-        );
-      }
-      else if (line.startsWith('1. ') || line.startsWith('2. ') || line.startsWith('3. ') || line.startsWith('4. ')) {
-        if (inList && !line.match(/^\d+\./)) {
-          renderedContent.push(<ul key={`ul-${index}`} className="mb-4">{currentListItems}</ul>);
-          currentListItems = [];
-          inList = false;
-        }
-        
-        if (line.match(/^\d+\./)) {
-          inList = true;
-          const content = line.replace(/^\d+\.\s/, '');
-          
-          // Check if it has a nested bold title
-          const boldMatch = content.match(/\*\*(.*?)\*\*\s(.*)/);
-          
-          if (boldMatch) {
-            currentListItems.push(
-              <li key={`li-${index}`} className="ml-2 my-2 dark:text-slate-300">
-                <strong>{boldMatch[1]}:</strong> {boldMatch[2]}
-              </li>
-            );
-          } else {
-            currentListItems.push(
-              <li key={`li-${index}`} className="ml-2 my-2 dark:text-slate-300">{content}</li>
-            );
-          }
-        }
-      }
-      else if (line.trim() === '') {
-        if (inList) {
-          renderedContent.push(<ul key={`ul-${index}`} className="mb-4">{currentListItems}</ul>);
-          currentListItems = [];
-          inList = false;
-        }
-        renderedContent.push(<div key={index} className="h-2"></div>);
-      }
-      else {
-        if (inList) {
-          renderedContent.push(<ul key={`ul-${index}`} className="mb-4">{currentListItems}</ul>);
-          currentListItems = [];
-          inList = false;
-        }
-        renderedContent.push(<p key={index} className="mb-2 dark:text-slate-300">{line}</p>);
-      }
-    });
-    
-    // Don't forget any remaining list items
-    if (inList) {
-      renderedContent.push(<ul key="final-list" className="mb-4">{currentListItems}</ul>);
-    }
-    
-    return renderedContent;
   };
 
   return (
@@ -159,35 +75,7 @@ const AssignmentHelper = () => {
             </div>
             
             <div className={`${isMobile && result ? 'hidden' : ''}`}>
-              <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border h-full dark:bg-slate-900 dark:border-slate-800">
-                <h2 className="text-lg font-medium mb-4 dark:text-white">Assignment Tips</h2>
-                <ul className="space-y-3">
-                  <li className="flex gap-2 text-sm">
-                    <CheckCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
-                    <span className="dark:text-slate-300">Break down large assignments into smaller tasks</span>
-                  </li>
-                  <li className="flex gap-2 text-sm">
-                    <CheckCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
-                    <span className="dark:text-slate-300">Start research early to find quality sources</span>
-                  </li>
-                  <li className="flex gap-2 text-sm">
-                    <CheckCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
-                    <span className="dark:text-slate-300">Create an outline before writing your first draft</span>
-                  </li>
-                  <li className="flex gap-2 text-sm">
-                    <CheckCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
-                    <span className="dark:text-slate-300">Allocate time for editing and proofreading</span>
-                  </li>
-                  <li className="flex gap-2 text-sm">
-                    <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
-                    <span className="dark:text-slate-300">Avoid plagiarism by citing all sources properly</span>
-                  </li>
-                  <li className="flex gap-2 text-sm">
-                    <Calendar className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                    <span className="dark:text-slate-300">Schedule backwards from the due date</span>
-                  </li>
-                </ul>
-              </div>
+              <AssignmentTips />
             </div>
           </div>
           
@@ -195,7 +83,7 @@ const AssignmentHelper = () => {
             <div className="mt-4 md:mt-6 bg-white rounded-xl p-4 md:p-6 shadow-sm border dark:bg-slate-900 dark:border-slate-800">
               <h2 className="text-lg font-medium mb-4 dark:text-white">Assignment Analysis</h2>
               <div className="prose prose-slate max-w-none dark:prose-invert">
-                {renderFormattedText(result)}
+                <FormattedContent content={result} />
               </div>
             </div>
           )}

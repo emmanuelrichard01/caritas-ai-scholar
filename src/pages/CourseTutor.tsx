@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,8 @@ import { useAIProcessor } from "@/hooks/useAIProcessor";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FileList } from "@/components/FileList";
+import { AIResponseDisplay } from "@/components/AIResponseDisplay";
 
 const CourseTutor = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -24,7 +27,6 @@ const CourseTutor = () => {
   // Check if storage bucket exists, create if not
   const checkAndCreateBucket = async () => {
     try {
-      // Fix: Use listBuckets() instead of getBuckets()
       const { data: buckets, error: listError } = await supabase.storage.listBuckets();
       
       if (listError) {
@@ -46,10 +48,10 @@ const CourseTutor = () => {
     }
   };
 
-  // Create bucket if it doesn't exist
-  useState(() => {
+  // Properly use useEffect for side effects instead of useState
+  useEffect(() => {
     checkAndCreateBucket();
-  });
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -123,21 +125,7 @@ const CourseTutor = () => {
               </p>
             </div>
             
-            {files.length > 0 && (
-              <div className="mb-4">
-                <p className="text-sm font-medium mb-2 dark:text-slate-300">Uploaded Files:</p>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                  {files.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-slate-50 p-2 rounded dark:bg-slate-800">
-                      <span className="text-sm truncate max-w-[80%] dark:text-slate-300">{file.name}</span>
-                      <Button variant="ghost" size="icon" onClick={() => removeFile(index)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <FileList files={files} onRemoveFile={removeFile} />
           </div>
           
           <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border dark:bg-slate-900 dark:border-slate-800">
@@ -171,32 +159,10 @@ const CourseTutor = () => {
               </div>
             </form>
             
-            {isProcessing && (
-              <div className="mt-6 text-center">
-                <div className="inline-flex gap-1">
-                  <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></div>
-                  <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse [animation-delay:0.2s]"></div>
-                  <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse [animation-delay:0.4s]"></div>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2 dark:text-slate-400">Analyzing course materials...</p>
-              </div>
-            )}
-            
-            {results && (
-              <div className="mt-6 bg-slate-50 p-4 rounded-lg dark:bg-slate-800">
-                <h3 className="font-medium mb-2 dark:text-white">Results:</h3>
-                <div className="prose prose-slate max-w-none dark:prose-invert">
-                  {results.split('\n').map((paragraph, index) => (
-                    <p 
-                      key={index} 
-                      className={paragraph.startsWith('•') ? 'ml-4 mb-2' : 'mb-2'}
-                    >
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
+            <AIResponseDisplay 
+              isProcessing={isProcessing} 
+              results={results} 
+            />
           </div>
         </div>
       </div>

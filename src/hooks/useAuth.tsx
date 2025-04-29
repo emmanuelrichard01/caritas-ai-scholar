@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +12,7 @@ export const useAuth = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialSessionChecked, setInitialSessionChecked] = useState(false);
+  const isInitialMount = useRef(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,9 +33,9 @@ export const useAuth = () => {
         }
         
         // Only show toast for specific events and after initial session check
-        if (initialSessionChecked) {
+        // And avoid showing on initial mount
+        if (initialSessionChecked && !isInitialMount.current) {
           if (event === 'SIGNED_IN') {
-            // Only show sign-in message if this is an actual new sign-in, not just a page refresh
             toast.success('Signed in successfully');
           } else if (event === 'SIGNED_OUT') {
             toast.info('You have been signed out');
@@ -54,10 +55,16 @@ export const useAuth = () => {
       
       setLoading(false);
       setInitialSessionChecked(true);
+      
+      // Mark that we're no longer on initial mount after checking the session
+      setTimeout(() => {
+        isInitialMount.current = false;
+      }, 0);
     }).catch(error => {
       console.error('Error checking auth session:', error);
       setLoading(false);
       setInitialSessionChecked(true);
+      isInitialMount.current = false;
     });
 
     return () => {

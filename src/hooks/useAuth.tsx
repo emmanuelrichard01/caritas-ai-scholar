@@ -11,45 +11,53 @@ export const useAuth = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialSessionChecked, setInitialSessionChecked] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, currentSession) => {
+        // Update session and user state
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         
         // Use setTimeout to prevent potential deadlocks with Supabase client
-        if (session?.user) {
+        if (currentSession?.user) {
           setTimeout(() => {
-            fetchProfile(session.user.id);
+            fetchProfile(currentSession.user.id);
           }, 0);
         } else {
           setProfile(null);
         }
         
-        // Handle auth events - only show toast on signout to avoid duplicate messages
-        if (event === 'SIGNED_OUT') {
-          // Clear user data and notify
-          toast.info('You have been signed out');
+        // Only show toast for specific events and after initial session check
+        if (initialSessionChecked) {
+          if (event === 'SIGNED_IN') {
+            // Only show sign-in message if this is an actual new sign-in, not just a page refresh
+            toast.success('Signed in successfully');
+          } else if (event === 'SIGNED_OUT') {
+            toast.info('You have been signed out');
+          }
         }
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      setSession(initialSession);
+      setUser(initialSession?.user ?? null);
       
-      if (session?.user) {
-        fetchProfile(session.user.id);
+      if (initialSession?.user) {
+        fetchProfile(initialSession.user.id);
       }
       
       setLoading(false);
+      setInitialSessionChecked(true);
     }).catch(error => {
       console.error('Error checking auth session:', error);
       setLoading(false);
+      setInitialSessionChecked(true);
     });
 
     return () => {

@@ -4,32 +4,19 @@ import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { FileText, CheckCircle, Calendar, AlertCircle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { useApiConfig } from "@/hooks/useApiConfig";
+import { useAIProcessor } from "@/hooks/useAIProcessor";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const AssignmentHelper = () => {
   const [prompt, setPrompt] = useState("");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-  const { analyzeAssignment } = useApiConfig();
+  const isMobile = useIsMobile();
+  const { processQuery, isProcessing } = useAIProcessor();
 
   const handleAnalyze = async () => {
-    if (!prompt.trim()) {
-      toast.error("Please enter an assignment prompt");
-      return;
-    }
-    
-    setIsAnalyzing(true);
-    setResult(null);
-    
-    try {
-      const response = await analyzeAssignment(prompt);
+    const response = await processQuery(prompt, 'assignment-helper');
+    if (response) {
       setResult(response);
-    } catch (error) {
-      console.error("Error analyzing assignment:", error);
-      toast.error("Failed to analyze assignment");
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
@@ -128,20 +115,20 @@ const AssignmentHelper = () => {
       <Navigation />
       
       <div className="flex-1 pl-[70px] md:pl-[260px] transition-all duration-300">
-        <div className="p-6 max-w-4xl mx-auto">
-          <div className="flex items-center mb-8">
-            <div className="h-12 w-12 rounded-full bg-amber-600 flex items-center justify-center text-white mr-4">
+        <div className="p-4 md:p-6 max-w-4xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-center mb-6 md:mb-8 gap-4 md:gap-0">
+            <div className="h-12 w-12 rounded-full bg-amber-600 flex items-center justify-center text-white md:mr-4">
               <FileText className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold dark:text-white">Assignment Decomposer</h1>
+              <h1 className="text-xl md:text-2xl font-bold dark:text-white">Assignment Decomposer</h1>
               <p className="text-muted-foreground dark:text-slate-400">Break down complex assignments into manageable steps</p>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             <div className="md:col-span-2">
-              <div className="bg-white rounded-xl p-6 shadow-sm border mb-6 dark:bg-slate-900 dark:border-slate-800">
+              <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border mb-4 md:mb-6 dark:bg-slate-900 dark:border-slate-800">
                 <h2 className="text-lg font-medium mb-4 dark:text-white">Enter Your Assignment Prompt</h2>
                 
                 <Textarea
@@ -153,10 +140,10 @@ const AssignmentHelper = () => {
                 
                 <Button 
                   onClick={handleAnalyze} 
-                  disabled={isAnalyzing || !prompt.trim()}
+                  disabled={isProcessing || !prompt.trim()}
                   className="w-full bg-amber-600 hover:bg-amber-700"
                 >
-                  {isAnalyzing ? (
+                  {isProcessing ? (
                     <>
                       <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                       Analyzing...
@@ -171,8 +158,8 @@ const AssignmentHelper = () => {
               </div>
             </div>
             
-            <div>
-              <div className="bg-white rounded-xl p-6 shadow-sm border h-full dark:bg-slate-900 dark:border-slate-800">
+            <div className={`${isMobile && result ? 'hidden' : ''}`}>
+              <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border h-full dark:bg-slate-900 dark:border-slate-800">
                 <h2 className="text-lg font-medium mb-4 dark:text-white">Assignment Tips</h2>
                 <ul className="space-y-3">
                   <li className="flex gap-2 text-sm">
@@ -205,7 +192,7 @@ const AssignmentHelper = () => {
           </div>
           
           {result && (
-            <div className="mt-6 bg-white rounded-xl p-6 shadow-sm border dark:bg-slate-900 dark:border-slate-800">
+            <div className="mt-4 md:mt-6 bg-white rounded-xl p-4 md:p-6 shadow-sm border dark:bg-slate-900 dark:border-slate-800">
               <h2 className="text-lg font-medium mb-4 dark:text-white">Assignment Analysis</h2>
               <div className="prose prose-slate max-w-none dark:prose-invert">
                 {renderFormattedText(result)}

@@ -16,7 +16,7 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
   const [result, setResult] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const processQuery = async (query: string, category: AICategory = 'default') => {
+  const processQuery = async (query: string, category: AICategory = 'default', additionalData?: any) => {
     if (!query.trim()) {
       toast.error("Please enter a query");
       return null;
@@ -31,19 +31,22 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
     setResult(null);
 
     try {
-      // Call the Supabase Edge Function to process the query
+      // Call the Supabase Edge Function to process the query with the specific category context
       const { data, error } = await supabase.functions.invoke('process-ai-query', {
         body: {
           query,
           userId: user.id,
-          category
+          category,
+          additionalData
         }
       });
 
       if (error) throw new Error(error.message);
 
+      // Save response in state and call success callback
       setResult(data.answer);
       options?.onSuccess?.(data);
+      
       return data.answer;
     } catch (error) {
       console.error('Error processing AI query:', error);
@@ -56,8 +59,68 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
     }
   };
 
+  // New function for document analysis
+  const processDocuments = async (files: File[], query: string) => {
+    if (!user) {
+      toast.error("You must be logged in to use this feature");
+      return null;
+    }
+
+    setIsProcessing(true);
+    setResult(null);
+
+    try {
+      // First, upload files to storage
+      const uploadPromises = files.map(async (file) => {
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('course-materials')
+          .upload(filePath, file);
+
+        if (uploadError) throw new Error(`Error uploading ${file.name}: ${uploadError.message}`);
+        
+        return {
+          filename: file.name,
+          filePath,
+          contentType: file.type
+        };
+      });
+      
+      const uploadedFiles = await Promise.all(uploadPromises);
+      
+      // Then process them via the edge function
+      const { data, error } = await supabase.functions.invoke('process-ai-query', {
+        body: {
+          query,
+          userId: user.id,
+          category: 'course-tutor',
+          additionalData: {
+            files: uploadedFiles
+          }
+        }
+      });
+
+      if (error) throw new Error(error.message);
+      
+      setResult(data.answer);
+      options?.onSuccess?.(data);
+      return data.answer;
+    } catch (error) {
+      console.error('Error processing documents:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to analyze documents';
+      toast.error(errorMessage);
+      options?.onError?.(error instanceof Error ? error : new Error(String(error)));
+      return null;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return {
     processQuery,
+    processDocuments,
     isProcessing,
     result
   };

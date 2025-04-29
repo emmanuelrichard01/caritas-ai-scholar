@@ -31,6 +31,7 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
     setResult(null);
 
     try {
+      // Call the Supabase Edge Function to process the query
       const { data, error } = await supabase.functions.invoke('process-ai-query', {
         body: {
           query,

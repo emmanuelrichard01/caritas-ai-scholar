@@ -1,14 +1,25 @@
 
-import { History, MessageSquare, Settings, Book, Calendar, FileText, Search, Moon, Sun, ChevronLeft, ChevronRight } from "lucide-react";
+import { History, MessageSquare, Settings, Book, Calendar, FileText, Search, Moon, Sun, ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 const Navigation = () => {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const { user, profile, signOut } = useAuth();
 
   useEffect(() => {
     // Check if user has a theme preference saved
@@ -33,6 +44,16 @@ const Navigation = () => {
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.info("You have been signed out");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out");
+    }
   };
   
   return (
@@ -62,10 +83,11 @@ const Navigation = () => {
             <MessageSquare className="h-4 w-4 text-white" />
           </div>
         )}
+        {/* Hide on mobile screens */}
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 absolute right-[-12px] top-[28px] bg-background dark:bg-slate-900 shadow border z-50"
+          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 absolute right-[-12px] top-[28px] bg-background dark:bg-slate-900 shadow border z-50 hidden md:flex"
           onClick={toggleSidebar}
         >
           {isCollapsed ? (
@@ -201,6 +223,42 @@ const Navigation = () => {
             {!isCollapsed && <span>Settings</span>}
           </Button>
         </Link>
+        
+        {/* User profile section */}
+        {user && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className={cn(
+                  "transition-colors mt-2",
+                  isCollapsed ? "w-10 h-10 p-0 justify-center mx-auto" : "w-full justify-start gap-2"
+                )}
+              >
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={profile?.avatar_url ?? undefined} alt={profile?.full_name ?? user.email} />
+                  <AvatarFallback>
+                    {profile?.full_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {!isCollapsed && (
+                  <span className="truncate">{profile?.full_name ?? user.email}</span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="flex flex-col space-y-1 p-2">
+                <p className="text-sm font-medium leading-none">{profile?.full_name ?? "User"}</p>
+                <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </div>
   );

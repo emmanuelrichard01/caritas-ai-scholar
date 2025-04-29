@@ -29,11 +29,8 @@ export const useAuth = () => {
           setProfile(null);
         }
         
-        // Handle auth events
-        if (event === 'SIGNED_IN') {
-          // Let the user know they've successfully signed in
-          toast.success('Successfully signed in');
-        } else if (event === 'SIGNED_OUT') {
+        // Handle auth events - only show toast on signout to avoid duplicate messages
+        if (event === 'SIGNED_OUT') {
           // Clear user data and notify
           toast.info('You have been signed out');
         }

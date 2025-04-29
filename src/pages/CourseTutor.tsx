@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,14 @@ const CourseTutor = () => {
   // Check if storage bucket exists, create if not
   const checkAndCreateBucket = async () => {
     try {
-      const { data: buckets } = await supabase.storage.getBuckets();
+      // Fix: Use listBuckets() instead of getBuckets()
+      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+      
+      if (listError) {
+        console.error("Error listing buckets:", listError);
+        return;
+      }
+      
       const bucketExists = buckets?.some(bucket => bucket.name === 'course-materials');
       
       if (!bucketExists) {

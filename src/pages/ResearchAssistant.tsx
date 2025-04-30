@@ -96,7 +96,7 @@ const ResearchAssistant = () => {
           {result && (
             <Card className="p-4 md:p-6 dark:bg-slate-900">
               <h2 className="text-lg font-medium mb-3 dark:text-white">Research Insights</h2>
-              <AIResponseDisplay content={result} />
+              <AIResponseDisplay content={result} isProcessing={isProcessing} />
             </Card>
           )}
           
@@ -104,7 +104,7 @@ const ResearchAssistant = () => {
             <div className="space-y-3">
               <h2 className="text-lg font-medium dark:text-white">Scholarly Resources</h2>
               {searchResults.map((result, index) => (
-                <ResearchResult key={index} result={result} />
+                <ResearchResult key={index} result={result} onSave={() => saveArticle(result)} />
               ))}
             </div>
           )}

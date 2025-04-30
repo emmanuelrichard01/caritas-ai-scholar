@@ -121,7 +121,7 @@ Question: ${query}
           </Card>
           
           {result && (
-            <AIResponseDisplay content={result} />
+            <AIResponseDisplay content={result} isProcessing={isProcessing} />
           )}
         </div>
         

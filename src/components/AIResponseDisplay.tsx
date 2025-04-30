@@ -5,11 +5,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 interface AIResponseDisplayProps {
-  isProcessing: boolean;
-  results: string | null;
+  content: string;
+  isProcessing?: boolean;
 }
 
-export const AIResponseDisplay = ({ isProcessing, results }: AIResponseDisplayProps) => {
+export const AIResponseDisplay = ({ content, isProcessing = false }: AIResponseDisplayProps) => {
   const [feedbackGiven, setFeedbackGiven] = useState<'liked' | 'disliked' | null>(null);
   
   if (isProcessing) {
@@ -25,10 +25,10 @@ export const AIResponseDisplay = ({ isProcessing, results }: AIResponseDisplayPr
     );
   }
   
-  if (!results) return null;
+  if (!content) return null;
   
   const handleCopyToClipboard = () => {
-    navigator.clipboard.writeText(results);
+    navigator.clipboard.writeText(content);
     toast.success("Copied to clipboard");
   };
   
@@ -54,7 +54,7 @@ export const AIResponseDisplay = ({ isProcessing, results }: AIResponseDisplayPr
       </div>
       
       <div className="prose prose-slate max-w-none dark:prose-invert">
-        {results.split('\n').map((paragraph, index) => {
+        {content.split('\n').map((paragraph, index) => {
           // Handle bullet points and other formatting
           if (paragraph.startsWith('•') || paragraph.startsWith('-')) {
             return (

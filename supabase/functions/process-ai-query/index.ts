@@ -195,53 +195,145 @@ async function callOpenAI(systemPrompt: string, userPrompt: string, maxTokens = 
   }
 }
 
+/**
+ * Enhanced file content extraction function with improved document handling
+ */
 async function extractFileContents(files: any[], userId: string) {
   try {
     console.log(`Extracting content from ${files.length} files for user ${userId}`);
     
     let allContent = '';
+    const maxContentPerFile = 50000; // Limit content per file to prevent token limits
     
     for (const file of files) {
       try {
-        // Download file from Supabase storage
-        console.log(`Downloading file: ${file.filePath}`);
+        console.log(`Processing file: ${file.filename} (${file.contentType})`);
         
-        const downloadResponse = await fetch(`${supabaseUrl}/storage/v1/object/public/course-materials/${file.filePath}`, {
+        // Download file from Supabase storage
+        const downloadUrl = `${supabaseUrl}/storage/v1/object/public/course-materials/${file.filePath}`;
+        console.log(`Downloading from: ${downloadUrl}`);
+        
+        const downloadResponse = await fetch(downloadUrl, {
           headers: {
             'Authorization': `Bearer ${supabaseKey}`,
           },
         });
         
         if (!downloadResponse.ok) {
-          console.error(`Failed to download file ${file.filename}:`, await downloadResponse.text());
+          const errorText = await downloadResponse.text();
+          console.error(`Failed to download file ${file.filename}: ${downloadResponse.status} ${errorText}`);
+          allContent += `[Could not access file: ${file.filename}]\n\n`;
           continue;
         }
 
         // Get file content based on type
-        let content = '';
         const fileBlob = await downloadResponse.blob();
+        let content = '';
         
+        // Process file based on content type
         if (file.contentType.includes('text/plain')) {
+          // Plain text handling
           content = await fileBlob.text();
-        } else {
-          // For non-text files, we'll include basic metadata
-          content = `[File: ${file.filename} - ${file.contentType} - Size: ${(file.size / 1024).toFixed(2)} KB]\n`;
+          content = content.substring(0, maxContentPerFile);
           
-          // Add a note about processing limitations
-          if (file.contentType.includes('pdf') || file.contentType.includes('doc') || file.contentType.includes('presentation')) {
-            content += "Note: Full document content extraction for this file type is limited in the current system.\n";
+        } else if (file.contentType.includes('pdf')) {
+          // For PDF files, we'll extract metadata and mention limitations
+          content = `[PDF Document: ${file.filename}]\n`;
+          content += `File size: ${(file.size / 1024).toFixed(2)} KB\n`;
+          content += "Basic PDF text extraction:\n\n";
+          
+          // Attempt to get some text from the PDF by extracting it as text
+          try {
+            const pdfText = await fileBlob.text();
+            // Try to extract readable text by removing binary content
+            const cleanedText = pdfText
+              .replace(/[^\x20-\x7E\n\r\t]/g, ' ') // Remove non-printable characters
+              .replace(/\s+/g, ' ') // Normalize whitespace
+              .trim();
+              
+            if (cleanedText.length > 100) {
+              // If we got meaningful text, add it
+              content += cleanedText.substring(0, maxContentPerFile);
+            } else {
+              content += "[PDF content could not be extracted effectively. This appears to be a scanned or image-based PDF.]\n";
+            }
+          } catch (pdfError) {
+            console.error(`Error extracting PDF text: ${pdfError}`);
+            content += "[PDF text extraction failed]\n";
           }
+          
+        } else if (file.contentType.includes('word') || file.contentType.includes('document')) {
+          // Word document handling - extract as text and try to clean it
+          content = `[Word Document: ${file.filename}]\n`;
+          content += `File size: ${(file.size / 1024).toFixed(2)} KB\n\n`;
+          
+          try {
+            // Try to get text representation
+            const rawText = await fileBlob.text();
+            // Clean up Word-specific formatting
+            const cleanedText = rawText
+              .replace(/\{\\[^{}]*\}/g, '') // Remove RTF commands
+              .replace(/[^\x20-\x7E\n\r\t]/g, ' ') // Remove non-printable chars
+              .replace(/\s+/g, ' ') // Normalize whitespace
+              .trim();
+              
+            if (cleanedText.length > 100) {
+              content += cleanedText.substring(0, maxContentPerFile);
+            } else {
+              content += "[Document content extraction limited. The file may be in a format that requires specialized processing.]\n";
+            }
+          } catch (docError) {
+            console.error(`Error extracting document text: ${docError}`);
+            content += "[Document text extraction failed]\n";
+          }
+          
+        } else if (file.contentType.includes('presentation')) {
+          // PowerPoint handling
+          content = `[Presentation: ${file.filename}]\n`;
+          content += `File size: ${(file.size / 1024).toFixed(2)} KB\n\n`;
+          content += "[Presentation content extraction is limited. Only basic text could be extracted.]\n\n";
+          
+          try {
+            const rawText = await fileBlob.text();
+            const cleanedText = rawText
+              .replace(/[^\x20-\x7E\n\r\t]/g, ' ') // Remove non-printable chars
+              .replace(/\s+/g, ' ') // Normalize whitespace
+              .trim();
+              
+            if (cleanedText.length > 100) {
+              content += cleanedText.substring(0, maxContentPerFile);
+            } else {
+              content += "[Limited presentation content could be extracted]\n";
+            }
+          } catch (pptError) {
+            console.error(`Error extracting presentation text: ${pptError}`);
+            content += "[Presentation text extraction failed]\n";
+          }
+          
+        } else {
+          // For other file types, just include metadata
+          content = `[File: ${file.filename} - ${file.contentType} - Size: ${(file.size / 1024).toFixed(2)} KB]\n`;
+          content += "Note: Full content extraction is not supported for this file format.\n";
         }
         
+        // Append content with file dividers
         allContent += `--- START OF ${file.filename} ---\n${content}\n--- END OF ${file.filename} ---\n\n`;
+        
       } catch (fileError) {
         console.error(`Error processing file ${file.filename}:`, fileError);
+        allContent += `[Error processing file ${file.filename}: ${fileError.message}]\n\n`;
       }
     }
     
-    return allContent || "No content could be extracted from the uploaded files.";
+    if (!allContent.trim()) {
+      return "No content could be extracted from the uploaded files. Please try uploading files in a different format.";
+    }
+    
+    console.log(`Successfully extracted content from files, total length: ${allContent.length} characters`);
+    return allContent;
+    
   } catch (error) {
-    console.error('Error extracting file contents:', error);
-    return 'Error: Could not extract file contents.';
+    console.error('Error in extractFileContents function:', error);
+    return 'Error: Could not extract file contents. ' + (error instanceof Error ? error.message : String(error));
   }
 }

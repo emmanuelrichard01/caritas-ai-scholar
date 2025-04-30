@@ -1,10 +1,11 @@
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Bot, User } from "lucide-react";
+import { Send, Bot, User, Info, AlertTriangle, Loader2 } from "lucide-react";
 import { useAIProcessor } from "@/hooks/useAIProcessor";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -21,6 +22,15 @@ export const ChatbotComponent = ({ materialContext }: ChatbotComponentProps) => 
   ]);
   const [userInput, setUserInput] = useState('');
   const { processQuery, isProcessing } = useAIProcessor();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
   
   const handleSendMessage = async () => {
     if (!userInput.trim()) return;
@@ -50,17 +60,40 @@ export const ChatbotComponent = ({ materialContext }: ChatbotComponentProps) => 
   };
   
   return (
-    <Card className="p-4 md:p-6 dark:bg-slate-900">
-      <h3 className="text-lg font-medium mb-3 dark:text-white">Ask about your materials</h3>
+    <Card className="p-4 md:p-6 dark:bg-slate-900 flex flex-col h-full">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-lg font-medium dark:text-white flex items-center">
+          Ask about your materials
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-blue-500 ml-2 cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              Ask specific questions about your uploaded learning materials. I'll provide personalized answers based on your content.
+            </TooltipContent>
+          </Tooltip>
+        </h3>
+        
+        {materialContext ? (
+          <span className="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+            Materials loaded
+          </span>
+        ) : (
+          <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-full flex items-center">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            No materials
+          </span>
+        )}
+      </div>
       
-      <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-3 h-64 mb-4 overflow-y-auto">
+      <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-3 flex-grow mb-4 overflow-y-auto">
         {messages.map((message, index) => (
           <div 
             key={index} 
             className={`mb-3 flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div 
-              className={`max-w-[75%] p-3 rounded-lg ${
+              className={`max-w-[80%] p-3 rounded-lg ${
                 message.role === 'user' 
                   ? 'bg-blue-600 text-white ml-4' 
                   : 'bg-white dark:bg-slate-700 dark:text-white mr-4'
@@ -82,39 +115,44 @@ export const ChatbotComponent = ({ materialContext }: ChatbotComponentProps) => 
         ))}
         {isProcessing && (
           <div className="flex justify-start mb-3">
-            <div className="bg-white dark:bg-slate-700 p-3 rounded-lg max-w-[75%] dark:text-white">
+            <div className="bg-white dark:bg-slate-700 p-3 rounded-lg max-w-[80%] dark:text-white">
               <div className="flex items-center">
                 <Bot className="h-4 w-4 mr-1 text-blue-500 dark:text-blue-400" />
                 <span className="text-xs font-medium">Study Assistant</span>
               </div>
               <div className="flex items-center mt-2">
-                <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></div>
-                <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse mx-1 [animation-delay:0.2s]"></div>
-                <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse [animation-delay:0.4s]"></div>
+                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                <span className="text-xs ml-2">Analyzing your materials...</span>
               </div>
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
       
       <div className="flex gap-2">
         <Input
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
-          placeholder="Ask a question..."
+          placeholder={materialContext ? "Ask about your materials..." : "Upload materials first, then ask questions..."}
           onKeyPress={handleKeyPress}
-          disabled={isProcessing}
+          disabled={isProcessing || !materialContext}
           className="dark:border-slate-700 dark:bg-slate-800 dark:text-white"
         />
         <Button 
           onClick={handleSendMessage} 
-          disabled={isProcessing || !userInput.trim()}
+          disabled={isProcessing || !userInput.trim() || !materialContext}
           className="bg-blue-600 hover:bg-blue-700"
         >
           <Send className="h-4 w-4" />
         </Button>
       </div>
+      
+      {!materialContext && (
+        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+          Please upload study materials and generate notes first to enable the chat feature.
+        </p>
+      )}
     </Card>
   );
 };
-

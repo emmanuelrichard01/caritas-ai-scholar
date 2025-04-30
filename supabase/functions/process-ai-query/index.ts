@@ -27,6 +27,18 @@ serve(async (req) => {
       );
     }
     
+    // Check if OpenAI API key is available
+    if (!openAIApiKey) {
+      console.error('OpenAI API key is not configured');
+      return new Response(
+        JSON.stringify({ 
+          answer: "I'm sorry, but the AI service is not properly configured. Please contact the administrator to set up the OpenAI API key.",
+          error: "API_KEY_MISSING" 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     // Different handling based on category
     switch (category) {
       case 'course-tutor':
@@ -43,8 +55,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing query:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to process query' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        answer: "I encountered an error while processing your request. Please try again later.",
+        error: error.message || 'Failed to process query' 
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
@@ -52,25 +67,36 @@ serve(async (req) => {
 async function processCourseQuery(query: string, userId: string, additionalData: any) {
   // Handle processing course materials if files are provided
   if (additionalData?.files?.length > 0) {
-    const fileContents = await extractFileContents(additionalData.files, userId);
-    let systemPrompt = "You are an educational AI assistant that helps students understand course materials. ";
-    
-    if (fileContents.length > 0) {
-      systemPrompt += "Analyze the following content from the uploaded materials and provide a comprehensive, well-structured response.";
-    } else {
-      systemPrompt += "The user has uploaded files but their content couldn't be extracted properly. Try to help based on the query alone.";
-    }
+    try {
+      const fileContents = await extractFileContents(additionalData.files, userId);
+      let systemPrompt = "You are an educational AI assistant that helps students understand course materials. ";
+      
+      if (fileContents.length > 0) {
+        systemPrompt += "Analyze the following content from the uploaded materials and provide a comprehensive, well-structured response.";
+      } else {
+        systemPrompt += "The user has uploaded files but their content couldn't be extracted properly. Try to help based on the query alone.";
+      }
 
-    const response = await callOpenAI(
-      systemPrompt,
-      `${fileContents}\n\nUser Query: ${query}`,
-      1500
-    );
-    
-    return new Response(
-      JSON.stringify({ answer: response }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      const response = await callOpenAI(
+        systemPrompt,
+        `${fileContents}\n\nUser Query: ${query}`,
+        1500
+      );
+      
+      return new Response(
+        JSON.stringify({ answer: response }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (error) {
+      console.error('Error processing file content:', error);
+      return new Response(
+        JSON.stringify({ 
+          answer: "I had trouble analyzing your documents. Could you try uploading them again or rephrasing your question?",
+          error: error.message  
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
   } else {
     // Handle direct questions about course concepts
     const systemPrompt = "You are an educational AI assistant that helps students understand course materials and academic concepts.";
@@ -128,6 +154,10 @@ async function callOpenAI(systemPrompt: string, userPrompt: string, maxTokens = 
     console.log(`Calling OpenAI with system prompt: ${systemPrompt.substring(0, 50)}...`);
     console.log(`User prompt length: ${userPrompt.length} characters`);
     
+    if (!openAIApiKey) {
+      return "I apologize, but the AI service is not properly configured. Please contact the administrator to set up the OpenAI API key.";
+    }
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -145,17 +175,23 @@ async function callOpenAI(systemPrompt: string, userPrompt: string, maxTokens = 
       }),
     });
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('OpenAI API error:', errorData);
+      return "I encountered an error when generating a response. Please try again later.";
+    }
+
     const data = await response.json();
     
     if (data.error) {
       console.error('OpenAI API error:', data.error);
-      throw new Error(data.error.message || 'OpenAI API error');
+      return `I encountered an error: ${data.error.message || 'Unknown error'}. Please try again later.`;
     }
     
     return data.choices[0].message.content;
   } catch (error) {
     console.error('Error calling OpenAI:', error);
-    throw error;
+    return "I encountered an error when generating a response. Please try again later.";
   }
 }
 
@@ -188,9 +224,13 @@ async function extractFileContents(files: any[], userId: string) {
         if (file.contentType.includes('text/plain')) {
           content = await fileBlob.text();
         } else {
-          // For non-text files (like PDFs, DOCs), we could use external APIs to extract text
-          // But for now, just include the file name
-          content = `[Content from ${file.filename} - ${file.contentType}]\n`;
+          // For non-text files, we'll include basic metadata
+          content = `[File: ${file.filename} - ${file.contentType} - Size: ${(file.size / 1024).toFixed(2)} KB]\n`;
+          
+          // Add a note about processing limitations
+          if (file.contentType.includes('pdf') || file.contentType.includes('doc') || file.contentType.includes('presentation')) {
+            content += "Note: Full document content extraction for this file type is limited in the current system.\n";
+          }
         }
         
         allContent += `--- START OF ${file.filename} ---\n${content}\n--- END OF ${file.filename} ---\n\n`;
@@ -199,9 +239,9 @@ async function extractFileContents(files: any[], userId: string) {
       }
     }
     
-    return allContent;
+    return allContent || "No content could be extracted from the uploaded files.";
   } catch (error) {
     console.error('Error extracting file contents:', error);
-    return '';
+    return 'Error: Could not extract file contents.';
   }
 }

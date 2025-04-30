@@ -4,12 +4,13 @@ import { Book, Search, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useAIProcessor } from "@/hooks/useAIProcessor";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PageLayout } from "@/components/PageLayout";
 import { FileUploader } from "@/components/FileUploader";
 import { AIResponseDisplay } from "@/components/AIResponseDisplay";
+import { StudyToolTabs } from "@/components/studytools/StudyToolTabs";
+import { useStudyMaterials } from "@/hooks/useStudyMaterials";
 import { 
   Accordion, 
   AccordionContent, 
@@ -20,20 +21,23 @@ import {
 const CourseTutor = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<string | null>(null);
   const { user } = useAuth();
   const isMobile = useIsMobile();
-  const { processDocuments, isProcessing } = useAIProcessor({
-    onSuccess: (data) => {
-      setResults(data.answer);
-    }
-  });
+  
+  const {
+    isGenerating,
+    notes,
+    flashcards,
+    quizQuestions,
+    materialContext,
+    generateStudyMaterials
+  } = useStudyMaterials();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!query.trim()) {
-      toast.error("Please enter a question");
+      toast.error("Please enter a focus area for your study materials");
       return;
     }
     
@@ -42,14 +46,13 @@ const CourseTutor = () => {
       return;
     }
     
-    setResults(null);
-    await processDocuments(files, query);
+    await generateStudyMaterials(files, query);
   };
 
   return (
     <PageLayout
       title="Course Concept Tutor"
-      subtitle="Upload course materials and get AI explanations"
+      subtitle="Transform your course materials into interactive study aids"
       icon={<Book className="h-6 w-6" />}
     >
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -65,39 +68,41 @@ const CourseTutor = () => {
           </div>
           
           <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border dark:bg-slate-900 dark:border-slate-800">
-            <h2 className="text-lg font-medium mb-4 dark:text-white">Ask About Your Course</h2>
+            <h2 className="text-lg font-medium mb-4 dark:text-white">Generate Study Materials</h2>
             
             <form onSubmit={handleSubmit}>
               <div className="flex flex-col md:flex-row gap-2">
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Ask a question about your course material..."
+                  placeholder="What would you like to focus on? (e.g., 'key concepts in chapter 3')"
                   className="dark:border-slate-700 dark:bg-slate-800 dark:text-white flex-1"
                 />
                 <Button 
                   type="submit" 
-                  disabled={isProcessing || files.length === 0}
-                  className={isMobile ? "w-full" : ""}
+                  disabled={isGenerating || files.length === 0}
+                  className={`${isMobile ? "w-full" : ""} bg-blue-600 hover:bg-blue-700`}
                 >
-                  {isProcessing ? (
+                  {isGenerating ? (
                     <>
                       <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                      Processing...
+                      Generating...
                     </>
                   ) : (
                     <>
                       <Search className="h-4 w-4 mr-2" />
-                      Search
+                      Generate Materials
                     </>
                   )}
                 </Button>
               </div>
             </form>
             
-            <AIResponseDisplay 
-              isProcessing={isProcessing} 
-              results={results} 
+            <StudyToolTabs 
+              notes={notes}
+              flashcards={flashcards}
+              quizQuestions={quizQuestions}
+              materialContext={materialContext}
             />
           </div>
         </div>
@@ -111,40 +116,40 @@ const CourseTutor = () => {
             
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">
-                <AccordionTrigger className="text-sm">What files can I upload?</AccordionTrigger>
+                <AccordionTrigger className="text-sm">Study Material Generation</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    You can upload PDF, DOC, DOCX, PPT, PPTX, and TXT files. The maximum file size is 20MB per file, with a limit of 5 files per query.
+                    Our AI analyzes your course materials and transforms them into structured notes, flashcards, and quizzes. It extracts key concepts, definitions, and important points to help you learn efficiently.
                   </p>
                 </AccordionContent>
               </AccordionItem>
               
               <AccordionItem value="item-2">
-                <AccordionTrigger className="text-sm">How to get the best results?</AccordionTrigger>
+                <AccordionTrigger className="text-sm">Interactive Study Tools</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Upload clear, well-formatted documents with relevant information. Ask specific questions rather than broad ones. For example, instead of "Tell me about this course," try "Explain the concept of polymorphism discussed on page 3."
+                    Use the generated notes for comprehensive review, flashcards for memorization, and quizzes to test your understanding. You can also chat with our AI to ask specific questions about your materials.
                   </p>
                 </AccordionContent>
               </AccordionItem>
               
               <AccordionItem value="item-3">
-                <AccordionTrigger className="text-sm">Is my data secure?</AccordionTrigger>
+                <AccordionTrigger className="text-sm">Supported File Types</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Yes! Your uploaded files and questions are only accessible to you. Files are stored securely with row-level security ensuring only you can access your own documents.
+                    Upload PDF, DOC, DOCX, PPT, PPTX, and TXT files. The maximum file size is 20MB per file, with a limit of 5 files per generation.
                   </p>
                 </AccordionContent>
               </AccordionItem>
               
               <AccordionItem value="item-4">
-                <AccordionTrigger className="text-sm">Example questions to ask</AccordionTrigger>
+                <AccordionTrigger className="text-sm">Tips for Best Results</AccordionTrigger>
                 <AccordionContent>
                   <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-2 list-disc pl-5">
-                    <li>Explain the key concepts in chapter 3</li>
-                    <li>Summarize the main points about neural networks</li>
-                    <li>What are the differences between X and Y discussed in the document?</li>
-                    <li>Create a study guide based on these materials</li>
+                    <li>Use clear, well-formatted documents</li>
+                    <li>Be specific in your focus area query</li>
+                    <li>Upload related materials for comprehensive study aids</li>
+                    <li>For complex subjects, focus on one topic at a time</li>
                   </ul>
                 </AccordionContent>
               </AccordionItem>

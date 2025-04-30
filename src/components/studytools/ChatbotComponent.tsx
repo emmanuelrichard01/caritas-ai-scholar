@@ -25,22 +25,21 @@ export const ChatbotComponent = ({ materialContext }: ChatbotComponentProps) => 
   const handleSendMessage = async () => {
     if (!userInput.trim()) return;
     
-    const newMessages = [
-      ...messages,
-      { role: 'user', content: userInput }
-    ];
+    const userMessage: Message = { role: 'user', content: userInput };
+    const newMessages = [...messages, userMessage];
     
     setMessages(newMessages);
     setUserInput('');
     
     // Process the query with the AI
-    const response = await processQuery(`Context from learning materials: ${materialContext}\n\nQuestion: ${userInput}`, 'course-tutor');
+    const response = await processQuery(
+      `Context from learning materials: ${materialContext}\n\nQuestion: ${userInput}`, 
+      'course-tutor'
+    );
     
     if (response) {
-      setMessages([
-        ...newMessages,
-        { role: 'assistant', content: response }
-      ]);
+      const assistantMessage: Message = { role: 'assistant', content: response };
+      setMessages([...newMessages, assistantMessage]);
     }
   };
   
@@ -118,3 +117,4 @@ export const ChatbotComponent = ({ materialContext }: ChatbotComponentProps) => 
     </Card>
   );
 };
+

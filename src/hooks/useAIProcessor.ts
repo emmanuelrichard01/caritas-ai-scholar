@@ -47,6 +47,9 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
       setResult(data.answer);
       options?.onSuccess?.(data);
       
+      // Save to history
+      await saveToHistory(query, data.answer, category);
+      
       return data.answer;
     } catch (error) {
       console.error('Error processing AI query:', error);
@@ -59,22 +62,52 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
     }
   };
 
-  // Process documents function - updated to ensure user ID is in the file path
+  // Process documents function with improved error handling and file management
   const processDocuments = async (files: File[], query: string) => {
     if (!user) {
       toast.error("You must be logged in to use this feature");
       return null;
     }
 
+    if (!query.trim()) {
+      toast.error("Please enter a question about your documents");
+      return null;
+    }
+
+    if (files.length === 0) {
+      toast.error("Please upload at least one document");
+      return null;
+    }
+
     setIsProcessing(true);
     setResult(null);
 
+    // Calculate total size of files for validation
+    const totalSizeMB = files.reduce((sum, file) => sum + file.size / (1024 * 1024), 0);
+    if (totalSizeMB > 20) { // 20MB limit
+      toast.error("Total file size exceeds 20MB limit");
+      setIsProcessing(false);
+      return null;
+    }
+
     try {
-      // First, upload files to storage with user ID as the first folder segment
+      // Validate file types
+      const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+                         'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/plain'];
+      
+      const invalidFiles = files.filter(file => !validTypes.includes(file.type));
+      if (invalidFiles.length > 0) {
+        toast.error(`Unsupported file format: ${invalidFiles[0].name}. Please use PDF, DOC, DOCX, PPT, PPTX or TXT files.`);
+        setIsProcessing(false);
+        return null;
+      }
+
+      // Upload files to storage with user ID as the first folder segment
       const uploadPromises = files.map(async (file) => {
         const fileExt = file.name.split('.').pop();
         // Ensure the user ID is the first folder segment in the path
-        const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+        const uniqueId = Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+        const filePath = `${user.id}/${uniqueId}.${fileExt}`;
         
         const { error: uploadError, data } = await supabase.storage
           .from('course-materials')
@@ -85,10 +118,12 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
         return {
           filename: file.name,
           filePath,
-          contentType: file.type
+          contentType: file.type,
+          size: file.size
         };
       });
       
+      toast.info(`Processing ${files.length} file(s)...`);
       const uploadedFiles = await Promise.all(uploadPromises);
       
       // Then process them via the edge function
@@ -105,9 +140,15 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
 
       if (error) throw new Error(error.message);
       
-      setResult(data.answer);
+      const answer = data.answer;
+      setResult(answer);
       options?.onSuccess?.(data);
-      return data.answer;
+      
+      // Save to history
+      await saveToHistory(query, answer, 'course-tutor', 
+        `Analyzed ${files.length} document(s): ${files.map(f => f.name).join(', ')}`);
+      
+      return answer;
     } catch (error) {
       console.error('Error processing documents:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to analyze documents';
@@ -116,6 +157,28 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
       return null;
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // Helper function to save interactions to history
+  const saveToHistory = async (query: string, answer: string, category: AICategory, metadata?: string) => {
+    if (!user) return;
+    
+    try {
+      const title = query.length > 50 ? `${query.substring(0, 47)}...` : query;
+      const content = `Q: ${query}\n\nA: ${answer}${metadata ? `\n\nContext: ${metadata}` : ''}`;
+      
+      await supabase
+        .from('chat_history')
+        .insert({
+          user_id: user.id,
+          title,
+          content,
+          category
+        });
+    } catch (error) {
+      console.error('Error saving to history:', error);
+      // Non-blocking error - don't show to user as it's not critical
     }
   };
 

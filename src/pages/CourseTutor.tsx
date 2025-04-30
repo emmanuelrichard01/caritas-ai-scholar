@@ -1,11 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Book, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAIProcessor } from "@/hooks/useAIProcessor";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PageLayout } from "@/components/PageLayout";
@@ -23,34 +22,6 @@ const CourseTutor = () => {
       setResults(data.answer);
     }
   });
-
-  // Check if storage bucket exists, create if not
-  useEffect(() => {
-    const checkAndCreateBucket = async () => {
-      try {
-        const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-        
-        if (listError) {
-          console.error("Error listing buckets:", listError);
-          return;
-        }
-        
-        const bucketExists = buckets?.some(bucket => bucket.name === 'course-materials');
-        
-        if (!bucketExists) {
-          const { error } = await supabase.storage.createBucket('course-materials', {
-            public: false
-          });
-          
-          if (error) console.error("Error creating bucket:", error);
-        }
-      } catch (error) {
-        console.error("Error checking buckets:", error);
-      }
-    };
-
-    checkAndCreateBucket();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

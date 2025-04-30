@@ -59,7 +59,7 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
     }
   };
 
-  // New function for document analysis
+  // Process documents function - updated to ensure user ID is in the file path
   const processDocuments = async (files: File[], query: string) => {
     if (!user) {
       toast.error("You must be logged in to use this feature");
@@ -70,12 +70,13 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
     setResult(null);
 
     try {
-      // First, upload files to storage
+      // First, upload files to storage with user ID as the first folder segment
       const uploadPromises = files.map(async (file) => {
         const fileExt = file.name.split('.').pop();
-        const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+        // Ensure the user ID is the first folder segment in the path
+        const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
         
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError, data } = await supabase.storage
           .from('course-materials')
           .upload(filePath, file);
 

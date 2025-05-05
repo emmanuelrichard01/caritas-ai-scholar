@@ -1,4 +1,3 @@
-
 import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -16,6 +15,7 @@ const StudyPlanner = lazy(() => import("./pages/StudyPlanner"));
 const ResearchAssistant = lazy(() => import("./pages/ResearchAssistant"));
 const History = lazy(() => import("./pages/History"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const GPACalculator = lazy(() => import("./pages/GPACalculator"));
 
 // Loading component
 const LoadingScreen = () => (
@@ -102,6 +102,14 @@ const App = () => (
               element={
                 <PrivateRoute>
                   <ResearchAssistant />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/gpa-calculator"
+              element={
+                <PrivateRoute>
+                  <GPACalculator />
                 </PrivateRoute>
               }
             />

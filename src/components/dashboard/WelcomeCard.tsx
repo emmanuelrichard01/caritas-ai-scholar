@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { BookOpen, BarChart2, CalendarIcon } from "lucide-react";
+import { BookOpen, BarChart2, CalendarIcon, Calculator } from "lucide-react";
 import { UserProfile } from "@/types/auth";
 
 interface WelcomeCardProps {
@@ -38,6 +38,12 @@ export const WelcomeCard = ({ profile, userEmail }: WelcomeCardProps) => {
           <Link to="/study-planner">
             <CalendarIcon className="mr-2 h-4 w-4" />
             Study Planner
+          </Link>
+        </Button>
+        <Button variant="secondary" asChild>
+          <Link to="/gpa-calculator">
+            <Calculator className="mr-2 h-4 w-4" />
+            GPA Calculator
           </Link>
         </Button>
       </div>

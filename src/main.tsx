@@ -4,21 +4,16 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-// Prevent anyone from redefining ethereum property
-if (typeof window !== 'undefined') {
-  // Only try to configure if not already defined as non-configurable
-  const descriptor = Object.getOwnPropertyDescriptor(window, 'ethereum');
-  
-  if (!descriptor || descriptor.configurable) {
-    // Only create ethereum property if it doesn't exist yet
-    if (!window.hasOwnProperty('ethereum')) {
-      Object.defineProperty(window, 'ethereum', {
-        value: undefined,
-        writable: true,
-        configurable: true,
-      });
-    }
-  } else {
+// Only try to configure if window.ethereum is undefined
+// This avoids errors when ethereum is already defined as non-configurable
+if (typeof window !== 'undefined' && window.ethereum === undefined) {
+  try {
+    Object.defineProperty(window, 'ethereum', {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
+  } catch (error) {
     console.log('Ethereum property already defined and not configurable, using existing definition');
   }
 }

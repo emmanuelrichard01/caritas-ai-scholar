@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
-import { ChatBubbleIcon, FileIcon, BookOpen, CircleCheck, CalendarIcon, BarChartIcon, SettingsIcon } from "lucide-react";
+import { MessageSquare, FileIcon, BookOpen, CircleCheck, CalendarIcon, BarChart2, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -102,10 +102,10 @@ const Dashboard = () => {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'course-tutor': return <BookOpen className="h-4 w-4" />;
-      case 'research': return <BarChartIcon className="h-4 w-4" />;
+      case 'research': return <BarChart2 className="h-4 w-4" />;
       case 'study-planner': return <CalendarIcon className="h-4 w-4" />;
       case 'assignment-helper': return <FileIcon className="h-4 w-4" />;
-      default: return <ChatBubbleIcon className="h-4 w-4" />;
+      default: return <MessageSquare className="h-4 w-4" />;
     }
   };
   
@@ -142,7 +142,7 @@ const Dashboard = () => {
             </Button>
             <Button variant="secondary" asChild>
               <Link to="/research">
-                <BarChartIcon className="mr-2 h-4 w-4" />
+                <BarChart2 className="mr-2 h-4 w-4" />
                 Research
               </Link>
             </Button>
@@ -160,7 +160,7 @@ const Dashboard = () => {
           <Card className="md:col-span-2">
             <div className="p-6">
               <h3 className="text-lg font-medium mb-4 flex items-center">
-                <BarChartIcon className="h-5 w-5 mr-2 text-purple-500" />
+                <BarChart2 className="h-5 w-5 mr-2 text-purple-500" />
                 Learning Activity
               </h3>
               
@@ -205,7 +205,7 @@ const Dashboard = () => {
                 </Button>
                 <Button variant="outline" className="w-full justify-start" asChild>
                   <Link to="/research">
-                    <BarChartIcon className="mr-2 h-4 w-4 text-green-500" />
+                    <BarChart2 className="mr-2 h-4 w-4 text-green-500" />
                     Research a Topic
                   </Link>
                 </Button>
@@ -223,7 +223,7 @@ const Dashboard = () => {
                 </Button>
                 <Button variant="outline" className="w-full justify-start" asChild>
                   <Link to="/settings">
-                    <SettingsIcon className="mr-2 h-4 w-4 text-gray-500" />
+                    <Settings className="mr-2 h-4 w-4 text-gray-500" />
                     Update Settings
                   </Link>
                 </Button>
@@ -261,7 +261,7 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                <ChatBubbleIcon className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+                <MessageSquare className="h-8 w-8 mx-auto text-gray-300 mb-2" />
                 <p>No recent activity found.</p>
                 <p className="text-sm text-gray-400 mt-1">
                   Your recent interactions will appear here.

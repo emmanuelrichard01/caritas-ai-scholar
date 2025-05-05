@@ -2,16 +2,10 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-// Default API key from the user input
 const OPENAI_API_KEY = "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";
 
 export const useApiConfig = () => {
   const [apiKey] = useState(OPENAI_API_KEY);
-
-  // This fixes the "Cannot redefine property: ethereum" error by preventing redefinition
-  if (typeof window !== 'undefined' && !Object.getOwnPropertyDescriptor(window, 'ethereum')?.configurable) {
-    console.log('Ethereum property already defined and not configurable, skipping definition');
-  }
 
   const getAiResponse = async (message: string) => {
     try {

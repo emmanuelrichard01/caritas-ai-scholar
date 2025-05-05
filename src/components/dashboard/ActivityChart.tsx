@@ -1,7 +1,7 @@
 
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { Card } from "@/components/ui/card";
-import { BarChart2 } from "lucide-react";
+import { BarChart2, BookOpen } from "lucide-react";
 
 interface ActivityData {
   category: string;

@@ -6,7 +6,8 @@ import {
   Calendar, 
   FileText, 
   Search, 
-  Settings 
+  Settings,
+  LayoutDashboard 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
@@ -21,6 +22,7 @@ export function NavigationItems({ isCollapsed }: NavigationItemsProps) {
   
   const navItems = [
     { path: "/", icon: MessageSquare, label: "New Chat", title: "New Chat" },
+    { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard", title: "User Dashboard" },
     { path: "/history", icon: History, label: "History", title: "History" },
     { path: "/course-tutor", icon: Book, label: "Course Tutor", title: "Course Concept Tutor" },
     { path: "/study-planner", icon: Calendar, label: "Study Planner", title: "Study Planner" },

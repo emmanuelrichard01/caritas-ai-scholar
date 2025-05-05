@@ -104,7 +104,7 @@ const ResearchAssistant = () => {
             <div className="space-y-3">
               <h2 className="text-lg font-medium dark:text-white">Scholarly Resources</h2>
               {searchResults.map((result, index) => (
-                <ResearchResult key={index} result={result} onSave={() => saveArticle(result)} />
+                <ResearchResult key={index} result={result} />
               ))}
             </div>
           )}

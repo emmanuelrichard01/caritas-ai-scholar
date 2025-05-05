@@ -16,6 +16,7 @@ const StudyPlanner = lazy(() => import("./pages/StudyPlanner"));
 const AssignmentHelper = lazy(() => import("./pages/AssignmentHelper"));
 const ResearchAssistant = lazy(() => import("./pages/ResearchAssistant"));
 const History = lazy(() => import("./pages/History"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 
 // Loading component
 const LoadingScreen = () => (
@@ -62,6 +63,14 @@ const App = () => (
               element={
                 <PrivateRoute>
                   <Index />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute>
+                  <Dashboard />
                 </PrivateRoute>
               }
             />

@@ -13,7 +13,6 @@ const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const CourseTutor = lazy(() => import("./pages/CourseTutor"));
 const StudyPlanner = lazy(() => import("./pages/StudyPlanner"));
-const AssignmentHelper = lazy(() => import("./pages/AssignmentHelper"));
 const ResearchAssistant = lazy(() => import("./pages/ResearchAssistant"));
 const History = lazy(() => import("./pages/History"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -95,14 +94,6 @@ const App = () => (
               element={
                 <PrivateRoute>
                   <StudyPlanner />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/assignment-helper"
-              element={
-                <PrivateRoute>
-                  <AssignmentHelper />
                 </PrivateRoute>
               }
             />

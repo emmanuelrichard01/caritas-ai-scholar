@@ -4,7 +4,6 @@ import {
   History, 
   Book, 
   Calendar, 
-  FileText, 
   Search, 
   Settings,
   LayoutDashboard 
@@ -26,7 +25,6 @@ export function NavigationItems({ isCollapsed }: NavigationItemsProps) {
     { path: "/history", icon: History, label: "History", title: "History" },
     { path: "/course-tutor", icon: Book, label: "Course Tutor", title: "Course Concept Tutor" },
     { path: "/study-planner", icon: Calendar, label: "Study Planner", title: "Study Planner" },
-    { path: "/assignment-helper", icon: FileText, label: "Assignments", title: "Assignment Helper" },
     { path: "/research", icon: Search, label: "Research", title: "Research Assistant" },
     { path: "/settings", icon: Settings, label: "Settings", title: "Settings" }
   ];

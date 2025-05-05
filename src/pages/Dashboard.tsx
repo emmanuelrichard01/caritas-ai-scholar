@@ -65,7 +65,6 @@ const Dashboard = () => {
           'course-tutor': '#4f46e5',
           'research': '#16a34a',
           'study-planner': '#ea580c',
-          'assignment-helper': '#0ea5e9',
           'default': '#8b5cf6',
         };
         
@@ -93,7 +92,6 @@ const Dashboard = () => {
       case 'course-tutor': return 'Course Tutor';
       case 'research': return 'Research';
       case 'study-planner': return 'Study Planner';
-      case 'assignment-helper': return 'Assignments';
       case 'default': return 'Chat';
       default: return category;
     }
@@ -104,7 +102,6 @@ const Dashboard = () => {
       case 'course-tutor': return <BookOpen className="h-4 w-4" />;
       case 'research': return <BarChart2 className="h-4 w-4" />;
       case 'study-planner': return <CalendarIcon className="h-4 w-4" />;
-      case 'assignment-helper': return <FileIcon className="h-4 w-4" />;
       default: return <MessageSquare className="h-4 w-4" />;
     }
   };
@@ -213,12 +210,6 @@ const Dashboard = () => {
                   <Link to="/study-planner">
                     <CalendarIcon className="mr-2 h-4 w-4 text-orange-500" />
                     Create Study Plan
-                  </Link>
-                </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link to="/assignment-helper">
-                    <FileIcon className="mr-2 h-4 w-4 text-blue-500" />
-                    Get Assignment Help
                   </Link>
                 </Button>
                 <Button variant="outline" className="w-full justify-start" asChild>

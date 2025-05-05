@@ -10,40 +10,6 @@ import { AIResponseDisplay } from "@/components/AIResponseDisplay";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-// Generate sample research results for demonstration
-const generateSampleResults = (query: string): ResearchResultItem[] => {
-  // Simplified mock function
-  return [
-    {
-      title: `Recent Advances in ${query}`,
-      authors: "Smith, J., Johnson, A., et al.",
-      journal: "Journal of Advanced Research",
-      year: "2024",
-      abstract: `This paper explores the latest developments in ${query}, with a focus on theoretical frameworks and practical applications.`,
-      link: "https://example.com/paper1",
-      relevance: 98
-    },
-    {
-      title: `A Comprehensive Review of ${query}`,
-      authors: "Williams, R., Brown, C., et al.",
-      journal: "International Journal of Science",
-      year: "2023",
-      abstract: `This literature review provides a thorough analysis of existing research on ${query}, identifying gaps and suggesting directions for future studies.`,
-      link: "https://example.com/paper2",
-      relevance: 95
-    },
-    {
-      title: `Empirical Studies on ${query}: A Meta-Analysis`,
-      authors: "Garcia, M., Davis, L., et al.",
-      journal: "Research Methodology Journal",
-      year: "2023",
-      abstract: `This meta-analysis synthesizes findings from 42 empirical studies on ${query}, revealing consistent patterns and contradictions in the literature.`,
-      link: "https://example.com/paper3",
-      relevance: 87
-    }
-  ];
-};
-
 const ResearchAssistant = () => {
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ResearchResultItem[]>([]);
@@ -60,9 +26,21 @@ const ResearchAssistant = () => {
       // Get AI-generated research insights
       await processQuery(query, "research");
       
-      // Generate sample search results
-      const results = generateSampleResults(query);
-      setSearchResults(results);
+      // Get real search results
+      const response = await fetch('/api/search-academic-results', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch research results");
+      }
+      
+      const data = await response.json();
+      setSearchResults(data.results || []);
     } catch (error) {
       console.error("Error processing research query:", error);
       toast.error("Failed to retrieve research results. Please try again.");
@@ -104,7 +82,11 @@ const ResearchAssistant = () => {
             <div className="space-y-3">
               <h2 className="text-lg font-medium dark:text-white">Scholarly Resources</h2>
               {searchResults.map((result, index) => (
-                <ResearchResult key={index} result={result} />
+                <ResearchResult 
+                  key={index} 
+                  result={result} 
+                  onSave={() => saveArticle(result)}
+                />
               ))}
             </div>
           )}

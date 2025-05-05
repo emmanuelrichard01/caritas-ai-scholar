@@ -14,9 +14,10 @@ export interface ResearchResultItem {
 
 interface ResearchResultProps {
   result: ResearchResultItem;
+  onSave: () => void;
 }
 
-export const ResearchResult = ({ result }: ResearchResultProps) => {
+export const ResearchResult = ({ result, onSave }: ResearchResultProps) => {
   return (
     <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border dark:bg-slate-900 dark:border-slate-800">
       <div className="flex flex-col md:flex-row md:justify-between gap-2 md:gap-0">
@@ -40,7 +41,12 @@ export const ResearchResult = ({ result }: ResearchResultProps) => {
           View full paper
           <ExternalLink className="h-3 w-3 ml-1" />
         </a>
-        <Button variant="outline" size="sm" className="text-xs h-8 dark:border-slate-700 dark:text-slate-300">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-xs h-8 dark:border-slate-700 dark:text-slate-300"
+          onClick={onSave}
+        >
           <BookOpen className="h-3 w-3 mr-1" />
           Save to Library
         </Button>

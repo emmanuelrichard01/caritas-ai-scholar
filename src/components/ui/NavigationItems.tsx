@@ -4,8 +4,7 @@ import {
   History, 
   Book, 
   Calendar, 
-  Search, 
-  Settings,
+  Search,
   LayoutDashboard 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,8 +24,8 @@ export function NavigationItems({ isCollapsed }: NavigationItemsProps) {
     { path: "/history", icon: History, label: "History", title: "History" },
     { path: "/course-tutor", icon: Book, label: "Course Tutor", title: "Course Concept Tutor" },
     { path: "/study-planner", icon: Calendar, label: "Study Planner", title: "Study Planner" },
-    { path: "/research", icon: Search, label: "Research", title: "Research Assistant" },
-    { path: "/settings", icon: Settings, label: "Settings", title: "Settings" }
+    { path: "/research", icon: Search, label: "Research", title: "Research Assistant" }
+    // Settings button removed as requested
   ];
   
   return (

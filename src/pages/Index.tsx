@@ -6,6 +6,7 @@ import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import Navigation from "@/components/Navigation";
+import { APIInfoDisplay } from "@/components/APIInfoDisplay";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -76,7 +77,7 @@ const Index = () => {
 
     try {
       // Use the edge function to process the query
-      const aiResponse = await processQuery(message);
+      const aiResponse = await processQuery(message, 'google-ai'); // Prioritize Google AI
       
       if (aiResponse) {
         const response = {
@@ -99,7 +100,7 @@ const Index = () => {
       console.error("Error getting AI response:", error);
       let errorMessage = "Sorry, I encountered an error processing your request. Please try again later.";
       
-      // Check if this is an OpenAI API quota exceeded error
+      // Check if this is an API quota exceeded error
       if (error instanceof Error && 
           (error.message.includes("quota") || 
            error.message.includes("capacity") || 
@@ -195,6 +196,13 @@ const Index = () => {
                 onSendMessage={handleSendMessage} 
                 disabled={isResponseLoading}
               />
+            </div>
+          )}
+          
+          {/* Add API Status Display */}
+          {!showWelcome && !isMobile && (
+            <div className="absolute bottom-20 right-4 z-10 w-80">
+              <APIInfoDisplay />
             </div>
           )}
         </div>

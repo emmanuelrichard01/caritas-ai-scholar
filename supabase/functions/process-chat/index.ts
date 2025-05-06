@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -7,6 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const googleAIKey = Deno.env.get('GOOGLE_AI_KEY') || 'AIzaSyDHnnACtYYBHf3Y1FMVv2jp-8l12MK7RUw';
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY') || '';
 
 serve(async (req) => {
@@ -25,86 +25,91 @@ serve(async (req) => {
       );
     }
     
-    // Check if OpenAI API key is available
-    if (!openAIApiKey) {
-      console.error('OpenAI API key is not configured');
-      
-      // Fallback to in-function response when OpenAI is not configured
-      const fallbackResponse = handleFallbackResponse(query);
-      
-      return new Response(
-        JSON.stringify({ answer: fallbackResponse }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Use OpenAI for response
+    // Try Google AI first as the primary option
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      console.log('Using Google AI Studio API');
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + googleAIKey, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You are an educational AI assistant that helps students with their academic needs. Provide helpful, accurate, and concise answers to their questions.' 
-            },
-            { role: 'user', content: query }
+          contents: [
+            {
+              parts: [
+                {
+                  text: `You are an educational AI assistant that helps students with their academic needs. Provide helpful, accurate, and concise answers to their questions.\n\nUser query: ${query}`
+                }
+              ]
+            }
           ],
-          temperature: 0.7,
-          max_tokens: 800,
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 800,
+            topP: 0.9
+          }
         }),
       });
-      
+
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('OpenAI API error:', errorData);
-        
-        // If quota exceeded, throw a specific error
-        if (errorData.error?.code === "insufficient_quota" || 
-            errorData.error?.type === "insufficient_quota" ||
-            errorData.error?.message.includes("quota")) {
-          throw new Error("OpenAI API quota exceeded: " + errorData.error.message);
-        }
-        
-        // Fallback to in-function response
-        const fallbackResponse = handleFallbackResponse(query);
-        return new Response(
-          JSON.stringify({ answer: fallbackResponse }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        const errorData = await response.text();
+        console.error('Google AI API error:', errorData);
+        throw new Error(`Google AI API error: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      const answer = data.choices[0].message.content;
+      const answer = data.candidates[0].content.parts[0].text;
       
       return new Response(
         JSON.stringify({ answer }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    } catch (error) {
-      console.error('OpenAI API call failed:', error.message);
+    } catch (googleError) {
+      console.error('Google AI error, falling back to OpenAI:', googleError.message);
       
-      // If quota exceeded, propagate the error
-      if (error.message && error.message.includes("quota")) {
-        return new Response(
-          JSON.stringify({ 
-            error: true,
-            answer: null,
-            message: "OpenAI API quota exceeded. Please try again later."
-          }),
-          { 
-            status: 429, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      // Fall back to OpenAI if configured
+      if (openAIApiKey) {
+        try {
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openAIApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: [
+                { 
+                  role: 'system', 
+                  content: 'You are an educational AI assistant that helps students with their academic needs. Provide helpful, accurate, and concise answers to their questions.' 
+                },
+                { role: 'user', content: query }
+              ],
+              temperature: 0.7,
+              max_tokens: 800,
+            }),
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('OpenAI API error:', errorData);
+            throw new Error("OpenAI API error");
           }
-        );
+          
+          const data = await response.json();
+          const answer = data.choices[0].message.content;
+          
+          return new Response(
+            JSON.stringify({ answer }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (openaiError) {
+          console.error('OpenAI fallback failed:', openaiError.message);
+          // Continue to fallback response
+        }
       }
       
-      // Fallback to in-function response
+      // Fallback to in-function response when both APIs fail
       const fallbackResponse = handleFallbackResponse(query);
       return new Response(
         JSON.stringify({ answer: fallbackResponse }),

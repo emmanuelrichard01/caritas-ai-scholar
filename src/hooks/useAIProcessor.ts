@@ -16,7 +16,7 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
   const [result, setResult] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const processQuery = async (query: string, category: AICategory = 'default', additionalData?: any) => {
+  const processQuery = async (query: string, category: AICategory = 'google-ai', additionalData?: any) => {
     if (!query.trim()) {
       toast.error("Please enter a query");
       return null;
@@ -31,19 +31,40 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
     setResult(null);
 
     try {
-      // Call the Supabase Edge Function to process the query with the specific category context
-      const { data, error } = await supabase.functions.invoke('process-ai-query', {
-        body: {
-          query,
-          userId: user.id,
-          category,
-          additionalData,
-          provider: category === 'google-ai' ? 'google' : (category === 'openrouter' ? 'openrouter' : 'default')
-        }
-      });
+      let response;
 
-      if (error) throw new Error(error.message);
+      // For simple queries, use the process-chat endpoint
+      if (category === 'default' || category === 'google-ai') {
+        response = await fetch('/api/process-chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query })
+        });
+      } else {
+        // For complex queries that require context, use process-ai-query
+        response = await supabase.functions.invoke('process-ai-query', {
+          body: {
+            query,
+            userId: user.id,
+            category,
+            additionalData,
+            provider: category === 'google-ai' ? 'google' : (category === 'openrouter' ? 'openrouter' : 'default')
+          }
+        });
+      }
 
+      if (response.error) throw new Error(response.error.message);
+
+      let data;
+      if (response instanceof Response) {
+        if (!response.ok) throw new Error("Failed to get AI response");
+        data = await response.json();
+      } else {
+        data = response.data;
+      }
+      
       // Save response in state and call success callback
       setResult(data.answer);
       options?.onSuccess?.(data);

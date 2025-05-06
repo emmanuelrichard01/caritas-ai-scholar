@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -8,23 +7,32 @@ const corsHeaders = {
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY') || '';
+const googleAIKey = Deno.env.get('GOOGLE_AI_KEY') || 'AIzaSyDHnnACtYYBHf3Y1FMVv2jp-8l12MK7RUw';
+const openRouterKey = Deno.env.get('OPENROUTER_KEY') || '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';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { query, userId, category, additionalData } = await req.json();
+    const { query, userId, category, additionalData, provider = 'default' } = await req.json();
     
     if (!query) {
       return new Response(
         JSON.stringify({ error: 'Query is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+    
+    // Select AI provider based on the request or category
+    if (provider === 'google' || category === 'google-ai') {
+      return await processGoogleAIQuery(query);
+    } else if (provider === 'openrouter' || category === 'openrouter') {
+      return await processOpenRouterQuery(query);
     }
     
     // Check if OpenAI API key is available
@@ -61,6 +69,107 @@ serve(async (req) => {
     );
   }
 });
+
+async function processGoogleAIQuery(query: string) {
+  try {
+    console.log('Processing with Google AI...');
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + googleAIKey, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: query
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 800,
+          topP: 0.9
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Google AI API error:', errorData);
+      throw new Error(`Google AI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text = data.candidates[0].content.parts[0].text;
+    
+    return new Response(
+      JSON.stringify({ answer: text }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Error calling Google AI:', error);
+    return new Response(
+      JSON.stringify({ 
+        answer: "I encountered an error when generating a response with Google AI. Please try again later.",
+        error: error.message
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+async function processOpenRouterQuery(query: string) {
+  try {
+    console.log('Processing with OpenRouter...');
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openRouterKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://lovable.ai', // Replace with your domain
+        'X-Title': 'Caritas'
+      },
+      body: JSON.stringify({
+        model: "anthropic/claude-3-haiku",
+        messages: [
+          { 
+            role: "system", 
+            content: "You are an educational AI assistant that helps students with their academic needs. Provide helpful, accurate, and concise answers to their questions."
+          },
+          { role: "user", content: query }
+        ],
+        temperature: 0.7,
+        max_tokens: 800,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('OpenRouter API error:', errorData);
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text = data.choices[0].message.content;
+    
+    return new Response(
+      JSON.stringify({ answer: text }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Error calling OpenRouter:', error);
+    return new Response(
+      JSON.stringify({ 
+        answer: "I encountered an error when generating a response with OpenRouter. Please try again later.",
+        error: error.message
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
 
 async function processCourseQuery(query: string, userId: string, additionalData: any) {
   // Handle processing course materials if files are provided
@@ -166,6 +275,15 @@ async function callOpenAI(systemPrompt: string, userPrompt: string, maxTokens = 
     if (!response.ok) {
       const errorData = await response.json();
       console.error('OpenAI API error:', errorData);
+      
+      // Check if this is an OpenAI API quota exceeded error
+      if (errorData.error && 
+          (errorData.error.code === "insufficient_quota" || 
+           errorData.error.type === "insufficient_quota" || 
+           (errorData.error.message && errorData.error.message.includes("quota")))) {
+        throw new Error("OpenAI API quota exceeded: " + (errorData.error.message || "Please try again later"));
+      }
+      
       return "I encountered an error when generating a response. Please try again later.";
     }
 
@@ -179,6 +297,12 @@ async function callOpenAI(systemPrompt: string, userPrompt: string, maxTokens = 
     return data.choices[0].message.content;
   } catch (error) {
     console.error('Error calling OpenAI:', error);
+    
+    // Re-throw quota errors specifically so they can be handled appropriately
+    if (error instanceof Error && error.message.includes("quota")) {
+      throw error;
+    }
+    
     return "I encountered an error when generating a response. Please try again later.";
   }
 }

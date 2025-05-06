@@ -10,6 +10,18 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { APIInfoDisplay } from "@/components/APIInfoDisplay";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { ChatHistoryItem } from "@/types/auth";
 
 const History = () => {
@@ -19,6 +31,7 @@ const History = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+  const [isClearing, setIsClearing] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch chat history with real-time updates
@@ -115,6 +128,28 @@ const History = () => {
     setEditTitle("");
   };
 
+  const handleClearAllHistory = async () => {
+    if (!user) return;
+    setIsClearing(true);
+    
+    try {
+      const { error } = await supabase
+        .from('chat_history')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      toast.success('All chat history cleared successfully');
+      queryClient.invalidateQueries({ queryKey: ['chatHistory'] });
+    } catch (error) {
+      toast.error('Failed to clear chat history');
+      console.error('Error:', error);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   const uniqueCategories = Array.from(new Set(chatHistory.map(item => item.category)));
 
   const filteredHistory = chatHistory.filter(item => {
@@ -130,14 +165,53 @@ const History = () => {
       
       <div className="flex-1 pl-[70px] md:pl-[260px] transition-all duration-300">
         <div className="p-4 md:p-6 max-w-4xl mx-auto">
-          <div className="flex items-center mb-6 md:mb-8">
-            <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-caritas flex items-center justify-center text-white mr-3 md:mr-4 shadow-md">
-              <HistoryIcon className="h-5 w-5 md:h-6 md:w-6" />
+          <div className="flex items-center justify-between mb-6 md:mb-8">
+            <div className="flex items-center">
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-caritas flex items-center justify-center text-white mr-3 md:mr-4 shadow-md">
+                <HistoryIcon className="h-5 w-5 md:h-6 md:w-6" />
+              </div>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold dark:text-white">Chat History</h1>
+                <p className="text-sm text-muted-foreground dark:text-slate-300">View and manage your past conversations</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold dark:text-white">Chat History</h1>
-              <p className="text-sm text-muted-foreground dark:text-slate-300">View and manage your past conversations</p>
-            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="whitespace-nowrap">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear All
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear Chat History</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete all of your chat history.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleClearAllHistory}
+                    disabled={isClearing}
+                    className="bg-red-500 hover:bg-red-600"
+                  >
+                    {isClearing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Clearing...
+                      </>
+                    ) : (
+                      "Yes, clear all"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 mb-6">
+            <APIInfoDisplay />
           </div>
 
           <div className="mb-6 flex flex-col md:flex-row gap-3">

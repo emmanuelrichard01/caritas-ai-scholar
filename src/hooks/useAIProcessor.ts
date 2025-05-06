@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-export type AICategory = 'course-tutor' | 'study-planner' | 'assignment-helper' | 'research' | 'default';
+export type AICategory = 'course-tutor' | 'study-planner' | 'assignment-helper' | 'research' | 'default' | 'google-ai' | 'openrouter';
 
 interface UseAIProcessorOptions {
   onSuccess?: (data: any) => void;
@@ -37,7 +37,8 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
           query,
           userId: user.id,
           category,
-          additionalData
+          additionalData,
+          provider: category === 'google-ai' ? 'google' : (category === 'openrouter' ? 'openrouter' : 'default')
         }
       });
 

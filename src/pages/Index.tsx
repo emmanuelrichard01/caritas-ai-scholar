@@ -13,6 +13,7 @@ import { useAIProcessor } from "@/hooks/useAIProcessor";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Message {
   text: string;
@@ -96,11 +97,25 @@ const Index = () => {
       }
     } catch (error) {
       console.error("Error getting AI response:", error);
+      let errorMessage = "Sorry, I encountered an error processing your request. Please try again later.";
+      
+      // Check if this is an OpenAI API quota exceeded error
+      if (error instanceof Error && 
+          (error.message.includes("quota") || 
+           error.message.includes("capacity") || 
+           error.message.includes("rate limit"))) {
+        errorMessage = "I'm currently experiencing high demand and have reached my capacity limit. Please try again in a few minutes.";
+        toast.error("AI service temporarily unavailable due to high demand", {
+          description: "Please try again in a few minutes."
+        });
+      }
+      
       const errorResponse = {
-        text: "Sorry, I encountered an error processing your request. Please try again later.",
+        text: errorMessage,
         isUser: false,
         id: (Date.now() + 1).toString()
       };
+      
       setMessages((prev) => [...prev, errorResponse]);
     } finally {
       setIsResponseLoading(false);

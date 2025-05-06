@@ -39,29 +39,70 @@ serve(async (req) => {
     }
     
     // Use OpenAI for response
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { 
+              role: 'system', 
+              content: 'You are an educational AI assistant that helps students with their academic needs. Provide helpful, accurate, and concise answers to their questions.' 
+            },
+            { role: 'user', content: query }
+          ],
+          temperature: 0.7,
+          max_tokens: 800,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('OpenAI API error:', errorData);
+        
+        // If quota exceeded, throw a specific error
+        if (errorData.error?.code === "insufficient_quota" || 
+            errorData.error?.type === "insufficient_quota" ||
+            errorData.error?.message.includes("quota")) {
+          throw new Error("OpenAI API quota exceeded: " + errorData.error.message);
+        }
+        
+        // Fallback to in-function response
+        const fallbackResponse = handleFallbackResponse(query);
+        return new Response(
+          JSON.stringify({ answer: fallbackResponse }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      const data = await response.json();
+      const answer = data.choices[0].message.content;
+      
+      return new Response(
+        JSON.stringify({ answer }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (error) {
+      console.error('OpenAI API call failed:', error.message);
+      
+      // If quota exceeded, propagate the error
+      if (error.message && error.message.includes("quota")) {
+        return new Response(
+          JSON.stringify({ 
+            error: true,
+            answer: null,
+            message: "OpenAI API quota exceeded. Please try again later."
+          }),
           { 
-            role: 'system', 
-            content: 'You are an educational AI assistant that helps students with their academic needs. Provide helpful, accurate, and concise answers to their questions.' 
-          },
-          { role: 'user', content: query }
-        ],
-        temperature: 0.7,
-        max_tokens: 800,
-      }),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
+            status: 429, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
       
       // Fallback to in-function response
       const fallbackResponse = handleFallbackResponse(query);
@@ -70,19 +111,11 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
-    const data = await response.json();
-    const answer = data.choices[0].message.content;
-    
-    return new Response(
-      JSON.stringify({ answer }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error) {
     console.error('Error processing chat query:', error);
     return new Response(
       JSON.stringify({ 
-        answer: "I encountered an error while processing your request. Please try again later.",
+        answer: "I encountered an error when generating a response. Please try again later.",
         error: error.message || 'Failed to process query' 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

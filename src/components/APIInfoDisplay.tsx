@@ -1,183 +1,159 @@
 
-import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
+import { useApiStatus } from "@/hooks/useApiStatus";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertCircle, Check, Info } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Card } from "@/components/ui/card";
+import { RefreshCw, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-interface APIInfo {
-  openRouter: {
-    available: boolean;
-    rateLimit?: string;
-    rateLimitRemaining?: string;
-    creditsGranted?: number;
-    creditsUsed?: number;
-    creditsRemaining?: number;
-    error?: string;
-  };
-  googleAI: {
-    available: boolean;
-    dailyLimit?: string;
-    remainingRequests?: string;
-    status?: string;
-    error?: string;
-  };
-}
-
-export const APIInfoDisplay = () => {
-  const [apiInfo, setApiInfo] = useState<APIInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  const fetchAPIInfo = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('api-info');
-      
-      if (error) throw new Error(error.message);
-      
-      setApiInfo(data as APIInfo);
-    } catch (err) {
-      console.error('Error fetching API info:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch API information');
-      toast({
-        title: "Error fetching API information",
-        description: err instanceof Error ? err.message : 'Unknown error occurred',
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  useEffect(() => {
-    fetchAPIInfo();
-  }, []);
+export function APIInfoDisplay() {
+  const { apiStatus, isLoading, error, refreshStatus, isRefreshing } = useApiStatus();
   
   if (isLoading) {
     return (
-      <Card className="p-4 flex flex-col items-center justify-center h-40">
-        <Loader2 className="h-8 w-8 animate-spin text-caritas mb-2" />
-        <p className="text-sm text-muted-foreground">Loading API information...</p>
-      </Card>
-    );
-  }
-  
-  if (error) {
-    return (
-      <Card className="p-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
-        <div className="flex items-center mb-2">
-          <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-          <h3 className="font-medium">Error Loading API Information</h3>
-        </div>
-        <p className="text-sm text-muted-foreground">{error}</p>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={fetchAPIInfo} 
-          className="mt-3"
-        >
-          Retry
-        </Button>
-      </Card>
-    );
-  }
-  
-  return (
-    <Card className="p-4 divide-y divide-gray-200 dark:divide-gray-700">
-      <div className="pb-4">
-        <div className="flex items-center mb-2">
-          <h3 className="font-medium text-lg">API Status & Limits</h3>
+      <Card className="p-2 bg-white/80 backdrop-blur dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+            Loading API status...
+          </span>
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-6 w-6 ml-2" 
-            onClick={fetchAPIInfo}
+            className="h-6 w-6" 
+            onClick={refreshStatus}
+            disabled={isRefreshing || isLoading}
           >
-            <Info className="h-4 w-4" />
+            <RefreshCw className="h-3 w-3 animate-spin" />
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  if (error || !apiStatus) {
+    return (
+      <Card className="p-2 bg-white/80 backdrop-blur dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <AlertCircle className="h-3 w-3 text-amber-500 mr-1" />
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+              API status unavailable
+            </span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-6 w-6" 
+            onClick={refreshStatus}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <Card className="p-2 bg-white/80 backdrop-blur dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+            AI Services Status
+          </span>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-6 w-6" 
+            onClick={refreshStatus}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
         </div>
         
-        <p className="text-xs text-muted-foreground mb-2">
-          Current limits and usage for connected AI services
-        </p>
-      </div>
-      
-      {/* OpenRouter Section */}
-      <div className="py-3">
-        <div className="flex items-center mb-2">
-          <h4 className="font-medium">OpenRouter</h4>
-          {apiInfo?.openRouter.available ? (
-            <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full dark:bg-green-900/30 dark:text-green-400">
-              Available
-            </span>
-          ) : (
-            <span className="ml-2 bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded-full dark:bg-red-900/30 dark:text-red-400">
-              Unavailable
-            </span>
-          )}
-        </div>
-        
-        {apiInfo?.openRouter.available ? (
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <div className="text-sm">
-              <span className="text-muted-foreground">Credits:</span>
-              <br />
-              <span className="font-medium">
-                {apiInfo.openRouter.creditsRemaining} / {apiInfo.openRouter.creditsGranted} remaining
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              {apiStatus.googleAI.available ? (
+                <CheckCircle2 className="h-3 w-3 text-green-500 mr-1" />
+              ) : (
+                <XCircle className="h-3 w-3 text-red-500 mr-1" />
+              )}
+              <span className="text-xs text-slate-600 dark:text-slate-400">
+                Google AI
               </span>
             </div>
-            <div className="text-sm">
-              <span className="text-muted-foreground">Rate Limit:</span>
-              <br />
-              <span className="font-medium">
-                {apiInfo.openRouter.rateLimitRemaining} / {apiInfo.openRouter.rateLimit}
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs text-slate-500 dark:text-slate-500 cursor-help">
+                  {apiStatus.googleAI.available 
+                    ? apiStatus.googleAI.status || "Available"
+                    : "Unavailable"}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <div className="text-xs">
+                  {apiStatus.googleAI.available ? (
+                    <>
+                      <p>Daily Limit: {apiStatus.googleAI.dailyLimit || "~6000 requests"}</p>
+                      <p className="text-green-500">Status: Available</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-red-500">Error: {apiStatus.googleAI.error || "Unknown issue"}</p>
+                    </>
+                  )}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              {apiStatus.openRouter.available ? (
+                <CheckCircle2 className="h-3 w-3 text-green-500 mr-1" />
+              ) : (
+                <XCircle className="h-3 w-3 text-red-500 mr-1" />
+              )}
+              <span className="text-xs text-slate-600 dark:text-slate-400">
+                OpenRouter
               </span>
             </div>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs text-slate-500 dark:text-slate-500 cursor-help">
+                  {apiStatus.openRouter.available && apiStatus.openRouter.creditsRemaining
+                    ? `Credits: ${apiStatus.openRouter.creditsRemaining.toFixed(2)}`
+                    : "Unavailable"}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <div className="text-xs">
+                  {apiStatus.openRouter.available ? (
+                    <>
+                      <p>Credits Remaining: {apiStatus.openRouter.creditsRemaining?.toFixed(2) || "Unknown"}</p>
+                      <p>Credits Granted: {apiStatus.openRouter.creditsGranted?.toFixed(2) || "Unknown"}</p>
+                      <p>Rate Limit: {apiStatus.openRouter.rateLimit || "Unknown"}</p>
+                      <p>Remaining: {apiStatus.openRouter.rateLimitRemaining || "Unknown"}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-red-500">Error: {apiStatus.openRouter.error || "Unknown issue"}</p>
+                    </>
+                  )}
+                </div>
+              </TooltipContent>
+            </Tooltip>
           </div>
-        ) : (
-          <p className="text-sm text-red-600 dark:text-red-400">
-            {apiInfo?.openRouter.error || "Could not connect to OpenRouter API"}
-          </p>
-        )}
-      </div>
-      
-      {/* Google AI Section */}
-      <div className="py-3">
-        <div className="flex items-center mb-2">
-          <h4 className="font-medium">Google AI Studio</h4>
-          {apiInfo?.googleAI.available ? (
-            <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full dark:bg-green-900/30 dark:text-green-400">
-              Configured
-            </span>
-          ) : (
-            <span className="ml-2 bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded-full dark:bg-red-900/30 dark:text-red-400">
-              Unavailable
-            </span>
-          )}
         </div>
-        
-        {apiInfo?.googleAI.available ? (
-          <div className="grid grid-cols-1 gap-1">
-            <div className="text-sm">
-              <span className="text-muted-foreground">Daily Limit:</span>{" "}
-              <span>{apiInfo.googleAI.dailyLimit}</span>
-            </div>
-            <div className="text-sm">
-              <span className="text-muted-foreground">Status:</span>{" "}
-              <span>{apiInfo.googleAI.status}</span>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-red-600 dark:text-red-400">
-            {apiInfo?.googleAI.error || "Could not connect to Google AI API"}
-          </p>
-        )}
-      </div>
-    </Card>
+      </Card>
+    </TooltipProvider>
   );
-};
+}

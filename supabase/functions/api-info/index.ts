@@ -2,13 +2,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
-const googleAIKey = Deno.env.get("GOOGLE_AI_KEY") || "AIzaSyDHnnACtYYBHf3Y1FMVv2jp-8l12MK7RUw";
-const openRouterKey = Deno.env.get("OPENROUTER_KEY") || "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";
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const googleAIKey = Deno.env.get('GOOGLE_AI_KEY') || '';
+const openRouterKey = Deno.env.get('OPENROUTER_KEY') || '';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -17,32 +17,90 @@ serve(async (req) => {
   }
 
   try {
-    // Fetch OpenRouter credits info
-    const openRouterInfo = await fetchOpenRouterInfo();
-    
-    // We don't fetch Google AI limits directly as they require more complex authentication
-    // Instead, return known information about the API limits
-    const googleAIInfo = {
-      available: true,
-      dailyLimit: "1000 requests per day (estimated)",
-      remainingRequests: "Unknown (requires project-specific monitoring)",
-      status: "API key is configured"
+    const apiStatus = {
+      openRouter: {
+        available: false
+      },
+      googleAI: {
+        available: false
+      }
     };
-
+    
+    // Check Google AI Studio status
+    if (googleAIKey) {
+      try {
+        // Make a lightweight request to check if API is working
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${googleAIKey}`, {
+          method: 'GET'
+        });
+        
+        if (response.ok) {
+          apiStatus.googleAI.available = true;
+          apiStatus.googleAI.status = 'Working';
+          apiStatus.googleAI.dailyLimit = "~6000 requests/day";
+        } else {
+          const errorData = await response.text();
+          apiStatus.googleAI.available = false;
+          apiStatus.googleAI.error = `API Error: ${response.status}`;
+          apiStatus.googleAI.status = 'Error';
+        }
+      } catch (error) {
+        apiStatus.googleAI.available = false;
+        apiStatus.googleAI.error = error.message || 'Connection error';
+        apiStatus.googleAI.status = 'Error';
+      }
+    } else {
+      apiStatus.googleAI.available = false;
+      apiStatus.googleAI.error = 'API key not configured';
+      apiStatus.googleAI.status = 'Not Configured';
+    }
+    
+    // Check OpenRouter status if key is available
+    if (openRouterKey) {
+      try {
+        const response = await fetch('https://openrouter.ai/api/v1/auth/key', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${openRouterKey}`,
+            'HTTP-Referer': 'https://lovable.ai',
+            'X-Title': 'Caritas'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          apiStatus.openRouter.available = true;
+          apiStatus.openRouter.creditsRemaining = data.data.credits_remaining;
+          apiStatus.openRouter.creditsGranted = data.data.credits_granted;
+          apiStatus.openRouter.rateLimitRemaining = data.data.rate_limit_remaining;
+          apiStatus.openRouter.rateLimit = data.data.rate_limit;
+        } else {
+          const errorData = await response.text();
+          apiStatus.openRouter.available = false;
+          apiStatus.openRouter.error = `API Error: ${response.status}`;
+        }
+      } catch (error) {
+        apiStatus.openRouter.available = false;
+        apiStatus.openRouter.error = error.message || 'Connection error';
+      }
+    } else {
+      apiStatus.openRouter.available = false;
+      apiStatus.openRouter.error = 'API key not configured';
+    }
+    
     return new Response(
-      JSON.stringify({
-        openRouter: openRouterInfo,
-        googleAI: googleAIInfo
-      }),
+      JSON.stringify(apiStatus),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error fetching API info:', error);
+    console.error('Error checking API status:', error);
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Failed to fetch API information',
-        openRouter: { available: false, error: "Could not fetch information" },
-        googleAI: { available: false, error: "Could not fetch information" }
+        error: error.message || 'Failed to check API status',
+        googleAI: { available: false, error: 'Internal error' },
+        openRouter: { available: false, error: 'Internal error' }
       }),
       { 
         status: 500, 
@@ -51,36 +109,3 @@ serve(async (req) => {
     );
   }
 });
-
-async function fetchOpenRouterInfo() {
-  try {
-    const response = await fetch('https://openrouter.ai/api/v1/auth/key', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${openRouterKey}`,
-        'Content-Type': 'application/json',
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenRouter API returned ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    return {
-      available: true,
-      rateLimit: data.rate_limit_requests || "Unknown",
-      rateLimitRemaining: data.rate_limit_remaining || "Unknown",
-      creditsGranted: data.credits_granted || 0,
-      creditsUsed: data.credits_used || 0,
-      creditsRemaining: data.credits_remaining || 0
-    };
-  } catch (error) {
-    console.error('Error fetching OpenRouter info:', error);
-    return {
-      available: false,
-      error: error.message || "Failed to fetch OpenRouter information"
-    };
-  }
-}

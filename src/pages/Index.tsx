@@ -23,22 +23,27 @@ interface Message {
 }
 
 const Index = () => {
+  // Hooks
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
+  const { processQuery } = useAIProcessor();
+  
+  // State
   const [messages, setMessages] = useState<Message[]>([]);
   const [showWelcome, setShowWelcome] = useState(true);
   const [isResponseLoading, setIsResponseLoading] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { processQuery } = useAIProcessor();
-  const queryClient = useQueryClient();
 
-  // Scroll to bottom when new messages arrive
+  // Effects
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Save chat to history
+  // Save chat to history mutation
   const saveChatMutation = useMutation({
     mutationFn: async (data: { title: string, content: string }) => {
       if (!user) throw new Error("User not authenticated");
@@ -59,6 +64,7 @@ const Index = () => {
     }
   });
 
+  // Event handlers
   const handleStartChat = () => {
     setShowWelcome(false);
   };
@@ -135,6 +141,7 @@ const Index = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
+      {/* Mobile menu overlay */}
       <div 
         className={cn(
           "fixed inset-0 bg-black/50 z-20 md:hidden transition-opacity duration-300",
@@ -143,10 +150,13 @@ const Index = () => {
         onClick={toggleMobileMenu}
       />
       
+      {/* Navigation sidebar */}
       <Navigation />
       
+      {/* Main content area */}
       <div className="flex-1 pl-[70px] md:pl-[260px] transition-all duration-300">
         <div className="relative flex h-full flex-col">
+          {/* Mobile header */}
           <div className="flex items-center md:hidden border-b px-4 h-16 bg-background/80 backdrop-blur dark:bg-slate-800/80 dark:border-slate-700 sticky top-0 z-10">
             <Button
               variant="ghost"
@@ -159,10 +169,12 @@ const Index = () => {
             <ChatHeader />
           </div>
           
+          {/* Desktop header */}
           <div className="hidden md:block">
             <ChatHeader />
           </div>
           
+          {/* Messages area */}
           <div className="flex-1 overflow-y-auto bg-slate-50/30 dark:bg-slate-900/30 scrollbar-thin">
             {showWelcome ? (
               <WelcomeScreen 
@@ -190,6 +202,7 @@ const Index = () => {
             )}
           </div>
           
+          {/* Chat input */}
           {!showWelcome && (
             <div className="sticky bottom-0 z-10">
               <ChatInput 
@@ -199,7 +212,7 @@ const Index = () => {
             </div>
           )}
           
-          {/* Add API Status Display */}
+          {/* API Status Display */}
           {!showWelcome && !isMobile && (
             <div className="absolute bottom-20 right-4 z-10 w-80">
               <APIInfoDisplay />

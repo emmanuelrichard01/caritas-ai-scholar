@@ -1,12 +1,32 @@
 
 project_id = "yvlrspteukuooobkvzdz"
+
 [api]
 enabled = true
+port = 54321
+schemas = ["public", "storage"]
+
 [db]
-enabled = true
-[realtime]
-enabled = true
-[storage]
-enabled = true
-[edge_functions]
-enabled = true
+port = 54322
+
+[studio]
+port = 54323
+
+[functions]
+[functions.upload-material]
+verify_jwt = true
+
+[functions.process-material]
+verify_jwt = true
+
+[functions.summarize]
+verify_jwt = true
+
+[functions.api-info]
+verify_jwt = false
+
+[functions.process-chat]
+verify_jwt = false
+
+[functions.process-ai-query]
+verify_jwt = false

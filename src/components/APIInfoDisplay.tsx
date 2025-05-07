@@ -8,8 +8,19 @@ interface APIInfoDisplayProps {
   onClose: () => void;
 }
 
+interface APIUsage {
+  googleAI: { used: number; limit: number };
+  openai: { used: number; limit: number };
+}
+
+interface APIInfo {
+  status: string;
+  usage: APIUsage;
+  resetTime: string;
+}
+
 export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
-  const [apiInfo, setApiInfo] = useState({
+  const [apiInfo, setApiInfo] = useState<APIInfo>({
     status: "loading",
     usage: {
       googleAI: { used: 0, limit: 60 },
@@ -25,22 +36,37 @@ export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
         
         if (error) throw error;
         
-        setApiInfo(data || {
+        // Ensure numeric types for used and limit values
+        const processedData = data ? {
+          ...data,
+          usage: {
+            googleAI: {
+              used: Number(data.usage.googleAI.used || 0),
+              limit: Number(data.usage.googleAI.limit || 60)
+            },
+            openai: {
+              used: Number(data.usage.openai.used || 0),
+              limit: Number(data.usage.openai.limit || 100)
+            }
+          }
+        } : {
           status: "active",
           usage: {
             googleAI: { used: 25, limit: 60 },
             openai: { used: 40, limit: 100 }
           },
           resetTime: "8 hours"
-        });
+        };
+        
+        setApiInfo(processedData);
       } catch (error) {
         console.error("Error fetching API info:", error);
-        // Set fallback data on error
+        // Set fallback data on error with numeric types
         setApiInfo({
           status: "unknown",
           usage: {
-            googleAI: { used: "?", limit: 60 },
-            openai: { used: "?", limit: 100 }
+            googleAI: { used: 0, limit: 60 },
+            openai: { used: 0, limit: 100 }
           },
           resetTime: "24 hours"
         });

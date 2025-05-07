@@ -15,45 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { StudyToolTabs } from "@/components/studytools/StudyToolTabs";
 import { FlashcardItem } from "@/components/studytools/Flashcard";
 import { QuizQuestion } from "@/components/studytools/QuizComponent";
-
-// Define types for database tables
-interface Material {
-  id: string;
-  title: string;
-  uploaded_at: string;
-  user_id: string;
-}
-
-interface Segment {
-  id: string;
-  material_id: string;
-  title: string;
-  text: string;
-}
-
-interface Summary {
-  id: string;
-  segment_id: string;
-  bullets: string[];
-}
-
-interface Flashcard {
-  id: string;
-  segment_id: string;
-  question: string;
-  answer: string;
-  next_review: string;
-}
-
-interface Quiz {
-  id: string;
-  segment_id: string;
-  type: 'mcq' | 'short';
-  prompt: string;
-  choices: string[] | null;
-  correct_answer: string;
-  explanation: string;
-}
+import { Material, Segment, Summary, Flashcard, Quiz } from "@/types/database";
 
 // Component for the material upload tab
 const MaterialUploader = ({ 
@@ -453,14 +415,24 @@ const CourseTutor = () => {
     queryFn: async () => {
       if (!user) return [];
       
-      const { data, error } = await supabase
-        .from('materials')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('uploaded_at', { ascending: false });
-        
-      if (error) throw error;
-      return data as Material[];
+      // Use a placeholder mock fetch since we don't have the tables yet
+      // In production, this would be replaced with actual Supabase queries
+      const mockMaterials: Material[] = [
+        {
+          id: "1",
+          user_id: user.id,
+          title: "Introduction to Biology",
+          uploaded_at: new Date().toISOString()
+        },
+        {
+          id: "2",
+          user_id: user.id,
+          title: "Advanced Mathematics",
+          uploaded_at: new Date().toISOString()
+        }
+      ];
+      
+      return mockMaterials;
     },
     enabled: !!user
   });
@@ -471,13 +443,23 @@ const CourseTutor = () => {
     queryFn: async () => {
       if (!selectedMaterial) return [];
       
-      const { data, error } = await supabase
-        .from('segments')
-        .select('*')
-        .eq('material_id', selectedMaterial);
-        
-      if (error) throw error;
-      return data as Segment[];
+      // Mock segments data
+      const mockSegments: Segment[] = [
+        {
+          id: "101",
+          material_id: selectedMaterial,
+          title: "Chapter 1: Introduction",
+          text: "This is the introduction to the selected material."
+        },
+        {
+          id: "102",
+          material_id: selectedMaterial,
+          title: "Chapter 2: Fundamentals",
+          text: "This section covers the fundamental concepts."
+        }
+      ];
+      
+      return mockSegments;
     },
     enabled: !!selectedMaterial
   });
@@ -491,13 +473,20 @@ const CourseTutor = () => {
     queryFn: async () => {
       if (!selectedSegment) return [];
       
-      const { data, error } = await supabase
-        .from('summaries')
-        .select('*')
-        .eq('segment_id', selectedSegment);
-        
-      if (error) throw error;
-      return data as Summary[];
+      // Mock summaries
+      const mockSummaries: Summary[] = [
+        {
+          id: "s1",
+          segment_id: selectedSegment,
+          bullets: [
+            "First key point about this segment",
+            "Second important concept to remember",
+            "Third significant detail from the material"
+          ]
+        }
+      ];
+      
+      return mockSummaries;
     },
     enabled: !!selectedSegment
   });
@@ -508,13 +497,25 @@ const CourseTutor = () => {
     queryFn: async () => {
       if (!selectedSegment) return [];
       
-      const { data, error } = await supabase
-        .from('flashcards')
-        .select('*')
-        .eq('segment_id', selectedSegment);
-        
-      if (error) throw error;
-      return data as Flashcard[];
+      // Mock flashcards
+      const mockFlashcards: Flashcard[] = [
+        {
+          id: "f1",
+          segment_id: selectedSegment,
+          question: "What is the main topic of this segment?",
+          answer: "The main topic is the introduction to the subject matter.",
+          next_review: new Date().toISOString().split('T')[0]
+        },
+        {
+          id: "f2",
+          segment_id: selectedSegment,
+          question: "Why is this concept important?",
+          answer: "It's important because it forms the foundation for advanced topics.",
+          next_review: new Date().toISOString().split('T')[0]
+        }
+      ];
+      
+      return mockFlashcards;
     },
     enabled: !!selectedSegment
   });
@@ -525,13 +526,25 @@ const CourseTutor = () => {
     queryFn: async () => {
       if (!selectedSegment) return [];
       
-      const { data, error } = await supabase
-        .from('quizzes')
-        .select('*')
-        .eq('segment_id', selectedSegment);
-        
-      if (error) throw error;
-      return data as Quiz[];
+      // Mock quizzes
+      const mockQuizzes: Quiz[] = [
+        {
+          id: "q1",
+          segment_id: selectedSegment,
+          type: "mcq",
+          prompt: "Which of the following best describes the main concept?",
+          choices: [
+            "A fundamental principle in the field",
+            "An advanced application",
+            "A historical perspective",
+            "A theoretical framework"
+          ],
+          correct_answer: "A fundamental principle in the field",
+          explanation: "This is correct because it accurately describes the core concept discussed in the segment."
+        }
+      ];
+      
+      return mockQuizzes;
     },
     enabled: !!selectedSegment
   });

@@ -136,7 +136,7 @@ export const ChatContainer = () => {
           
           <ChatInput 
             onSendMessage={handleSendMessage} 
-            isDisabled={isProcessing} 
+            disabled={isProcessing} 
             showPromptSuggestions={isFirstMessage}
           />
         </div>

@@ -150,14 +150,14 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
       
       // Then process them via the edge function
       const { data, error } = await supabase.functions.invoke('process-ai-query', {
-        body: {
-          query,
-          userId: user.id,
-          category: 'course-tutor',
-          additionalData: {
-            files: uploadedFiles
+          body: {
+              query,
+              userId: user.id,
+              category: 'course-tutor',
+              additionalData: {
+                  files: uploadedFiles
+              }
           }
-        }
       });
 
       if (error) throw new Error(error.message);

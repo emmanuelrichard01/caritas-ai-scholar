@@ -30,3 +30,6 @@ verify_jwt = false
 
 [functions.process-ai-query]
 verify_jwt = false
+
+[functions.search-academic-results]
+verify_jwt = false

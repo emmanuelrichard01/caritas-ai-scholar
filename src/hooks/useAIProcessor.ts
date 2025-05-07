@@ -34,7 +34,7 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
       let response;
 
       // For simple queries, use the process-chat endpoint
-      if (category === 'default' || category === 'google-ai') {
+      if (category === 'default' || category === 'google-ai' || category === 'openrouter') {
         response = await fetch('/api/process-chat', {
           method: 'POST',
           headers: {

@@ -57,6 +57,35 @@ export interface Database {
       quizzes: {
         Row: Quiz;
       };
+      chat_history: {
+        Row: {
+          category: string;
+          content: string | null;
+          created_at: string;
+          id: string;
+          title: string;
+          updated_at: string;
+          user_id: string;
+        };
+      };
+      profiles: {
+        Row: {
+          avatar_url: string | null;
+          created_at: string;
+          full_name: string | null;
+          id: string;
+        };
+      };
+      uploads: {
+        Row: {
+          content_type: string;
+          created_at: string;
+          file_path: string;
+          filename: string;
+          id: string;
+          user_id: string;
+        };
+      };
     };
   };
 }

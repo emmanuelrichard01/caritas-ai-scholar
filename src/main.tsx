@@ -4,14 +4,16 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-// Only try to configure if window.ethereum is not already defined
-if (typeof window !== 'undefined' && !Object.getOwnPropertyDescriptor(window, 'ethereum')) {
+// Only try to configure if window.ethereum is not already defined and property is not already configured
+if (typeof window !== 'undefined') {
   try {
-    Object.defineProperty(window, 'ethereum', {
-      value: undefined,
-      writable: true,
-      configurable: true,
-    });
+    if (!Object.getOwnPropertyDescriptor(window, 'ethereum')) {
+      Object.defineProperty(window, 'ethereum', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+    }
   } catch (error) {
     console.log('Ethereum property already defined, using existing definition');
   }

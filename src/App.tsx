@@ -1,4 +1,3 @@
-
 import { Suspense, lazy, ErrorInfo, Component } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -84,10 +83,6 @@ const queryClient = new QueryClient({
       retry: 1,
       refetchOnWindowFocus: false,
       staleTime: 1000 * 60 * 5, // 5 minutes
-      onError: (error) => {
-        console.error("Query error:", error);
-        // Let the component handle errors locally first
-      },
     },
   },
 });

@@ -4,9 +4,8 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-// Only try to configure if window.ethereum is undefined
-// This avoids errors when ethereum is already defined as non-configurable
-if (typeof window !== 'undefined' && window.ethereum === undefined) {
+// Only try to configure if window.ethereum is not already defined
+if (typeof window !== 'undefined' && !Object.getOwnPropertyDescriptor(window, 'ethereum')) {
   try {
     Object.defineProperty(window, 'ethereum', {
       value: undefined,
@@ -14,7 +13,7 @@ if (typeof window !== 'undefined' && window.ethereum === undefined) {
       configurable: true,
     });
   } catch (error) {
-    console.log('Ethereum property already defined and not configurable, using existing definition');
+    console.log('Ethereum property already defined, using existing definition');
   }
 }
 

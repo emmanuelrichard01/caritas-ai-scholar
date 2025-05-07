@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface APIInfoDisplayProps {
   onClose: () => void;
@@ -28,39 +29,51 @@ export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
     },
     resetTime: ""
   });
+  
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAPIInfo = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('api-info');
         
-        if (error) throw error;
+        if (error) {
+          throw new Error(error.message || 'Failed to fetch API info');
+        }
         
-        // Ensure numeric types for used and limit values
-        const processedData = data ? {
-          ...data,
-          usage: {
-            googleAI: {
-              used: Number(data.usage.googleAI.used || 0),
-              limit: Number(data.usage.googleAI.limit || 60)
-            },
-            openai: {
-              used: Number(data.usage.openai.used || 0),
-              limit: Number(data.usage.openai.limit || 100)
-            }
-          }
-        } : {
-          status: "active",
-          usage: {
-            googleAI: { used: 25, limit: 60 },
-            openai: { used: 40, limit: 100 }
+        if (!data) {
+          throw new Error('No data received from API');
+        }
+        
+        // Check if data has expected structure
+        if (!data.googleAI || typeof data.googleAI !== 'object') {
+          console.warn('API response missing googleAI data, using default values');
+          data.googleAI = { available: false, error: 'Data unavailable' };
+        }
+        
+        // Use fallback data for usage info
+        const usageData = {
+          googleAI: {
+            used: Number(data.googleAI?.used || 0),
+            limit: Number(data.googleAI?.limit || 60)
           },
-          resetTime: "8 hours"
+          openai: {
+            used: Number(data.openai?.used || 0),
+            limit: Number(data.openai?.limit || 100)
+          }
         };
         
-        setApiInfo(processedData);
+        setApiInfo({
+          status: "active",
+          usage: usageData,
+          resetTime: data.resetTime || "24 hours"
+        });
+        
+        setError(null);
       } catch (error) {
         console.error("Error fetching API info:", error);
+        setError(error instanceof Error ? error.message : 'Unknown error occurred');
+        
         // Set fallback data on error with numeric types
         setApiInfo({
           status: "unknown",
@@ -89,6 +102,13 @@ export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
         </Button>
         
         <h2 className="text-xl font-bold mb-4">AI API Status</h2>
+        
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg">
+            <p className="text-sm">Error: {error}</p>
+            <p className="text-xs mt-1">Using default values. Some information may be inaccurate.</p>
+          </div>
+        )}
         
         <div className="space-y-4">
           <div>

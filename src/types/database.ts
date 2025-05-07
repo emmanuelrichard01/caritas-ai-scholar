@@ -65,6 +65,33 @@ export interface Upload {
   created_at: string;
 }
 
+export interface APIInfo {
+  status: string;
+  usage?: {
+    googleAI?: { used: number; limit: number };
+    openai?: { used: number; limit: number };
+  };
+  resetTime?: string;
+}
+
+export interface ApiStatusData {
+  openRouter?: {
+    available: boolean;
+    creditsRemaining?: number;
+    creditsGranted?: number;
+    rateLimitRemaining?: string;
+    rateLimit?: string;
+    error?: string;
+  };
+  googleAI?: {
+    available: boolean;
+    dailyLimit?: string;
+    remainingRequests?: string;
+    status?: string;
+    error?: string;
+  };
+}
+
 export interface Database {
   public: {
     Tables: {

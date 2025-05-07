@@ -4,7 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-export type AICategory = 'default' | 'google-ai' | 'openrouter' | 'course-tutor' | 'study-planner' | 'assignment-helper' | 'research';
+export type AICategory = 
+  | 'default' 
+  | 'google-ai' 
+  | 'openrouter' 
+  | 'course-tutor' 
+  | 'study-planner' 
+  | 'assignment-helper' 
+  | 'research';
 
 interface UseAIProcessorOptions {
   onSuccess?: (data: any) => void;
@@ -34,7 +41,8 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
       let response;
 
       // For simple queries, use the process-chat endpoint
-      if (['default', 'google-ai', 'openrouter'].includes(category)) {
+      const simpleCategories = ['default', 'google-ai', 'openrouter'];
+      if (simpleCategories.includes(category)) {
         response = await fetch('/api/process-chat', {
           method: 'POST',
           headers: {
@@ -55,14 +63,40 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
         });
       }
 
-      if (response.error) throw new Error(response.error.message);
-
+      if (!response) {
+        throw new Error("No response received from server");
+      }
+      
+      if (response instanceof Response && !response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to get AI response: ${errorText}`);
+      }
+      
+      if (response.error) {
+        throw new Error(response.error.message || "An error occurred with the AI service");
+      }
+      
       let data;
       if (response instanceof Response) {
-        if (!response.ok) throw new Error("Failed to get AI response");
-        data = await response.json();
+        // Check if the response is JSON
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          const text = await response.text();
+          try {
+            // Try to parse as JSON anyway
+            data = JSON.parse(text);
+          } catch (e) {
+            throw new Error(`Unexpected response format: ${text.substring(0, 100)}...`);
+          }
+        }
       } else {
         data = response.data;
+      }
+      
+      if (!data || !data.answer) {
+        throw new Error("Invalid response format from AI service");
       }
       
       // Save response in state and call success callback
@@ -160,7 +194,11 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
           }
       });
 
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(error.message || "An error occurred with the document processing service");
+      
+      if (!data || !data.answer) {
+        throw new Error("Invalid response format from document processing service");
+      }
       
       const answer = data.answer;
       setResult(answer);

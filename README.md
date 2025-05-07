@@ -3,136 +3,150 @@
 
 ## Overview
 
-CARITAS AI is a comprehensive educational AI assistant designed to help students with their academic needs. The application provides various tools and features to enhance the learning experience, including:
-
-- **Course Tutor**: Upload course materials and documents for AI-assisted learning
-- **Study Planner**: Create personalized study plans based on your schedule and goals
-- **Research Assistant**: Find academic sources and research information
-- **Assignment Helper**: Get guidance on assignments and projects
-- **GPA Calculator**: Calculate your GPA and track academic progress
-
-## Technologies Used
-
-- **Frontend**: React, TypeScript, Vite
-- **UI Framework**: Tailwind CSS with shadcn/ui components
-- **State Management**: React Query
-- **Authentication**: Supabase Auth
-- **Database**: Supabase PostgreSQL
-- **Storage**: Supabase Storage
-- **AI Integration**: Multiple AI providers including Google AI, OpenAI, and OpenRouter
+CARITAS AI is a comprehensive educational AI assistant designed to help students with their academic needs. The application leverages multiple AI models to provide personalized learning experiences and academic support through an intuitive interface.
 
 ## Features
 
-### Authentication
+### 🤖 AI-Powered Assistance
 
-The application provides a secure authentication system powered by Supabase, allowing users to:
-- Sign up with email/password
-- Sign in with Google (OAuth)
-- Maintain persistent sessions
-- View and edit their profile information
+- **Multi-Model Intelligence**: Integrates with Google's Gemini models, OpenAI's GPT, and OpenRouter for diverse AI capabilities
+- **Context-Aware Responses**: AI understands the context of your questions and previous interactions
+- **Document Processing**: Upload and analyze course materials for targeted learning assistance
 
-### AI Processing
+### 📚 Learning Tools
 
-CARITAS AI integrates with multiple AI providers to offer specialized assistance:
-- **Google AI**: Powered by Gemini models for general knowledge queries
-- **OpenAI**: Advanced processing for complex educational tasks
-- **OpenRouter**: Alternative AI engine for diversified responses
+- **Course Tutor**: Upload course materials and get AI assistance with understanding concepts
+  - Supports multiple file formats (PDF, DOCX, PPTX, TXT)
+  - Intelligent document analysis and contextual question answering
+  - Generates study materials like flashcards and summaries
 
-### Course Tutor
+- **Study Planner**: Create personalized study schedules and get tips for effective learning
+  - AI-generated study plans based on your schedule and goals
+  - Customizable study sessions with time management features
+  - Progress tracking and adaptive recommendations
 
-Upload and analyze course materials:
-- Support for multiple file formats (PDF, DOCX, PPTX, TXT)
-- AI-powered document analysis
-- Intelligent responses to questions about uploaded materials
-- Flashcard generation for study sessions
+- **Research Assistant**: Find academic resources and information for your projects
+  - Academic search capabilities with credible source filtering
+  - Summarization of research papers and articles
+  - Citation assistance in multiple formats
 
-### Study Planner
+- **GPA Calculator**: Calculate and track your academic progress
+  - Calculate weighted and unweighted GPA
+  - Track progress across semesters
+  - Set academic goals and receive achievement tracking
 
-Create personalized study schedules:
-- Set study goals and deadlines
-- Receive AI-generated study plans
-- Track progress and adjust plans as needed
-- Get study tips and techniques
+### 🔒 Security & User Experience
 
-### Research Assistant
+- **Secure Authentication**: Powered by Supabase for reliable user management
+  - Email/password authentication
+  - OAuth integration with Google
+  - Persistent session management
 
-Find academic resources and information:
-- Search for scholarly sources
-- Get summaries of research topics
-- Find citations and references
-- Explore academic concepts
+- **Personal Dashboard**: Track your history and manage your data
+  - Access chat history and previous interactions
+  - View quick stats on usage and activity
+  - Manage uploaded documents and created study materials
 
-### History & Dashboard
+- **Responsive Design**: Works seamlessly across desktop, tablet, and mobile devices
+  - Adaptive layout adjusts to your screen size
+  - Dark and light mode support
+  - Accessibility-focused interface
 
-Track your activity and manage your data:
-- View past AI interactions
-- See recent activities
-- Access quick actions
-- Manage uploaded documents
+## Technical Architecture
 
-## Setup and Installation
+### Frontend
+- **Framework**: React with TypeScript
+- **Build Tool**: Vite for fast development and production builds
+- **UI Framework**: Tailwind CSS with shadcn/ui components
+- **State Management**: React Query for server state and React Context for local state
+- **Routing**: React Router for navigation
 
-1. Clone the repository
+### Backend
+- **Authentication**: Supabase Auth with JWT tokens
+- **Database**: PostgreSQL hosted on Supabase
+- **Storage**: Supabase Storage for document uploads
+- **API Layer**: Supabase Edge Functions for secure serverless operations
+
+### AI Integration
+- **Google AI**: Gemini models for general knowledge and language tasks
+- **OpenAI**: GPT models for complex reasoning and content generation
+- **OpenRouter**: Alternative AI engine for fallback and specialized tasks
+
+## Getting Started
+
+### Prerequisites
+- Node.js v16+
+- npm or yarn
+- Supabase account (for backend services)
+- API keys for AI providers
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/caritas-ai.git
+   cd caritas-ai
+   ```
+
 2. Install dependencies:
    ```bash
    npm install
    ```
-3. Configure Supabase:
-   - Create a Supabase project
-   - Set up authentication providers
-   - Configure storage buckets
-   - Add necessary environment variables
 
-4. Start the development server:
+3. Set up environment variables:
+   Create a `.env` file with the following variables:
+   ```
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_GOOGLE_AI_KEY=your_google_ai_key
+   VITE_OPENAI_API_KEY=your_openai_api_key
+   VITE_OPENROUTER_KEY=your_openrouter_key
+   ```
+
+4. Run the development server:
    ```bash
    npm run dev
    ```
 
-## Environment Variables
+5. Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-The application requires the following environment variables:
+### Supabase Setup
 
-- `SUPABASE_URL`: Your Supabase project URL
-- `SUPABASE_ANON_KEY`: Supabase anonymous key
-- `OPENAI_API_KEY`: OpenAI API key for advanced processing
-- `GOOGLE_AI_KEY`: Google AI API key for Gemini models
-- `OPENROUTER_KEY`: OpenRouter API key for alternative AI processing
+1. Create a new Supabase project
+2. Run the database migrations in the `supabase/migrations` directory
+3. Configure storage buckets for document uploads
+4. Set up authentication providers in the Supabase dashboard
+5. Deploy the Edge Functions in the `supabase/functions` directory
 
-## Project Structure
+## Best Practices
 
-```
-src/
-├── components/         # UI components
-├── hooks/              # Custom React hooks
-├── integrations/       # External service integrations
-├── pages/              # Application pages
-├── types/              # TypeScript type definitions
-├── utils/              # Utility functions
-└── supabase/           # Supabase configurations and functions
-```
+- **Rate Limiting**: The application implements client-side rate limiting to prevent API abuse
+- **Error Handling**: Comprehensive error handling with user-friendly messages
+- **Security**: Row-level security policies are implemented in the database
+- **Performance**: Lazy loading, component optimization, and efficient state management
 
-## API and Edge Functions
+## Contributing
 
-The application uses Supabase Edge Functions for secure backend processing:
+We welcome contributions to improve CARITAS AI! Please follow these steps:
 
-- `process-ai-query`: Handles complex AI queries with context
-- `process-chat`: Processes simple chat interactions
-- `analyze-documents`: Extracts and processes content from uploaded files
-
-## Security Considerations
-
-- Row-Level Security (RLS) policies are implemented for all database tables
-- User authentication is required for accessing personal data
-- API keys are securely stored and accessed only through Edge Functions
-- File uploads are validated and securely stored
-
-## Future Enhancements
-
-- **Mobile Application**: Develop a mobile version for on-the-go learning
-- **Collaborative Features**: Enable study groups and shared resources
-- **Advanced Analytics**: Provide insights on learning patterns and progress
-- **Offline Mode**: Allow for limited functionality without internet connection
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to your branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- [Supabase](https://supabase.io/) for the amazing backend platform
+- [Shadcn UI](https://ui.shadcn.com/) for beautiful React components
+- [TailwindCSS](https://tailwindcss.com/) for the utility-first CSS framework
+- [Vite](https://vitejs.dev/) for the lightning-fast build tool
+- All contributors who have helped shape this project
+
+## Contact
+
+If you have any questions or feedback, please reach out to us at [email@example.com](mailto:email@example.com).

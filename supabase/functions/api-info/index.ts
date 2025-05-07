@@ -71,10 +71,10 @@ serve(async (req) => {
           const data = await response.json();
           
           apiStatus.openRouter.available = true;
-          apiStatus.openRouter.creditsRemaining = data.data.credits_remaining;
-          apiStatus.openRouter.creditsGranted = data.data.credits_granted;
-          apiStatus.openRouter.rateLimitRemaining = data.data.rate_limit_remaining;
-          apiStatus.openRouter.rateLimit = data.data.rate_limit;
+          apiStatus.openRouter.creditsRemaining = data.data?.credits_remaining;
+          apiStatus.openRouter.creditsGranted = data.data?.credits_granted;
+          apiStatus.openRouter.rateLimitRemaining = data.data?.rate_limit_remaining;
+          apiStatus.openRouter.rateLimit = data.data?.rate_limit;
         } else {
           const errorData = await response.text();
           apiStatus.openRouter.available = false;
@@ -89,18 +89,34 @@ serve(async (req) => {
       apiStatus.openRouter.error = 'API key not configured';
     }
     
+    // Add usage data for frontend display (using mock data for now)
+    const fullResponse = {
+      ...apiStatus,
+      usage: {
+        googleAI: { used: 25, limit: 60 },
+        openai: { used: 40, limit: 100 }
+      },
+      resetTime: "24 hours"
+    };
+    
     return new Response(
-      JSON.stringify(apiStatus),
+      JSON.stringify(fullResponse),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error checking API status:', error);
     
+    // Return a failsafe response structure that won't break the frontend
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Failed to check API status',
-        googleAI: { available: false, error: 'Internal error' },
-        openRouter: { available: false, error: 'Internal error' }
+        googleAI: { available: false, error: 'Internal error', status: 'Error' },
+        openRouter: { available: false, error: 'Internal error' },
+        usage: {
+          googleAI: { used: 0, limit: 60 },
+          openai: { used: 0, limit: 100 }
+        },
+        resetTime: "24 hours"
       }),
       { 
         status: 500, 

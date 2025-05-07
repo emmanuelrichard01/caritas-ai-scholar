@@ -6,8 +6,9 @@ import { toast } from 'sonner';
 import { AICategory, AIProcessorOptions } from '@/types/ai';
 import { saveToHistory } from '@/utils/aiUtils';
 
-export { AICategory } from '@/types/ai';
+// Use 'export type' for re-exporting types when isolatedModules is enabled
 export type { AIProcessorOptions } from '@/types/ai';
+export type { AICategory } from '@/types/ai';
 
 export function useAIProcessor(options?: AIProcessorOptions) {
   const [isProcessing, setIsProcessing] = useState(false);

@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useAIProcessor } from "./useAIProcessor";
+import { useDocumentProcessor } from "./useDocumentProcessor";
 import { FlashcardItem } from "@/components/studytools/Flashcard";
 import { QuizQuestion } from "@/components/studytools/QuizComponent";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ export const useStudyMaterials = () => {
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[] | null>(null);
   const [materialContext, setMaterialContext] = useState<string>("");
   
-  const { processDocuments } = useAIProcessor();
+  const { processDocuments } = useDocumentProcessor();
   
   const generateStudyMaterials = async (files: File[], query: string) => {
     if (files.length === 0) {

@@ -1,73 +1,138 @@
-# Welcome to your Lovable project
 
-## Project info
+# CARITAS AI - Educational AI Assistant
 
-**URL**: https://lovable.dev/projects/b4176788-f22b-46cb-8351-ebb5172fe21f
+## Overview
 
-## How can I edit this code?
+CARITAS AI is a comprehensive educational AI assistant designed to help students with their academic needs. The application provides various tools and features to enhance the learning experience, including:
 
-There are several ways of editing your application.
+- **Course Tutor**: Upload course materials and documents for AI-assisted learning
+- **Study Planner**: Create personalized study plans based on your schedule and goals
+- **Research Assistant**: Find academic sources and research information
+- **Assignment Helper**: Get guidance on assignments and projects
+- **GPA Calculator**: Calculate your GPA and track academic progress
 
-**Use Lovable**
+## Technologies Used
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/b4176788-f22b-46cb-8351-ebb5172fe21f) and start prompting.
+- **Frontend**: React, TypeScript, Vite
+- **UI Framework**: Tailwind CSS with shadcn/ui components
+- **State Management**: React Query
+- **Authentication**: Supabase Auth
+- **Database**: Supabase PostgreSQL
+- **Storage**: Supabase Storage
+- **AI Integration**: Multiple AI providers including Google AI, OpenAI, and OpenRouter
 
-Changes made via Lovable will be committed automatically to this repo.
+## Features
 
-**Use your preferred IDE**
+### Authentication
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+The application provides a secure authentication system powered by Supabase, allowing users to:
+- Sign up with email/password
+- Sign in with Google (OAuth)
+- Maintain persistent sessions
+- View and edit their profile information
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### AI Processing
 
-Follow these steps:
+CARITAS AI integrates with multiple AI providers to offer specialized assistance:
+- **Google AI**: Powered by Gemini models for general knowledge queries
+- **OpenAI**: Advanced processing for complex educational tasks
+- **OpenRouter**: Alternative AI engine for diversified responses
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Course Tutor
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Upload and analyze course materials:
+- Support for multiple file formats (PDF, DOCX, PPTX, TXT)
+- AI-powered document analysis
+- Intelligent responses to questions about uploaded materials
+- Flashcard generation for study sessions
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Study Planner
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+Create personalized study schedules:
+- Set study goals and deadlines
+- Receive AI-generated study plans
+- Track progress and adjust plans as needed
+- Get study tips and techniques
+
+### Research Assistant
+
+Find academic resources and information:
+- Search for scholarly sources
+- Get summaries of research topics
+- Find citations and references
+- Explore academic concepts
+
+### History & Dashboard
+
+Track your activity and manage your data:
+- View past AI interactions
+- See recent activities
+- Access quick actions
+- Manage uploaded documents
+
+## Setup and Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Configure Supabase:
+   - Create a Supabase project
+   - Set up authentication providers
+   - Configure storage buckets
+   - Add necessary environment variables
+
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+## Environment Variables
+
+The application requires the following environment variables:
+
+- `SUPABASE_URL`: Your Supabase project URL
+- `SUPABASE_ANON_KEY`: Supabase anonymous key
+- `OPENAI_API_KEY`: OpenAI API key for advanced processing
+- `GOOGLE_AI_KEY`: Google AI API key for Gemini models
+- `OPENROUTER_KEY`: OpenRouter API key for alternative AI processing
+
+## Project Structure
+
+```
+src/
+├── components/         # UI components
+├── hooks/              # Custom React hooks
+├── integrations/       # External service integrations
+├── pages/              # Application pages
+├── types/              # TypeScript type definitions
+├── utils/              # Utility functions
+└── supabase/           # Supabase configurations and functions
 ```
 
-**Edit a file directly in GitHub**
+## API and Edge Functions
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The application uses Supabase Edge Functions for secure backend processing:
 
-**Use GitHub Codespaces**
+- `process-ai-query`: Handles complex AI queries with context
+- `process-chat`: Processes simple chat interactions
+- `analyze-documents`: Extracts and processes content from uploaded files
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Security Considerations
 
-## What technologies are used for this project?
+- Row-Level Security (RLS) policies are implemented for all database tables
+- User authentication is required for accessing personal data
+- API keys are securely stored and accessed only through Edge Functions
+- File uploads are validated and securely stored
 
-This project is built with:
+## Future Enhancements
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Mobile Application**: Develop a mobile version for on-the-go learning
+- **Collaborative Features**: Enable study groups and shared resources
+- **Advanced Analytics**: Provide insights on learning patterns and progress
+- **Offline Mode**: Allow for limited functionality without internet connection
 
-## How can I deploy this project?
+## License
 
-Simply open [Lovable](https://lovable.dev/projects/b4176788-f22b-46cb-8351-ebb5172fe21f) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes it is!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+This project is licensed under the MIT License - see the LICENSE file for details.

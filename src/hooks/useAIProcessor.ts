@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -33,7 +34,7 @@ export function useAIProcessor(options?: UseAIProcessorOptions) {
       let response;
 
       // For simple queries, use the process-chat endpoint
-      if (category === 'default' || category === 'google-ai' || category === 'openrouter') {
+      if (['default', 'google-ai', 'openrouter'].includes(category)) {
         response = await fetch('/api/process-chat', {
           method: 'POST',
           headers: {

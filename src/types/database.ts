@@ -39,6 +39,32 @@ export interface Quiz {
   explanation: string;
 }
 
+export interface ChatHistory {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string | null;
+  category: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Profile {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  created_at: string;
+}
+
+export interface Upload {
+  id: string;
+  user_id: string;
+  filename: string;
+  file_path: string;
+  content_type: string;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -58,33 +84,13 @@ export interface Database {
         Row: Quiz;
       };
       chat_history: {
-        Row: {
-          category: string;
-          content: string | null;
-          created_at: string;
-          id: string;
-          title: string;
-          updated_at: string;
-          user_id: string;
-        };
+        Row: ChatHistory;
       };
       profiles: {
-        Row: {
-          avatar_url: string | null;
-          created_at: string;
-          full_name: string | null;
-          id: string;
-        };
+        Row: Profile;
       };
       uploads: {
-        Row: {
-          content_type: string;
-          created_at: string;
-          file_path: string;
-          filename: string;
-          id: string;
-          user_id: string;
-        };
+        Row: Upload;
       };
     };
   };

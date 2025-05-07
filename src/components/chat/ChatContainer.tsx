@@ -1,9 +1,9 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { ChatInput } from '@/components/ChatInput';
-import { ChatMessage } from '@/components/ChatMessage';
-import { WelcomeScreen } from '@/components/WelcomeScreen';
+import ChatInput from '@/components/ChatInput';
+import ChatMessage from '@/components/ChatMessage';
+import WelcomeScreen from '@/components/WelcomeScreen';
 import { APIInfoDisplay } from '@/components/APIInfoDisplay';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, AlertTriangle, Trash2 } from 'lucide-react';
@@ -27,7 +27,8 @@ export const ChatContainer = () => {
     if (!message.trim()) return;
 
     // Add user message to chat
-    const newMessages = [...messages, { role: 'user', content: message }];
+    const userMessage: Message = { role: 'user', content: message };
+    const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setIsFirstMessage(false);
 
@@ -80,14 +81,18 @@ export const ChatContainer = () => {
       {/* Chat messages area */}
       <div className="flex-grow overflow-auto p-4">
         {isFirstMessage && messages.length === 0 ? (
-          <WelcomeScreen />
+          <WelcomeScreen 
+            onStartChat={() => setIsFirstMessage(false)}
+            onSelectSuggestion={(suggestion) => handleSendMessage(suggestion)}
+          />
         ) : (
           <div className="space-y-6">
             {messages.map((message, index) => (
               <ChatMessage 
                 key={index} 
-                role={message.role} 
-                content={message.content} 
+                message={message.content}
+                isUser={message.role === 'user'}
+                isLoading={false} 
               />
             ))}
             {isProcessing && (

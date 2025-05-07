@@ -42,7 +42,10 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        error: 'Error processing research query: ' + (error instanceof Error ? error.message : String(error)) 
+        error: 'Error processing research query: ' + (error instanceof Error ? error.message : String(error)),
+        results: [],
+        summary: "There was an error processing your research query. Please try again later.",
+        query: "" 
       }),
       { 
         status: 200, // Sending 200 instead of 500 to prevent CORS issues in browser
@@ -113,69 +116,81 @@ async function enhanceResultsWithAI(query: string, searchResults: any) {
     ).join('\n\n');
     
     // Use Gemini to summarize and enhance results
-    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${googleAIKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `You are a helpful academic research assistant. Analyze these search results for the query "${query}" and create a summary of the main findings, themes, and key resources:
+    try {
+      const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${googleAIKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `You are a helpful academic research assistant. Analyze these search results for the query "${query}" and create a summary of the main findings, themes, and key resources:
 
 ${resultsText}
 
 Provide a concise summary of these resources, including the most relevant papers or findings. Format your response as JSON with a "summary" field and a "keyInsights" array with 3-5 bullet points.`
-              }
-            ]
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 800,
+            topP: 0.8
           }
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 800,
-          topP: 0.8
+        }),
+      });
+
+      if (!geminiResponse.ok) {
+        const errorText = await geminiResponse.text();
+        console.error('Gemini API error:', errorText);
+        throw new Error(`Gemini API error: ${geminiResponse.status}`);
+      }
+
+      const geminiData = await geminiResponse.json();
+      const geminiText = geminiData.candidates[0].content.parts[0].text;
+      
+      // Parse the JSON response from Gemini
+      let enhancedData;
+      try {
+        // Extract JSON from potential markdown code blocks
+        const jsonMatch = geminiText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/) || 
+                        geminiText.match(/\{[\s\S]*?\}/);
+                        
+        if (jsonMatch) {
+          enhancedData = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+        } else {
+          enhancedData = {
+            summary: geminiText,
+            keyInsights: ["Research results found", "Multiple sources available", "Explore links for more information"]
+          };
         }
-      }),
-    });
-
-    if (!geminiResponse.ok) {
-      throw new Error(`Gemini API error: ${geminiResponse.status}`);
-    }
-
-    const geminiData = await geminiResponse.json();
-    const geminiText = geminiData.candidates[0].content.parts[0].text;
-    
-    // Parse the JSON response from Gemini
-    let enhancedData;
-    try {
-      // Extract JSON from potential markdown code blocks
-      const jsonMatch = geminiText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/) || 
-                      geminiText.match(/\{[\s\S]*?\}/);
-                      
-      if (jsonMatch) {
-        enhancedData = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-      } else {
+      } catch (parseError) {
+        console.error('Error parsing AI response:', parseError);
         enhancedData = {
-          summary: geminiText,
+          summary: "Here are research results related to your query.",
           keyInsights: ["Research results found", "Multiple sources available", "Explore links for more information"]
         };
       }
-    } catch (parseError) {
-      console.error('Error parsing AI response:', parseError);
-      enhancedData = {
-        summary: "Here are research results related to your query.",
-        keyInsights: ["Research results found", "Multiple sources available", "Explore links for more information"]
+      
+      return {
+        results: searchSnippets,
+        summary: enhancedData.summary,
+        keyInsights: enhancedData.keyInsights || [],
+        query: query
+      };
+    } catch (aiError) {
+      console.error('Error with AI enhancement:', aiError);
+      // Return basic results without AI enhancement
+      return {
+        results: searchSnippets,
+        summary: "Here are some research results related to your query.",
+        query: query
       };
     }
-    
-    return {
-      results: searchSnippets,
-      summary: enhancedData.summary,
-      keyInsights: enhancedData.keyInsights || [],
-      query: query
-    };
     
   } catch (error) {
     console.error('Error enhancing results with AI:', error);

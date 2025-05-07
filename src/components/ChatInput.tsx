@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils";
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
   disabled?: boolean;
+  showPromptSuggestions?: boolean;
 }
 
-const ChatInput = ({ onSendMessage, disabled = false }: ChatInputProps) => {
+const ChatInput = ({ onSendMessage, disabled = false, showPromptSuggestions = false }: ChatInputProps) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);

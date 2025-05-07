@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { ChatHeader } from '@/components/ChatHeader';
 import { ChatContainer } from '@/components/chat/ChatContainer';
 

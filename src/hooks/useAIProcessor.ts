@@ -1,10 +1,9 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-export type AICategory = 'google-ai' | 'course-tutor' | 'study-planner' | 'assignment-helper' | 'research' | 'default' | 'openrouter';
+export type AICategory = 'default' | 'google-ai' | 'openrouter' | 'course-tutor' | 'study-planner' | 'assignment-helper' | 'research';
 
 interface UseAIProcessorOptions {
   onSuccess?: (data: any) => void;

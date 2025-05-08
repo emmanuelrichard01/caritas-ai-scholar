@@ -62,35 +62,47 @@ export function useAIProcessor(options?: AIProcessorOptions) {
         throw new Error("No response received from server");
       }
       
-      if (response instanceof Response && !response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to get AI response: ${errorText}`);
-      }
-      
-      if ('error' in response && response.error) {
-        throw new Error(response.error.message || "An error occurred with the AI service");
-      }
-      
       let data;
+      
       if (response instanceof Response) {
-        // Check if the response is JSON
+        // Check if the response is JSON by examining content type
         const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          data = await response.json();
-        } else {
-          const text = await response.text();
-          try {
-            // Try to parse as JSON anyway
-            data = JSON.parse(text);
-          } catch (e) {
-            throw new Error(`Unexpected response format: ${text.substring(0, 100)}...`);
+        
+        try {
+          if (contentType && contentType.includes("application/json")) {
+            data = await response.json();
+          } else {
+            // Try to parse as JSON anyway, but with error handling
+            const text = await response.text();
+            
+            // Debug what we received
+            if (text.startsWith("<!DOCTYPE html>") || text.startsWith("<html>")) {
+              console.error("Received HTML response instead of JSON:", text.substring(0, 100) + "...");
+              throw new Error("Server returned HTML instead of JSON. The API endpoint might be misconfigured.");
+            }
+            
+            try {
+              data = JSON.parse(text);
+            } catch (e) {
+              console.error("Failed to parse response as JSON:", text.substring(0, 100) + "...");
+              throw new Error(`Unexpected response format: ${text.substring(0, 100)}...`);
+            }
           }
+          
+          // Check if response was not okay (status code not in 200-299)
+          if (!response.ok) {
+            throw new Error(`API returned error status: ${response.status} ${response.statusText}`);
+          }
+        } catch (e) {
+          console.error("Error processing response:", e);
+          throw e;
         }
       } else {
         data = response.data;
       }
       
       if (!data || !data.answer) {
+        console.error("Invalid response structure:", data);
         throw new Error("Invalid response format from AI service");
       }
       

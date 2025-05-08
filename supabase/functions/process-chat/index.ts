@@ -53,12 +53,19 @@ serve(async (req) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Google AI API error:', errorData);
+        const errorText = await response.text();
+        console.error('Google AI API error:', errorText);
         throw new Error(`Google AI API error: ${response.status}`);
       }
 
       const data = await response.json();
+      
+      // Check for valid response structure
+      if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+        console.error('Invalid response structure from Google AI:', JSON.stringify(data));
+        throw new Error('Invalid response format from Google AI');
+      }
+      
       const answer = data.candidates[0].content.parts[0].text;
       
       return new Response(
@@ -91,13 +98,27 @@ serve(async (req) => {
             }),
           });
           
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error('OpenAI API error:', errorData);
-            throw new Error("OpenAI API error");
+          // Convert response to text first to debug any non-JSON responses
+          const responseText = await response.text();
+          let data;
+          
+          try {
+            data = JSON.parse(responseText);
+          } catch (e) {
+            console.error('Failed to parse OpenAI response as JSON:', responseText.substring(0, 500));
+            throw new Error('Invalid JSON response from OpenAI');
           }
           
-          const data = await response.json();
+          if (!response.ok) {
+            console.error('OpenAI API error:', data);
+            throw new Error("OpenAI API error: " + (data.error?.message || response.status));
+          }
+          
+          if (!data.choices || !data.choices[0]?.message?.content) {
+            console.error('Invalid response structure from OpenAI:', JSON.stringify(data));
+            throw new Error('Invalid response format from OpenAI');
+          }
+          
           const answer = data.choices[0].message.content;
           
           return new Response(

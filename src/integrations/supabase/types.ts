@@ -39,6 +39,65 @@ export type Database = {
         }
         Relationships: []
       }
+      flashcards: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          next_review: string
+          question: string
+          segment_id: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          next_review?: string
+          question: string
+          segment_id: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          next_review?: string
+          question?: string
+          segment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcards_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      materials: {
+        Row: {
+          description: string | null
+          id: string
+          title: string
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          title: string
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          title?: string
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -59,6 +118,108 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      quizzes: {
+        Row: {
+          choices: string[] | null
+          correct_answer: string
+          created_at: string
+          explanation: string | null
+          id: string
+          prompt: string
+          segment_id: string
+          type: string
+        }
+        Insert: {
+          choices?: string[] | null
+          correct_answer: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          prompt: string
+          segment_id: string
+          type: string
+        }
+        Update: {
+          choices?: string[] | null
+          correct_answer?: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          prompt?: string
+          segment_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quizzes_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      segments: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          text: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          text: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          text?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "segments_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      summaries: {
+        Row: {
+          bullets: string[]
+          created_at: string
+          id: string
+          segment_id: string
+        }
+        Insert: {
+          bullets: string[]
+          created_at?: string
+          id?: string
+          segment_id: string
+        }
+        Update: {
+          bullets?: string[]
+          created_at?: string
+          id?: string
+          segment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "summaries_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: true
+            referencedRelation: "segments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       uploads: {
         Row: {

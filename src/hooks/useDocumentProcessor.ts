@@ -1,107 +1,72 @@
 
 import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-import { AIProcessorOptions } from '@/types/ai';
-import { saveToHistory, validateFiles } from '@/utils/aiUtils';
 
-export function useDocumentProcessor(options?: AIProcessorOptions) {
+export function useDocumentProcessor() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const { user } = useAuth();
 
-  /**
-   * Process documents with AI analysis
-   */
-  const processDocuments = async (files: File[], query: string) => {
+  const processDocuments = async (files: File[], prompt: string): Promise<string | null> => {
+    if (files.length === 0) {
+      toast.error("Please upload at least one file");
+      return null;
+    }
+
     if (!user) {
       toast.error("You must be logged in to use this feature");
-      return null;
-    }
-
-    if (!query.trim()) {
-      toast.error("Please enter a question about your documents");
-      return null;
-    }
-
-    if (files.length === 0) {
-      toast.error("Please upload at least one document");
       return null;
     }
 
     setIsProcessing(true);
     setResult(null);
 
-    const validation = validateFiles(files);
-    if (!validation.valid) {
-      toast.error(validation.error);
-      setIsProcessing(false);
-      return null;
-    }
-
     try {
-      // Upload files to storage with user ID as the first folder segment
-      const uploadPromises = files.map(async (file) => {
-        const fileExt = file.name.split('.').pop();
-        // Ensure the user ID is the first folder segment in the path
-        const uniqueId = Date.now() + '-' + Math.random().toString(36).substring(2, 7);
-        const filePath = `${user.id}/${uniqueId}.${fileExt}`;
-        
-        const { error: uploadError, data } = await supabase.storage
-          .from('course-materials')
-          .upload(filePath, file);
+      // Process each file
+      const processResults = await Promise.all(
+        files.map(async (file) => {
+          try {
+            // Create a storage path for the file
+            const filePath = `${user.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+            
+            // Upload the file to storage
+            const { error: uploadError } = await supabase.storage
+              .from('course-materials')
+              .upload(filePath, file);
 
-        if (uploadError) throw new Error(`Error uploading ${file.name}: ${uploadError.message}`);
-        
-        return {
-          filename: file.name,
-          filePath,
-          contentType: file.type,
-          size: file.size
-        };
-      });
-      
-      toast.info(`Processing ${files.length} file(s)...`);
-      const uploadedFiles = await Promise.all(uploadPromises);
-      
-      // Then process them via the edge function
-      const { data, error } = await supabase.functions.invoke('process-ai-query', {
-          body: {
-              query,
-              userId: user.id,
-              category: 'course-tutor',
-              additionalData: {
-                  files: uploadedFiles
+            if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+            // Call the edge function to process the document
+            const { data, error } = await supabase.functions.invoke('process-course-material', {
+              body: {
+                filePath,
+                title: file.name,
+                userId: user.id,
+                prompt
               }
-          }
-      });
+            });
 
-      if (error) throw new Error(error.message || "An error occurred with the document processing service");
-      
-      if (!data || !data.answer) {
-        throw new Error("Invalid response format from document processing service");
-      }
-      
-      const answer = data.answer;
-      setResult(answer);
-      options?.onSuccess?.(data);
-      
-      // Save to history
-      await saveToHistory(
-        user.id,
-        query, 
-        answer, 
-        'course-tutor', 
-        `Analyzed ${files.length} document(s): ${files.map(f => f.name).join(', ')}`
+            if (error) throw new Error(`Processing failed: ${error.message}`);
+
+            return data?.result || `Processed ${file.name}`;
+          } catch (fileError) {
+            console.error(`Error processing file ${file.name}:`, fileError);
+            return `Failed to process ${file.name}: ${fileError instanceof Error ? fileError.message : 'Unknown error'}`;
+          }
+        })
       );
-      
-      return answer;
+
+      // Combine results
+      const combinedResult = processResults.join("\n\n");
+      setResult(combinedResult);
+      return combinedResult;
+
     } catch (error) {
       console.error('Error processing documents:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to analyze documents';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process your documents';
       toast.error(errorMessage);
-      options?.onError?.(error instanceof Error ? error : new Error(String(error)));
       return null;
     } finally {
       setIsProcessing(false);

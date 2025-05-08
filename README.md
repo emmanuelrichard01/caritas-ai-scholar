@@ -3,22 +3,35 @@
 
 ## Overview
 
-CARITAS AI is a comprehensive educational AI assistant designed to help students with their academic needs. The application leverages multiple AI models to provide personalized learning experiences and academic support through an intuitive interface.
+CARITAS AI is a comprehensive educational AI assistant designed to help students with their academic needs. The application leverages multiple AI models (Google Gemini, OpenAI, and OpenRouter) to provide personalized learning experiences and academic support through an intuitive interface.
 
 ## Features
 
 ### 🤖 AI-Powered Assistance
 
-- **Multi-Model Intelligence**: Integrates with Google's Gemini models, OpenAI's GPT, and OpenRouter for diverse AI capabilities
+- **Multi-Model Intelligence**: 
+  - Primary: Google's Gemini 1.5 Flash model for fast, efficient responses
+  - Fallback: OpenAI's GPT models when needed for complex reasoning
+  - Alternative: OpenRouter integration for specialized tasks
+  
 - **Context-Aware Responses**: AI understands the context of your questions and previous interactions
+
 - **Document Processing**: Upload and analyze course materials for targeted learning assistance
+  - Support for multiple file formats (PDF, DOCX, PPTX, TXT)
+  - Intelligent document analysis with OCR capabilities
+  - Contextual question answering based on your materials
 
 ### 📚 Learning Tools
 
+- **Chat Interface**: Intuitive chat experience with the AI assistant
+  - History tracking for past conversations
+  - Quick suggestions for common questions
+  - Real-time response streaming
+
 - **Course Tutor**: Upload course materials and get AI assistance with understanding concepts
-  - Supports multiple file formats (PDF, DOCX, PPTX, TXT)
-  - Intelligent document analysis and contextual question answering
-  - Generates study materials like flashcards and summaries
+  - Document analysis and content extraction
+  - Intelligent question answering based on your materials
+  - Study material generation (notes, summaries, etc.)
 
 - **Study Planner**: Create personalized study schedules and get tips for effective learning
   - AI-generated study plans based on your schedule and goals
@@ -39,38 +52,65 @@ CARITAS AI is a comprehensive educational AI assistant designed to help students
 
 - **Secure Authentication**: Powered by Supabase for reliable user management
   - Email/password authentication
-  - OAuth integration with Google
-  - Persistent session management
+  - Session management
+  - Row-level security for user data
 
 - **Personal Dashboard**: Track your history and manage your data
   - Access chat history and previous interactions
-  - View quick stats on usage and activity
-  - Manage uploaded documents and created study materials
+  - View recent activity
+  - Track usage statistics
 
 - **Responsive Design**: Works seamlessly across desktop, tablet, and mobile devices
   - Adaptive layout adjusts to your screen size
-  - Dark and light mode support
+  - Consistent navigation with sidebar
   - Accessibility-focused interface
 
 ## Technical Architecture
 
 ### Frontend
-- **Framework**: React with TypeScript
+- **Framework**: React with TypeScript for type safety
 - **Build Tool**: Vite for fast development and production builds
 - **UI Framework**: Tailwind CSS with shadcn/ui components
-- **State Management**: React Query for server state and React Context for local state
+- **State Management**: React Query for server state and React hooks for local state
 - **Routing**: React Router for navigation
 
 ### Backend
 - **Authentication**: Supabase Auth with JWT tokens
 - **Database**: PostgreSQL hosted on Supabase
 - **Storage**: Supabase Storage for document uploads
-- **API Layer**: Supabase Edge Functions for secure serverless operations
+- **Serverless Functions**: Supabase Edge Functions for:
+  - AI model integration
+  - Document processing
+  - Study aid generation
+  - File handling and analysis
 
 ### AI Integration
 - **Google AI**: Gemini models for general knowledge and language tasks
 - **OpenAI**: GPT models for complex reasoning and content generation
 - **OpenRouter**: Alternative AI engine for fallback and specialized tasks
+- **Error Handling**: Graceful fallbacks between AI providers
+
+## Key Components
+
+### Chat System
+- Real-time messaging interface
+- Support for multiple AI providers
+- History tracking and context management
+
+### Document Processing
+- OCR-enhanced text extraction
+- Multiple file format support
+- Content analysis and summarization
+
+### Study Aid Generator
+- Flashcard generation
+- Quiz creation (multiple choice and short answer)
+- Summary and note generation
+
+### User Dashboard
+- Activity tracking
+- Recent interactions
+- Quick access to tools
 
 ## Getting Started
 
@@ -78,7 +118,7 @@ CARITAS AI is a comprehensive educational AI assistant designed to help students
 - Node.js v16+
 - npm or yarn
 - Supabase account (for backend services)
-- API keys for AI providers
+- API keys for AI providers (Google AI, OpenAI, OpenRouter)
 
 ### Installation
 
@@ -98,25 +138,37 @@ CARITAS AI is a comprehensive educational AI assistant designed to help students
    ```
    VITE_SUPABASE_URL=your_supabase_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   VITE_GOOGLE_AI_KEY=your_google_ai_key
-   VITE_OPENAI_API_KEY=your_openai_api_key
-   VITE_OPENROUTER_KEY=your_openrouter_key
    ```
 
-4. Run the development server:
+4. Configure Supabase Edge Function secrets:
+   Add the following secrets to your Supabase project:
+   ```
+   GOOGLE_AI_KEY=your_google_ai_key
+   OPENAI_API_KEY=your_openai_api_key
+   OPENROUTER_KEY=your_openrouter_key
+   ```
+
+5. Run the development server:
    ```bash
    npm run dev
    ```
 
-5. Open [http://localhost:5173](http://localhost:5173) in your browser.
+6. Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ### Supabase Setup
 
 1. Create a new Supabase project
-2. Run the database migrations in the `supabase/migrations` directory
+2. Set up the necessary tables in your Supabase database
 3. Configure storage buckets for document uploads
-4. Set up authentication providers in the Supabase dashboard
-5. Deploy the Edge Functions in the `supabase/functions` directory
+4. Deploy the Edge Functions
+
+## Error Handling
+
+The application implements:
+- Graceful fallbacks between AI providers
+- Comprehensive error handling with user-friendly messages
+- Automatic retry mechanisms
+- Content type validation to prevent parsing issues
 
 ## Best Practices
 
@@ -145,8 +197,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Shadcn UI](https://ui.shadcn.com/) for beautiful React components
 - [TailwindCSS](https://tailwindcss.com/) for the utility-first CSS framework
 - [Vite](https://vitejs.dev/) for the lightning-fast build tool
+- [Google Gemini](https://ai.google.dev/) for primary AI capabilities
+- [OpenAI](https://openai.com/) for advanced language processing
 - All contributors who have helped shape this project
-
-## Contact
-
-If you have any questions or feedback, please reach out to us at [email@example.com](mailto:email@example.com).

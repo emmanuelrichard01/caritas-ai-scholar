@@ -78,6 +78,7 @@ serve(async (req) => {
       // Fall back to OpenAI if configured
       if (openAIApiKey) {
         try {
+          console.log('Falling back to OpenAI');
           const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -98,21 +99,13 @@ serve(async (req) => {
             }),
           });
           
-          // Convert response to text first to debug any non-JSON responses
-          const responseText = await response.text();
-          let data;
-          
-          try {
-            data = JSON.parse(responseText);
-          } catch (e) {
-            console.error('Failed to parse OpenAI response as JSON:', responseText.substring(0, 500));
-            throw new Error('Invalid JSON response from OpenAI');
-          }
-          
           if (!response.ok) {
-            console.error('OpenAI API error:', data);
-            throw new Error("OpenAI API error: " + (data.error?.message || response.status));
+            const errorText = await response.text();
+            console.error('OpenAI API error:', errorText);
+            throw new Error(`OpenAI API error: ${response.status}`);
           }
+          
+          const data = await response.json();
           
           if (!data.choices || !data.choices[0]?.message?.content) {
             console.error('Invalid response structure from OpenAI:', JSON.stringify(data));
@@ -128,7 +121,10 @@ serve(async (req) => {
         } catch (openaiError) {
           console.error('OpenAI fallback failed:', openaiError.message);
           // Continue to fallback response
+          throw new Error(`OpenAI fallback failed: ${openaiError.message}`);
         }
+      } else {
+        console.log('No OpenAI API key configured, using fallback response');
       }
       
       // Fallback to in-function response when both APIs fail
@@ -145,7 +141,7 @@ serve(async (req) => {
         answer: "I encountered an error when generating a response. Please try again later.",
         error: error.message || 'Failed to process query' 
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

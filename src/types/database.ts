@@ -31,10 +31,12 @@ export interface Flashcard {
   created_at?: string;
 }
 
+export type QuizType = 'mcq' | 'short';
+
 export interface Quiz {
   id?: string;
   segment_id: string;
-  type: 'mcq' | 'short';
+  type: QuizType;
   prompt: string;
   choices?: string[];
   correct_answer: string;

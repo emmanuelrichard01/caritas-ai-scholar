@@ -108,11 +108,11 @@ serve(async (req) => {
       result = data;
     }
     else if (type === "quiz") {
-      // Create sample quiz questions
+      // Create sample quiz questions - ensuring type is explicitly set as 'mcq' or 'short'
       const quizQuestions = [
         {
           segment_id: segmentId,
-          type: "mcq",
+          type: "mcq" as const,  // Explicitly set as literal type
           prompt: `Which statement best describes the main concept in ${segment.title}?`,
           choices: [
             "The correct statement about the content",
@@ -125,7 +125,7 @@ serve(async (req) => {
         },
         {
           segment_id: segmentId,
-          type: "mcq",
+          type: "mcq" as const,  // Explicitly set as literal type
           prompt: "Which of the following is NOT mentioned in the segment?",
           choices: [
             "A concept that is mentioned",

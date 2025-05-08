@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Material, Segment, Summary, Flashcard, Quiz } from '@/types/database';
+import { Material, Segment, Summary, Flashcard, Quiz, QuizType } from '@/types/database';
 
 export function useMaterials() {
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -99,7 +99,21 @@ export function useMaterials() {
         .eq('segment_id', segmentId);
         
       if (error) throw error;
-      return data || [];
+      
+      // Type validation to ensure the 'type' field is either 'mcq' or 'short'
+      const validatedData = data?.map(quiz => {
+        // Ensure quiz.type is either 'mcq' or 'short'
+        const validType: QuizType = quiz.type === 'mcq' || quiz.type === 'short' 
+          ? quiz.type as QuizType
+          : 'mcq'; // Default to 'mcq' if type is invalid
+          
+        return {
+          ...quiz,
+          type: validType
+        } as Quiz;
+      }) || [];
+      
+      return validatedData;
     } catch (err) {
       console.error('Error fetching quizzes:', err);
       toast.error('Failed to fetch quizzes');
@@ -156,7 +170,20 @@ export function useMaterials() {
       });
       
       if (error) throw error;
-      return data?.result || null;
+      
+      // Validate and ensure correct typing for the returned quizzes
+      const validatedQuizzes = data?.result?.map((quiz: any) => {
+        const validType: QuizType = quiz.type === 'mcq' || quiz.type === 'short' 
+          ? quiz.type as QuizType
+          : 'mcq'; // Default to 'mcq' if type is invalid
+          
+        return {
+          ...quiz,
+          type: validType
+        } as Quiz;
+      }) || null;
+      
+      return validatedQuizzes;
     } catch (err) {
       console.error('Error generating quiz:', err);
       toast.error('Failed to generate quiz');

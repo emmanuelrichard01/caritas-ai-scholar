@@ -6,7 +6,7 @@ import ChatMessage from '@/components/ChatMessage';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import { APIInfoDisplay } from '@/components/APIInfoDisplay';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, AlertTriangle, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useAIProcessor } from '@/hooks/useAIProcessor';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -108,19 +108,7 @@ export const ChatContainer = () => {
       {/* Chat input area */}
       <div className="border-t dark:border-slate-800 bg-white dark:bg-slate-950">
         <div className="container max-w-4xl mx-auto p-4 flex flex-col">
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex items-center space-x-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-xs flex items-center text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
-                onClick={() => setShowApiInfo(true)}
-              >
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                API Status & Limits
-              </Button>
-            </div>
-            
+          <div className="flex justify-end items-center mb-2">            
             {messages.length > 0 && (
               <Button
                 variant="ghost"

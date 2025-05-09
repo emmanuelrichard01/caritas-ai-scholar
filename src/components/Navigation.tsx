@@ -11,19 +11,22 @@ import {
   Book,
   Calendar,
   Search,
-  Calculator
+  Calculator,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { NavbarProfile } from "./ui/NavbarProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Link, useLocation } from "react-router-dom";
+import { APIInfoDisplay } from "@/components/APIInfoDisplay";
 
 const Navigation = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const isMobile = useIsMobile();
   const location = useLocation();
+  const [showApiInfo, setShowApiInfo] = useState(false);
   
   // Initialize sidebar state based on screen size
   useEffect(() => {
@@ -154,10 +157,26 @@ const Navigation = () => {
               </>
             )}
           </Button>
+          
+          <Button
+            variant="ghost"
+            size={isCollapsed ? "icon" : "default"}
+            onClick={() => setShowApiInfo(true)}
+            className={cn(
+              "transition-colors",
+              isCollapsed ? "w-10 h-10 p-0 justify-center" : "w-full justify-start gap-2"
+            )}
+            title="API Status"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            {!isCollapsed && <span>API Status</span>}
+          </Button>
 
           <NavbarProfile isCollapsed={isCollapsed} />
         </div>
       </div>
+      
+      {showApiInfo && <APIInfoDisplay onClose={() => setShowApiInfo(false)} />}
     </>
   );
 };

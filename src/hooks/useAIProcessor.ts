@@ -108,7 +108,7 @@ export function useAIProcessor(options?: AIProcessorOptions) {
     try {
       console.log('Using fallback process-ai-query for:', category);
       
-      const response = await supabase.functions.invoke('process-ai-query', {
+      const { data, error } = await supabase.functions.invoke('process-ai-query', {
         body: {
           query,
           userId,
@@ -118,7 +118,10 @@ export function useAIProcessor(options?: AIProcessorOptions) {
         }
       });
       
-      const data = response.data;
+      if (error) {
+        throw new Error(`Supabase function error: ${error.message}`);
+      }
+      
       if (!data || !data.answer) {
         throw new Error("Invalid response format from AI service");
       }

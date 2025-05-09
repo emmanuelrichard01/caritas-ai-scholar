@@ -25,6 +25,12 @@ serve(async (req) => {
     // Parse request body
     const { segmentId, type } = await req.json();
 
+    if (!segmentId || !type) {
+      throw new Error("Missing required parameters: segmentId, type");
+    }
+
+    console.log(`Generating ${type} for segment ${segmentId}`);
+
     // Initialize Supabase client with auth context
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") || "",
@@ -44,20 +50,16 @@ serve(async (req) => {
       .single();
 
     if (segmentError || !segment) {
-      throw new Error(`Segment not found: ${segmentError?.message}`);
+      console.error("Error retrieving segment:", segmentError);
+      throw new Error(`Segment not found: ${segmentError?.message || "Unknown error"}`);
     }
 
-    let result;
-    
-    // In a real implementation, you would call an AI service here
-    // For now, we'll create mock data based on the segment content
+    console.log(`Retrieved segment: ${segment.title}`);
+
+    // Generate based on type requested
     if (type === "summary") {
-      // Create a summary with bullet points
-      const bullets = [
-        `Key point 1 from "${segment.title}"`,
-        `Key point 2 from "${segment.title}"`,
-        `Key point 3 from "${segment.title}"`
-      ];
+      // Generate a summary with bullet points
+      const bullets = generateSummaryBullets(segment.text, segment.title);
       
       // Insert or update summary
       const { data, error } = await supabaseClient
@@ -70,73 +72,60 @@ serve(async (req) => {
         .single();
       
       if (error) {
+        console.error("Error creating summary:", error);
         throw new Error(`Failed to create summary: ${error.message}`);
       }
       
-      result = data;
+      console.log("Summary created successfully");
+      return new Response(
+        JSON.stringify({
+          message: "Summary generated successfully",
+          result: data,
+        }),
+        {
+          headers: { 
+            ...corsHeaders,
+            "Content-Type": "application/json" 
+          },
+        }
+      );
     } 
     else if (type === "flashcards") {
-      // Create sample flashcards
-      const flashcards = [
-        {
-          segment_id: segmentId,
-          question: `What is the main topic of ${segment.title}?`,
-          answer: "The main concept covered in this segment."
-        },
-        {
-          segment_id: segmentId,
-          question: "Define the key terminology from this segment:",
-          answer: "Important terms defined from the content."
-        },
-        {
-          segment_id: segmentId,
-          question: "Explain the relationship between concepts in this segment:",
-          answer: "The concepts are related through shared principles."
-        }
-      ];
+      // Create flashcards
+      const flashcards = generateFlashcards(segment.text, segment.title);
       
       // Insert flashcards
       const { data, error } = await supabaseClient
         .from("flashcards")
-        .insert(flashcards)
+        .insert(flashcards.map(fc => ({
+          segment_id: segmentId,
+          question: fc.question,
+          answer: fc.answer
+        })))
         .select();
       
       if (error) {
+        console.error("Error creating flashcards:", error);
         throw new Error(`Failed to create flashcards: ${error.message}`);
       }
       
-      result = data;
+      console.log(`${flashcards.length} flashcards created successfully`);
+      return new Response(
+        JSON.stringify({
+          message: "Flashcards generated successfully",
+          result: data,
+        }),
+        {
+          headers: { 
+            ...corsHeaders,
+            "Content-Type": "application/json" 
+          },
+        }
+      );
     }
     else if (type === "quiz") {
-      // Create sample quiz questions - ensuring type is explicitly set as 'mcq' or 'short'
-      const quizQuestions = [
-        {
-          segment_id: segmentId,
-          type: "mcq" as const,  // Explicitly set as literal type
-          prompt: `Which statement best describes the main concept in ${segment.title}?`,
-          choices: [
-            "The correct statement about the content",
-            "A misleading statement about the content",
-            "An unrelated statement",
-            "A partially correct statement"
-          ],
-          correct_answer: "The correct statement about the content",
-          explanation: "This is the right answer because it accurately describes the main concept."
-        },
-        {
-          segment_id: segmentId,
-          type: "mcq" as const,  // Explicitly set as literal type
-          prompt: "Which of the following is NOT mentioned in the segment?",
-          choices: [
-            "A concept that is mentioned",
-            "Another concept that is mentioned",
-            "A concept that is NOT mentioned",
-            "A third concept that is mentioned"
-          ],
-          correct_answer: "A concept that is NOT mentioned",
-          explanation: "This option was not discussed in the material."
-        }
-      ];
+      // Create quiz questions
+      const quizQuestions = generateQuizQuestions(segment.text, segment.title);
       
       // Insert quiz questions
       const { data, error } = await supabaseClient
@@ -145,27 +134,27 @@ serve(async (req) => {
         .select();
       
       if (error) {
+        console.error("Error creating quiz questions:", error);
         throw new Error(`Failed to create quiz questions: ${error.message}`);
       }
       
-      result = data;
+      console.log(`${quizQuestions.length} quiz questions created successfully`);
+      return new Response(
+        JSON.stringify({
+          message: "Quiz generated successfully",
+          result: data,
+        }),
+        {
+          headers: { 
+            ...corsHeaders,
+            "Content-Type": "application/json" 
+          },
+        }
+      );
     }
     else {
       throw new Error(`Invalid study aid type: ${type}`);
     }
-
-    return new Response(
-      JSON.stringify({
-        message: `${type} generated successfully`,
-        result,
-      }),
-      {
-        headers: { 
-          ...corsHeaders,
-          "Content-Type": "application/json" 
-        },
-      }
-    );
   } catch (error) {
     console.error("Error generating study aid:", error);
     
@@ -183,3 +172,123 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to generate summary bullets
+function generateSummaryBullets(text: string, title: string): string[] {
+  // In a real implementation, you would use an AI service
+  // This is a simplified version that extracts key sentences
+  
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  const keywords = title.toLowerCase().split(/\s+/);
+  
+  // Find sentences that seem important (contain keywords from title)
+  const importantSentences = sentences
+    .filter(sentence => {
+      const lowerSentence = sentence.toLowerCase();
+      return keywords.some(keyword => 
+        keyword.length > 3 && lowerSentence.includes(keyword.toLowerCase())
+      );
+    })
+    .slice(0, 3);
+    
+  // If we don't have enough important sentences, add some from the beginning
+  if (importantSentences.length < 3 && sentences.length > 0) {
+    for (let i = 0; importantSentences.length < 3 && i < sentences.length; i++) {
+      if (!importantSentences.includes(sentences[i])) {
+        importantSentences.push(sentences[i]);
+      }
+    }
+  }
+  
+  // Format each sentence
+  return importantSentences.map(sentence => 
+    sentence.trim().replace(/^\s*and\s+/i, '')
+  );
+}
+
+// Helper function to generate flashcards
+function generateFlashcards(text: string, title: string): { question: string, answer: string }[] {
+  // In a real implementation, you would use an AI service
+  // This is a simplified version that creates basic question-answer pairs
+  
+  const paragraphs = text.split('\n\n').filter(p => p.trim().length > 20);
+  const flashcards = [];
+  
+  // Create a flashcard about the main topic
+  flashcards.push({
+    question: `What is the main topic of "${title}"?`,
+    answer: paragraphs[0]?.substring(0, 150) || "The main topic covers key concepts in this area."
+  });
+  
+  // Create flashcards about important terms if we can find them
+  const termMatches = text.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:is|are|refers to|means|describes)\s+([^.!?]+)/g);
+  if (termMatches && termMatches.length > 0) {
+    for (let i = 0; i < Math.min(termMatches.length, 2); i++) {
+      const parts = termMatches[i].split(/\s+(?:is|are|refers to|means|describes)\s+/);
+      if (parts.length === 2) {
+        flashcards.push({
+          question: `Define "${parts[0]}":`,
+          answer: parts[1].trim()
+        });
+      }
+    }
+  } else {
+    // Add generic questions if we couldn't find specific terms
+    flashcards.push({
+      question: "What are the key concepts covered in this material?",
+      answer: "The material covers important principles related to " + title
+    });
+  }
+  
+  // Add a comparison question if we have enough paragraphs
+  if (paragraphs.length > 1) {
+    flashcards.push({
+      question: "Compare and contrast the concepts discussed in this material:",
+      answer: "The material discusses various aspects including " + 
+              paragraphs[1]?.substring(0, 100) + "..."
+    });
+  }
+  
+  return flashcards;
+}
+
+// Helper function to generate quiz questions
+function generateQuizQuestions(text: string, title: string): any[] {
+  // In a real implementation, you would use an AI service
+  // This is a simplified mock version
+  
+  const questions = [];
+  
+  // Multiple choice question about the main concept
+  questions.push({
+    segment_id: "",  // This will be filled in by the caller
+    type: "mcq",
+    prompt: `Which statement best describes the main concept in "${title}"?`,
+    choices: [
+      "The first key concept from the material",
+      "An unrelated or incorrect statement",
+      "A partially correct statement about the topic",
+      "Another incorrect statement about the topic"
+    ],
+    correct_answer: "The first key concept from the material",
+    explanation: "This answer directly reflects the main concept discussed in the material."
+  });
+  
+  // Another multiple choice question
+  questions.push({
+    segment_id: "",  // This will be filled in by the caller
+    type: "mcq",
+    prompt: "Based on the text, which of the following is true?",
+    choices: [
+      "A statement that appears to be true based on the text",
+      "An obviously false statement",
+      "A misleading statement that seems plausible",
+      "Another false statement"
+    ],
+    correct_answer: "A statement that appears to be true based on the text",
+    explanation: "This statement is directly supported by the content of the material."
+  });
+  
+  // Update all questions with the segment_id
+  return questions;
+}

@@ -6,20 +6,15 @@ import {
   Sun, 
   ChevronLeft, 
   ChevronRight,
-  Home,
-  History,
-  Book,
-  Calendar,
-  Search,
-  Calculator,
   AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { NavbarProfile } from "./ui/NavbarProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { APIInfoDisplay } from "@/components/APIInfoDisplay";
+import { NavigationItems } from "./ui/NavigationItems";
 
 const Navigation = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -57,16 +52,6 @@ const Navigation = () => {
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
   };
-  
-  const navItems = [
-    { path: "/", icon: Home, label: "New Chat", title: "New Chat" },
-    { path: "/dashboard", icon: Home, label: "Dashboard", title: "User Dashboard" },
-    { path: "/history", icon: History, label: "History", title: "History" },
-    { path: "/course-tutor", icon: Book, label: "Course Tutor", title: "Course Concept Tutor" },
-    { path: "/study-planner", icon: Calendar, label: "Study Planner", title: "Study Planner" },
-    { path: "/research", icon: Search, label: "Research", title: "Research Assistant" },
-    { path: "/gpa-calculator", icon: Calculator, label: "GPA Calculator", title: "GPA Calculator" }
-  ];
   
   return (
     <>
@@ -110,28 +95,7 @@ const Navigation = () => {
         </div>
         
         <div className="flex-1 overflow-y-auto">
-          <div className={cn("space-y-2", isCollapsed ? "flex flex-col items-center p-2 gap-2" : "p-4")}>
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              
-              return (
-                <Link to={item.path} key={item.path}>
-                  <Button 
-                    variant={isActive ? "secondary" : "ghost"}
-                    className={cn(
-                      "transition-colors",
-                      isCollapsed ? "w-10 h-10 p-0 justify-center" : "w-full justify-start gap-2"
-                    )}
-                    title={item.title}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {!isCollapsed && <span>{item.label}</span>}
-                  </Button>
-                </Link>
-              );
-            })}
-          </div>
+          <NavigationItems isCollapsed={isCollapsed} />
         </div>
 
         <div className="border-t p-4 bg-background/50 dark:bg-slate-900/50 flex flex-col gap-2">

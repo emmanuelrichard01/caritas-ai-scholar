@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Book, Bookmark, Search } from "lucide-react";
+import { Book, Bookmark, Search, AlertCircle } from "lucide-react";
 import { PageLayout } from "@/components/PageLayout";
 import { ResearchSearchBar } from "@/components/research/ResearchSearchBar";
 import { ResearchResult, ResearchResultItem } from "@/components/research/ResearchResult"; 
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 const ResearchAssistant = () => {
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ResearchResultItem[]>([]);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [savedArticles, setSavedArticles] = useState<ResearchResultItem[]>([]);
   const { processQuery, isProcessing, result } = useAIProcessor();
   
@@ -21,6 +22,8 @@ const ResearchAssistant = () => {
       toast.error("Please enter a research topic or question");
       return;
     }
+    
+    setSearchError(null);
     
     try {
       // Get AI-generated research insights
@@ -36,13 +39,29 @@ const ResearchAssistant = () => {
       });
       
       if (!response.ok) {
-        throw new Error("Failed to fetch research results");
+        const errorText = await response.text();
+        console.error("Search API error:", errorText);
+        throw new Error(`Failed to fetch research results (${response.status})`);
+      }
+      
+      // Check for HTML response
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error("Unexpected response format:", text.substring(0, 100) + "...");
+        throw new Error("Server returned an invalid response format");
       }
       
       const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
       setSearchResults(data.results || []);
     } catch (error) {
       console.error("Error processing research query:", error);
+      setSearchError(error instanceof Error ? error.message : "Unknown error occurred");
       toast.error("Failed to retrieve research results. Please try again.");
     }
   };
@@ -75,6 +94,22 @@ const ResearchAssistant = () => {
             <Card className="p-4 md:p-6 dark:bg-slate-900">
               <h2 className="text-lg font-medium mb-3 dark:text-white">Research Insights</h2>
               <AIResponseDisplay content={result} isProcessing={isProcessing} />
+            </Card>
+          )}
+          
+          {searchError && (
+            <Card className="p-4 md:p-6 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
+                <div>
+                  <h3 className="font-medium text-red-800 dark:text-red-300 mb-1">
+                    Error Loading Research Results
+                  </h3>
+                  <p className="text-sm text-red-700 dark:text-red-400">
+                    {searchError}
+                  </p>
+                </div>
+              </div>
             </Card>
           )}
           

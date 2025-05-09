@@ -17,9 +17,23 @@ serve(async (req) => {
   }
 
   try {
-    const { query } = await req.json();
+    console.log('Processing research search request');
+    let requestData;
+    
+    try {
+      requestData = await req.json();
+    } catch (jsonError) {
+      console.error('Error parsing request JSON:', jsonError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    const { query } = requestData;
     
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      console.error('Invalid or missing search query');
       return new Response(
         JSON.stringify({ error: 'Invalid search query' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -29,12 +43,15 @@ serve(async (req) => {
     const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
     
     if (!SERPER_API_KEY) {
+      console.error('API key not configured');
       return new Response(
         JSON.stringify({ error: 'API key not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
+    console.log('Sending search request to Serper API for query:', query);
+    
     // Make a search request to the search engine API
     const searchResponse = await fetch('https://google.serper.dev/search', {
       method: 'POST',
@@ -69,6 +86,7 @@ serve(async (req) => {
       try {
         // Check if the response contains HTML
         if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+          console.error('Received HTML instead of JSON data');
           throw new Error('Received HTML instead of JSON data');
         }
         data = JSON.parse(text);
@@ -78,8 +96,13 @@ serve(async (req) => {
       }
     }
 
+    console.log('Search API returned data, processing results');
+
     // Process and filter results to academic sources
-    const academicResults = data?.organic?.filter((result: any) => {
+    const organicResults = data?.organic || [];
+    console.log(`Found ${organicResults.length} organic results`);
+    
+    const academicResults = organicResults.filter((result: any) => {
       const title = result.title?.toLowerCase() || '';
       const snippet = result.snippet?.toLowerCase() || '';
       const link = result.link?.toLowerCase() || '';
@@ -104,10 +127,33 @@ serve(async (req) => {
       
       return hasDomain || hasTitle || hasSnippet;
     }) || [];
+    
+    console.log(`Filtered to ${academicResults.length} academic results`);
 
+    // Transform the results to match the ResearchResultItem interface
+    const formattedResults = academicResults.slice(0, 5).map((result: any) => {
+      const authors = result.authors || 'Unknown Authors';
+      const journal = result.source || 'Academic Journal';
+      const year = result.date || new Date().getFullYear().toString();
+      const abstract = result.snippet || 'No abstract available';
+      const relevance = Math.floor(Math.random() * 30) + 70; // Mock relevance score between 70-99%
+      
+      return {
+        title: result.title || 'Untitled Research',
+        authors,
+        journal,
+        year,
+        abstract,
+        link: result.link,
+        relevance
+      };
+    });
+
+    console.log('Successfully processed research results, returning data');
+    
     return new Response(
       JSON.stringify({ 
-        results: academicResults.slice(0, 5),
+        results: formattedResults,
         query: query,
         total: academicResults.length
       }),

@@ -39,6 +39,7 @@ export function useAIProcessor(options?: AIProcessorOptions) {
       const simpleCategories = ['default', 'google-ai', 'openrouter'];
       if (simpleCategories.includes(category as any)) {
         try {
+          console.log('Using simple process-chat endpoint for query:', query);
           response = await fetch('/api/process-chat', {
             method: 'POST',
             headers: {
@@ -58,7 +59,7 @@ export function useAIProcessor(options?: AIProcessorOptions) {
           if (!contentType || !contentType.includes("application/json")) {
             // Try to get some of the response to log what we received
             const text = await response.text();
-            if (text.startsWith("<!DOCTYPE html>") || text.startsWith("<html>")) {
+            if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
               console.error("Received HTML response instead of JSON:", text.substring(0, 100) + "...");
               throw new Error("Server returned HTML instead of JSON. The API endpoint might be misconfigured.");
             } else {
@@ -111,28 +112,35 @@ export function useAIProcessor(options?: AIProcessorOptions) {
         }
       } else {
         // For complex queries that require context, use process-ai-query
-        response = await supabase.functions.invoke('process-ai-query', {
-          body: {
-            query,
-            userId: user.id,
-            category,
-            additionalData,
-            provider: category === 'google-ai' ? 'google' : (category === 'openrouter' ? 'openrouter' : 'default')
+        console.log('Using complex process-ai-query for:', category);
+        
+        try {
+          response = await supabase.functions.invoke('process-ai-query', {
+            body: {
+              query,
+              userId: user.id,
+              category,
+              additionalData,
+              provider: category === 'google-ai' ? 'google' : (category === 'openrouter' ? 'openrouter' : 'default')
+            }
+          });
+          
+          const data = response.data;
+          if (!data || !data.answer) {
+            throw new Error("Invalid response format from AI service");
           }
-        });
-        
-        const data = response.data;
-        if (!data || !data.answer) {
-          throw new Error("Invalid response format from AI service");
+          
+          setResult(data.answer);
+          options?.onSuccess?.(data);
+          
+          // Save to history
+          await saveToHistory(user.id, query, data.answer, category);
+          
+          return data.answer;
+        } catch (error) {
+          console.error('Error with complex query processing:', error);
+          throw new Error(`Error processing ${category} query: ${error.message || 'Unknown error'}`);
         }
-        
-        setResult(data.answer);
-        options?.onSuccess?.(data);
-        
-        // Save to history
-        await saveToHistory(user.id, query, data.answer, category);
-        
-        return data.answer;
       }
     } catch (error) {
       console.error('Error processing AI query:', error);

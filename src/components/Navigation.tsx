@@ -5,8 +5,7 @@ import {
   Moon, 
   Sun, 
   ChevronLeft, 
-  ChevronRight, 
-  Info,
+  ChevronRight,
   Home,
   History,
   Book,
@@ -19,16 +18,12 @@ import { useEffect, useState } from "react";
 import { NavbarProfile } from "./ui/NavbarProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Link, useLocation } from "react-router-dom";
-import { useApiStatus } from "@/hooks/useApiStatus";
-import { APIInfoDisplay } from "./APIInfoDisplay";
 
 const Navigation = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [showApiInfo, setShowApiInfo] = useState(false);
   const isMobile = useIsMobile();
   const location = useLocation();
-  const { apiStatus, isLoading } = useApiStatus();
   
   // Initialize sidebar state based on screen size
   useEffect(() => {
@@ -58,10 +53,6 @@ const Navigation = () => {
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
-  };
-
-  const toggleApiInfo = () => {
-    setShowApiInfo(!showApiInfo);
   };
   
   const navItems = [
@@ -144,27 +135,6 @@ const Navigation = () => {
           <Button
             variant="ghost"
             size={isCollapsed ? "icon" : "default"}
-            className={cn(
-              "transition-colors",
-              isCollapsed ? "w-10 h-10 p-0 justify-center" : "w-full justify-start gap-2"
-            )}
-            onClick={toggleApiInfo}
-            title="API Status & Limits"
-          >
-            <Info className="h-4 w-4" />
-            {!isCollapsed && <span>API Status</span>}
-            {!isLoading && apiStatus && (
-              <div className={`h-2 w-2 rounded-full ml-2 ${
-                (apiStatus.googleAI?.available || apiStatus.openRouter?.available) 
-                ? "bg-green-500" 
-                : "bg-red-500"
-              }`}></div>
-            )}
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size={isCollapsed ? "icon" : "default"}
             onClick={toggleTheme}
             className={cn(
               "transition-colors",
@@ -188,8 +158,6 @@ const Navigation = () => {
           <NavbarProfile isCollapsed={isCollapsed} />
         </div>
       </div>
-      
-      {showApiInfo && <APIInfoDisplay onClose={toggleApiInfo} />}
     </>
   );
 };

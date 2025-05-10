@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Book, Upload, FileText, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -374,27 +375,6 @@ const StudyContent = ({
   );
 };
 
-// Database placeholder component for development/testing
-const DatabasePlaceholder = () => (
-  <div className="p-6 border rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
-    <div className="flex items-start gap-3">
-      <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
-      <div>
-        <h3 className="font-medium text-yellow-800 dark:text-yellow-300 mb-1">
-          Database Setup Required
-        </h3>
-        <p className="text-sm text-yellow-700 dark:text-yellow-400 mb-4">
-          The Course Tutor requires database tables, storage buckets, and edge functions to be created first.
-          Please refer to the documentation or contact the administrator to complete the setup.
-        </p>
-        <div className="text-xs text-yellow-600 dark:text-yellow-500 font-mono bg-yellow-100 dark:bg-yellow-900/40 p-2 rounded">
-          Required: materials, segments, summaries, flashcards, quizzes tables and related edge functions.
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
 // Main Course Tutor component
 const CourseTutor = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -408,56 +388,46 @@ const CourseTutor = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
 
-  // Fetch user materials - using mock data since we don't have the tables yet
+  // Fetch user materials
   const { data: materials, isLoading: isLoadingMaterials, refetch: refetchMaterials } = useQuery({
     queryKey: ['materials', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
-      // Use mock data instead of trying to query non-existent tables
-      const mockMaterials: Material[] = [
-        {
-          id: "1",
-          user_id: user.id,
-          title: "Introduction to Biology",
-          uploaded_at: new Date().toISOString()
-        },
-        {
-          id: "2",
-          user_id: user.id,
-          title: "Advanced Mathematics",
-          uploaded_at: new Date().toISOString()
-        }
-      ];
+      const { data, error } = await supabase
+        .from('materials')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('uploaded_at', { ascending: false });
+        
+      if (error) {
+        console.error("Error fetching materials:", error);
+        throw error;
+      }
       
-      return mockMaterials;
+      return data || [];
     },
     enabled: !!user
   });
 
-  // Fetch segments for selected material - using mock data
-  const { data: segments, isLoading: isLoadingSegments } = useQuery({
+  // Fetch segments for selected material
+  const { data: segments, isLoading: isLoadingSegments, refetch: refetchSegments } = useQuery({
     queryKey: ['segments', selectedMaterial],
     queryFn: async () => {
       if (!selectedMaterial) return [];
       
-      // Mock segments data
-      const mockSegments: Segment[] = [
-        {
-          id: "101",
-          material_id: selectedMaterial,
-          title: "Chapter 1: Introduction",
-          text: "This is the introduction to the selected material."
-        },
-        {
-          id: "102",
-          material_id: selectedMaterial,
-          title: "Chapter 2: Fundamentals",
-          text: "This section covers the fundamental concepts."
-        }
-      ];
+      const { data, error } = await supabase
+        .from('segments')
+        .select('*')
+        .eq('material_id', selectedMaterial)
+        .order('created_at', { ascending: true });
+        
+      if (error) {
+        console.error("Error fetching segments:", error);
+        throw error;
+      }
       
-      return mockSegments;
+      return data || [];
     },
     enabled: !!selectedMaterial
   });
@@ -465,84 +435,65 @@ const CourseTutor = () => {
   // Get the current selected segment data
   const currentSegment = segments?.find(s => s.id === selectedSegment);
 
-  // Fetch summaries for selected segment - using mock data
-  const { data: summaries, refetch: refetchSummaries } = useQuery({
+  // Fetch summaries for selected segment
+  const { data: summaries, isLoading: isLoadingSummaries, refetch: refetchSummaries } = useQuery({
     queryKey: ['summaries', selectedSegment],
     queryFn: async () => {
       if (!selectedSegment) return [];
       
-      // Mock summaries
-      const mockSummaries: Summary[] = [
-        {
-          id: "s1",
-          segment_id: selectedSegment,
-          bullets: [
-            "First key point about this segment",
-            "Second important concept to remember",
-            "Third significant detail from the material"
-          ]
-        }
-      ];
+      const { data, error } = await supabase
+        .from('summaries')
+        .select('*')
+        .eq('segment_id', selectedSegment);
+        
+      if (error) {
+        console.error("Error fetching summaries:", error);
+        throw error;
+      }
       
-      return mockSummaries;
+      return data || [];
     },
     enabled: !!selectedSegment
   });
 
-  // Fetch flashcards for selected segment - using mock data
-  const { data: flashcards, refetch: refetchFlashcards } = useQuery({
+  // Fetch flashcards for selected segment
+  const { data: flashcards, isLoading: isLoadingFlashcards, refetch: refetchFlashcards } = useQuery({
     queryKey: ['flashcards', selectedSegment],
     queryFn: async () => {
       if (!selectedSegment) return [];
       
-      // Mock flashcards
-      const mockFlashcards: Flashcard[] = [
-        {
-          id: "f1",
-          segment_id: selectedSegment,
-          question: "What is the main topic of this segment?",
-          answer: "The main topic is the introduction to the subject matter.",
-          next_review: new Date().toISOString().split('T')[0]
-        },
-        {
-          id: "f2",
-          segment_id: selectedSegment,
-          question: "Why is this concept important?",
-          answer: "It's important because it forms the foundation for advanced topics.",
-          next_review: new Date().toISOString().split('T')[0]
-        }
-      ];
+      const { data, error } = await supabase
+        .from('flashcards')
+        .select('*')
+        .eq('segment_id', selectedSegment);
+        
+      if (error) {
+        console.error("Error fetching flashcards:", error);
+        throw error;
+      }
       
-      return mockFlashcards;
+      return data || [];
     },
     enabled: !!selectedSegment
   });
 
-  // Fetch quizzes for selected segment - using mock data
-  const { data: quizzes, refetch: refetchQuizzes } = useQuery({
+  // Fetch quizzes for selected segment
+  const { data: quizzes, isLoading: isLoadingQuizzes, refetch: refetchQuizzes } = useQuery({
     queryKey: ['quizzes', selectedSegment],
     queryFn: async () => {
       if (!selectedSegment) return [];
       
-      // Mock quizzes
-      const mockQuizzes: Quiz[] = [
-        {
-          id: "q1",
-          segment_id: selectedSegment,
-          type: "mcq",
-          prompt: "Which of the following best describes the main concept?",
-          choices: [
-            "A fundamental principle in the field",
-            "An advanced application",
-            "A historical perspective",
-            "A theoretical framework"
-          ],
-          correct_answer: "A fundamental principle in the field",
-          explanation: "This is correct because it accurately describes the core concept discussed in the segment."
-        }
-      ];
+      const { data, error } = await supabase
+        .from('quizzes')
+        .select('*')
+        .eq('segment_id', selectedSegment);
+        
+      if (error) {
+        console.error("Error fetching quizzes:", error);
+        throw error;
+      }
       
-      return mockQuizzes;
+      return data || [];
     },
     enabled: !!selectedSegment
   });
@@ -566,20 +517,69 @@ const CourseTutor = () => {
     setIsUploading(true);
     
     try {
-      // Simulating upload since we don't have the actual tables yet
-      setTimeout(() => {
-        toast.success("Material uploaded and processed successfully");
-        setFiles([]);
-        setTitle("");
-        refetchMaterials();
-        setActiveTab("materials");
-        setIsUploading(false);
-      }, 2000);
+      // First create material record
+      const { data: material, error: materialError } = await supabase
+        .from('materials')
+        .insert({
+          user_id: user.id,
+          title: title.trim(),
+        })
+        .select()
+        .single();
+      
+      if (materialError) {
+        throw materialError;
+      }
+      
+      // Process each file
+      const uploadPromises = files.map(async (file) => {
+        // Create a storage path for the file
+        const filePath = `${user.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        
+        // Upload the file to storage
+        const { error: uploadError } = await supabase.storage
+          .from('course-materials')
+          .upload(filePath, file);
+        
+        if (uploadError) {
+          throw new Error(`File upload failed: ${uploadError.message}`);
+        }
+        
+        // Call the edge function to process the document
+        const { data: processData, error: processError } = await supabase.functions.invoke('process-course-material', {
+          body: {
+            filePath,
+            title: file.name,
+            userId: user.id,
+            materialId: material.id
+          }
+        });
+        
+        if (processError) {
+          throw new Error(`Processing failed: ${processError.message}`);
+        }
+        
+        return processData;
+      });
+      
+      // Wait for all files to be processed
+      await Promise.all(uploadPromises);
+      
+      // Success!
+      toast.success("Material uploaded and processed successfully");
+      setFiles([]);
+      setTitle("");
+      
+      // Refresh the materials list and switch to it
+      refetchMaterials();
+      setSelectedMaterial(material.id);
+      setActiveTab("materials");
       
     } catch (error) {
       console.error("Error uploading material:", error);
       toast.error("Failed to upload material: " + 
         (error instanceof Error ? error.message : "Unknown error"));
+    } finally {
       setIsUploading(false);
     }
   };
@@ -593,17 +593,23 @@ const CourseTutor = () => {
     setIsProcessing(true);
     
     try {
-      // Simulate processing delay
-      setTimeout(() => {
-        toast.success("Summary generated successfully");
-        refetchSummaries();
-        setIsProcessing(false);
-      }, 2000);
+      const { data, error } = await supabase.functions.invoke('generate-study-aids', {
+        body: {
+          segmentId: selectedSegment,
+          type: 'summary'
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Summary generated successfully");
+      refetchSummaries();
       
     } catch (error) {
       console.error("Error generating summary:", error);
       toast.error("Failed to generate summary: " + 
         (error instanceof Error ? error.message : "Unknown error"));
+    } finally {
       setIsProcessing(false);
     }
   };
@@ -617,17 +623,23 @@ const CourseTutor = () => {
     setIsProcessing(true);
     
     try {
-      // Simulate processing delay for flashcards
-      setTimeout(() => {
-        toast.success("Flashcards generated successfully");
-        refetchFlashcards();
-        setIsProcessing(false);
-      }, 2000);
+      const { data, error } = await supabase.functions.invoke('generate-study-aids', {
+        body: {
+          segmentId: selectedSegment,
+          type: 'flashcards'
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Flashcards generated successfully");
+      refetchFlashcards();
       
     } catch (error) {
       console.error("Error generating flashcards:", error);
       toast.error("Failed to generate flashcards: " + 
         (error instanceof Error ? error.message : "Unknown error"));
+    } finally {
       setIsProcessing(false);
     }
   };
@@ -641,17 +653,23 @@ const CourseTutor = () => {
     setIsProcessing(true);
     
     try {
-      // Simulate processing delay for quiz generation
-      setTimeout(() => {
-        toast.success("Quiz generated successfully");
-        refetchQuizzes();
-        setIsProcessing(false);
-      }, 2000);
+      const { data, error } = await supabase.functions.invoke('generate-study-aids', {
+        body: {
+          segmentId: selectedSegment,
+          type: 'quiz'
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Quiz generated successfully");
+      refetchQuizzes();
       
     } catch (error) {
       console.error("Error generating quiz:", error);
       toast.error("Failed to generate quiz: " + 
         (error instanceof Error ? error.message : "Unknown error"));
+    } finally {
       setIsProcessing(false);
     }
   };
@@ -684,8 +702,6 @@ const CourseTutor = () => {
             handleUploadMaterial={handleUploadMaterial}
             isUploading={isUploading}
           />
-          
-          <DatabasePlaceholder />
         </TabsContent>
         
         <TabsContent value="materials" className="space-y-4">

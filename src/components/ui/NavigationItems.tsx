@@ -1,52 +1,80 @@
 
+import { cn } from "@/lib/utils";
+import { useLocation, NavLink } from "react-router-dom";
 import { 
   MessageSquare, 
-  History, 
-  Book, 
-  Calendar, 
-  Search,
-  LayoutDashboard 
+  BookOpen, 
+  GraduationCap, 
+  Calendar,
+  PlusCircle,
+  LayoutDashboard,
+  Settings
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Link, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
 
 interface NavigationItemsProps {
   isCollapsed: boolean;
 }
 
+interface NavItem {
+  title: string;
+  href: string;
+  icon: JSX.Element;
+}
+
 export function NavigationItems({ isCollapsed }: NavigationItemsProps) {
   const location = useLocation();
   
-  const navItems = [
-    { path: "/", icon: MessageSquare, label: "New Chat", title: "New Chat" },
-    { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard", title: "User Dashboard" },
-    { path: "/history", icon: History, label: "History", title: "History" },
-    { path: "/course-tutor", icon: Book, label: "Course Tutor", title: "Course Concept Tutor" },
-    { path: "/study-planner", icon: Calendar, label: "Study Planner", title: "Study Planner" },
-    { path: "/research", icon: Search, label: "Research", title: "Research Assistant" }
+  const navItems: NavItem[] = [
+    {
+      title: "Dashboard",
+      href: "/",
+      icon: <LayoutDashboard className="h-4 w-4" />
+    },
+    {
+      title: "New Chat",
+      href: "/chat/new",
+      icon: <PlusCircle className="h-4 w-4" />
+    },
+    {
+      title: "Course Tutor",
+      href: "/course-tutor",
+      icon: <BookOpen className="h-4 w-4" />
+    },
+    {
+      title: "Study Assistant",
+      href: "/study-assistant",
+      icon: <GraduationCap className="h-4 w-4" />
+    },
+    {
+      title: "Study Planner",
+      href: "/study-planner",
+      icon: <Calendar className="h-4 w-4" />
+    },
+    {
+      title: "Settings",
+      href: "/settings",
+      icon: <Settings className="h-4 w-4" />
+    }
   ];
   
   return (
-    <div className={cn("space-y-2", isCollapsed ? "flex flex-col items-center p-2 gap-2" : "p-4")}>
-      {navItems.map((item) => {
-        const Icon = item.icon;
-        return (
-          <Link to={item.path} key={item.path}>
-            <Button 
-              variant={location.pathname === item.path ? "secondary" : "ghost"}
-              className={cn(
-                "transition-colors",
-                isCollapsed ? "w-10 h-10 p-0 justify-center" : "w-full justify-start gap-2"
-              )}
-              title={item.title}
-            >
-              <Icon className="h-4 w-4" />
-              {!isCollapsed && <span>{item.label}</span>}
-            </Button>
-          </Link>
-        );
-      })}
+    <div className="space-y-1 py-2">
+      {navItems.map((item) => (
+        <NavLink
+          key={item.href}
+          to={item.href}
+          className={({ isActive }) =>
+            cn(
+              "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent",
+              isCollapsed ? "justify-center" : "justify-start",
+              isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+            )
+          }
+        >
+          {item.icon}
+          {!isCollapsed && <span>{item.title}</span>}
+        </NavLink>
+      ))}
     </div>
   );
 }

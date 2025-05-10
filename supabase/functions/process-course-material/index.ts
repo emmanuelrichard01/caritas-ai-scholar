@@ -23,10 +23,10 @@ serve(async (req) => {
     if (corsResponse) return corsResponse;
 
     // Parse request body
-    const { filePath, title, userId, prompt = "" } = await req.json();
+    const { filePath, title, userId, materialId, prompt = "" } = await req.json();
 
-    if (!filePath || !title || !userId) {
-      throw new Error("Missing required parameters: filePath, title, userId");
+    if (!filePath || !title || !userId || !materialId) {
+      throw new Error("Missing required parameters: filePath, title, userId, materialId");
     }
 
     // Initialize Supabase client with auth context
@@ -40,24 +40,7 @@ serve(async (req) => {
       }
     );
 
-    console.log(`Processing course material: ${title} for user ${userId}`);
-
-    // Create a new material entry
-    const { data: material, error: materialError } = await supabaseClient
-      .from("materials")
-      .insert({
-        user_id: userId,
-        title,
-      })
-      .select()
-      .single();
-
-    if (materialError) {
-      console.error("Error creating material:", materialError);
-      throw new Error(`Failed to create material: ${materialError.message}`);
-    }
-
-    console.log(`Created material record with ID: ${material.id}`);
+    console.log(`Processing course material: ${title} for user ${userId}, material ${materialId}`);
 
     // Get file content from storage
     const { data: fileData, error: fileError } = await supabaseClient
@@ -83,8 +66,22 @@ serve(async (req) => {
 
     console.log(`Extracted ${text.length} characters from file`);
     
+    // Save file path and info to uploads table
+    const { error: uploadError } = await supabaseClient
+      .from("uploads")
+      .insert({
+        user_id: userId,
+        file_path: filePath,
+        filename: title,
+        content_type: fileData.type
+      });
+      
+    if (uploadError) {
+      console.error("Error saving upload record:", uploadError);
+      // Continue anyway - non-critical error
+    }
+    
     // Process the text more intelligently by splitting on paragraphs and headings
-    // This is a simple segmentation algorithm that can be improved
     const lines = text.split("\n").filter(line => line.trim().length > 0);
     
     const segments: { material_id: string, title: string, text: string }[] = [];
@@ -106,7 +103,7 @@ serve(async (req) => {
         // If we have accumulated text for a segment, save it
         if (currentSegmentText.trim().length > 0) {
           segments.push({
-            material_id: material.id,
+            material_id: materialId,
             title: currentSegmentTitle,
             text: currentSegmentText.trim()
           });
@@ -124,7 +121,7 @@ serve(async (req) => {
     // Add the last segment if it has content
     if (currentSegmentText.trim().length > 0) {
       segments.push({
-        material_id: material.id,
+        material_id: materialId,
         title: currentSegmentTitle,
         text: currentSegmentText.trim()
       });
@@ -133,7 +130,7 @@ serve(async (req) => {
     // If we still didn't get any segments, create at least one
     if (segments.length === 0) {
       segments.push({
-        material_id: material.id,
+        material_id: materialId,
         title: "Content",
         text: text.trim() || "No readable content could be extracted from this file."
       });
@@ -142,9 +139,10 @@ serve(async (req) => {
     console.log(`Created ${segments.length} segments from the document`);
 
     // Insert segments
-    const { error: segmentsError } = await supabaseClient
+    const { data: segmentsData, error: segmentsError } = await supabaseClient
       .from("segments")
-      .insert(segments);
+      .insert(segments)
+      .select();
 
     if (segmentsError) {
       console.error("Error creating segments:", segmentsError);
@@ -156,8 +154,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         message: "Material processed successfully",
-        materialId: material.id,
+        materialId: materialId,
         segmentsCount: segments.length,
+        segments: segmentsData,
         result: `Successfully processed "${title}" into ${segments.length} segments`
       }),
       {

@@ -34,7 +34,7 @@ serve(async (req) => {
     // Initialize Supabase client with auth context
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") || "",
-      Deno.env.get("SUPABASE_ANON_KEY") || "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
       {
         global: {
           headers: { Authorization: req.headers.get("Authorization")! },
@@ -191,104 +191,134 @@ function generateSummaryBullets(text: string, title: string): string[] {
     })
     .slice(0, 3);
     
-  // If we don't have enough important sentences, add some from the beginning
-  if (importantSentences.length < 3 && sentences.length > 0) {
-    for (let i = 0; importantSentences.length < 3 && i < sentences.length; i++) {
-      if (!importantSentences.includes(sentences[i])) {
-        importantSentences.push(sentences[i]);
-      }
-    }
+  // If we don't have enough important sentences, add some more from the beginning
+  let bullets = [...importantSentences];
+  if (bullets.length < 3) {
+    const additionalSentences = sentences
+      .filter(sentence => !importantSentences.includes(sentence))
+      .slice(0, 3 - bullets.length);
+    bullets = [...bullets, ...additionalSentences];
   }
   
-  // Format each sentence
-  return importantSentences.map(sentence => 
-    sentence.trim().replace(/^\s*and\s+/i, '')
-  );
+  // Convert sentences to bullet points format
+  return bullets.map(sentence => {
+    sentence = sentence.trim();
+    // Capitalize first letter
+    return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+  });
 }
 
 // Helper function to generate flashcards
-function generateFlashcards(text: string, title: string): { question: string, answer: string }[] {
+function generateFlashcards(text: string, title: string) {
   // In a real implementation, you would use an AI service
-  // This is a simplified version that creates basic question-answer pairs
+  // This is a simplified version that creates basic flashcards
   
-  const paragraphs = text.split('\n\n').filter(p => p.trim().length > 20);
-  const flashcards = [];
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
+  const cards = [];
   
-  // Create a flashcard about the main topic
-  flashcards.push({
-    question: `What is the main topic of "${title}"?`,
-    answer: paragraphs[0]?.substring(0, 150) || "The main topic covers key concepts in this area."
+  // Create flashcards based on sentences
+  for (let i = 0; i < Math.min(5, sentences.length); i++) {
+    const sentence = sentences[i].trim();
+    
+    // Simple method: find a key term and create a question about it
+    const words = sentence.split(/\s+/);
+    const keyTermIndex = Math.floor(words.length / 2);
+    const keyTerm = words[keyTermIndex];
+    
+    if (keyTerm && keyTerm.length > 3) {
+      // Create a question by removing the key term
+      const question = `What ${keyTerm.length > 5 ? 'term' : 'concept'} is described as: "${
+        sentence.replace(new RegExp(`\\b${keyTerm}\\b`, 'i'), '______')
+      }"?`;
+      
+      cards.push({
+        question,
+        answer: `${keyTerm.charAt(0).toUpperCase() + keyTerm.slice(1)}`
+      });
+    } else {
+      // Fallback: create a simple recall question
+      cards.push({
+        question: `What is described in the following: "${sentence.substring(0, sentence.length / 2)}..."?`,
+        answer: sentence
+      });
+    }
+  }
+  
+  // Add a title-based flashcard
+  cards.push({
+    question: `What are the main concepts covered in "${title}"?`,
+    answer: "Key concepts include: " + 
+      sentences.slice(0, 3).map(s => s.trim().toLowerCase()).join(' ... ')
   });
   
-  // Create flashcards about important terms if we can find them
-  const termMatches = text.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:is|are|refers to|means|describes)\s+([^.!?]+)/g);
-  if (termMatches && termMatches.length > 0) {
-    for (let i = 0; i < Math.min(termMatches.length, 2); i++) {
-      const parts = termMatches[i].split(/\s+(?:is|are|refers to|means|describes)\s+/);
-      if (parts.length === 2) {
-        flashcards.push({
-          question: `Define "${parts[0]}":`,
-          answer: parts[1].trim()
-        });
-      }
-    }
-  } else {
-    // Add generic questions if we couldn't find specific terms
-    flashcards.push({
-      question: "What are the key concepts covered in this material?",
-      answer: "The material covers important principles related to " + title
-    });
-  }
-  
-  // Add a comparison question if we have enough paragraphs
-  if (paragraphs.length > 1) {
-    flashcards.push({
-      question: "Compare and contrast the concepts discussed in this material:",
-      answer: "The material discusses various aspects including " + 
-              paragraphs[1]?.substring(0, 100) + "..."
-    });
-  }
-  
-  return flashcards;
+  return cards;
 }
 
 // Helper function to generate quiz questions
-function generateQuizQuestions(text: string, title: string): any[] {
+function generateQuizQuestions(text: string, title: string) {
   // In a real implementation, you would use an AI service
-  // This is a simplified mock version
+  // This is a simplified version that creates basic multiple-choice questions
   
-  const questions = [];
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 15);
+  const quizQuestions = [];
   
-  // Multiple choice question about the main concept
-  questions.push({
-    segment_id: "",  // This will be filled in by the caller
-    type: "mcq",
-    prompt: `Which statement best describes the main concept in "${title}"?`,
-    choices: [
-      "The first key concept from the material",
-      "An unrelated or incorrect statement",
-      "A partially correct statement about the topic",
-      "Another incorrect statement about the topic"
-    ],
-    correct_answer: "The first key concept from the material",
-    explanation: "This answer directly reflects the main concept discussed in the material."
+  // Create a few multiple choice questions
+  for (let i = 0; i < Math.min(3, sentences.length); i++) {
+    const sentence = sentences[i].trim();
+    const words = sentence.split(/\s+/).filter(word => word.length > 4);
+    
+    if (words.length > 3) {
+      // Pick a word to be the correct answer
+      const correctWordIndex = Math.floor(Math.random() * words.length);
+      const correctWord = words[correctWordIndex];
+      
+      // Create prompt by replacing the word with a blank
+      const prompt = `${sentence.replace(new RegExp(`\\b${correctWord}\\b`, 'i'), "______")}`;
+      
+      // Create choices - one correct and 3 incorrect
+      const otherWords = text
+        .split(/\s+/)
+        .filter(word => word.length > 3 && word.toLowerCase() !== correctWord.toLowerCase())
+        .slice(0, 10);
+      
+      const shuffledChoices = [correctWord];
+      while (shuffledChoices.length < 4 && otherWords.length > 0) {
+        const randomIndex = Math.floor(Math.random() * otherWords.length);
+        const word = otherWords.splice(randomIndex, 1)[0];
+        if (!shuffledChoices.includes(word)) {
+          shuffledChoices.push(word);
+        }
+      }
+      
+      // Fill in if we don't have enough choices
+      while (shuffledChoices.length < 4) {
+        shuffledChoices.push(`Option ${shuffledChoices.length + 1}`);
+      }
+      
+      // Shuffle choices
+      for (let j = shuffledChoices.length - 1; j > 0; j--) {
+        const k = Math.floor(Math.random() * (j + 1));
+        [shuffledChoices[j], shuffledChoices[k]] = [shuffledChoices[k], shuffledChoices[j]];
+      }
+      
+      quizQuestions.push({
+        segment_id: text.length, // This will be overwritten with the actual segment_id
+        type: "mcq",
+        prompt,
+        choices: shuffledChoices,
+        correct_answer: correctWord,
+        explanation: `The correct answer is "${correctWord}" because it fits the context of the sentence.`
+      });
+    }
+  }
+  
+  // Add a simple short-answer question
+  quizQuestions.push({
+    type: "short",
+    prompt: `Summarize the main idea of "${title}" in one sentence.`,
+    correct_answer: "This is a subjective question with multiple possible answers.",
+    explanation: "Your answer should capture the key concept discussed in the text."
   });
   
-  // Another multiple choice question
-  questions.push({
-    segment_id: "",  // This will be filled in by the caller
-    type: "mcq",
-    prompt: "Based on the text, which of the following is true?",
-    choices: [
-      "A statement that appears to be true based on the text",
-      "An obviously false statement",
-      "A misleading statement that seems plausible",
-      "Another false statement"
-    ],
-    correct_answer: "A statement that appears to be true based on the text",
-    explanation: "This statement is directly supported by the content of the material."
-  });
-  
-  // Update all questions with the segment_id
-  return questions;
+  return quizQuestions;
 }

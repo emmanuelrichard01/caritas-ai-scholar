@@ -50,3 +50,13 @@ port = 54327
 
 [experimental.edge_runtime]
 enabled = true
+
+# Edge function configurations
+[functions.process-course-material]
+verify_jwt = true
+
+[functions.generate-study-aids]
+verify_jwt = true
+
+[functions.process-ai-query]
+verify_jwt = true

@@ -93,7 +93,8 @@ const ResearchAssistant = () => {
             journal: "Journal of Computer Science",
             year: "2024",
             link: "#",
-            abstract: "This is a sample research paper shown because the search API is currently unavailable. Please try again later to get real search results."
+            abstract: "This is a sample research paper shown because the search API is currently unavailable. Please try again later to get real search results.",
+            relevance: 85 // Added the required relevance field
           },
           {
             title: "Understanding AI in Education",
@@ -101,7 +102,8 @@ const ResearchAssistant = () => {
             journal: "Educational Technology Review",
             year: "2023",
             link: "#",
-            abstract: "A comprehensive review of artificial intelligence applications in educational contexts and their impact on learning outcomes."
+            abstract: "A comprehensive review of artificial intelligence applications in educational contexts and their impact on learning outcomes.",
+            relevance: 92 // Added the required relevance field
           }
         ]);
         toast.info("Using sample results while the search service is unavailable.");

@@ -6,7 +6,7 @@ import {
   BookOpen, 
   GraduationCap, 
   Calendar,
-  PlusCircle,
+  Book,
   LayoutDashboard,
   Settings
 } from "lucide-react";
@@ -39,6 +39,11 @@ export function NavigationItems({ isCollapsed }: NavigationItemsProps) {
       title: "Course Tutor",
       href: "/course-tutor",
       icon: <BookOpen className="h-4 w-4" />
+    },
+    {
+      title: "Research Assistant",
+      href: "/research-assistant",
+      icon: <Book className="h-4 w-4" />
     },
     {
       title: "Study Assistant",

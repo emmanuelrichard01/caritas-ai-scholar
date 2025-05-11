@@ -15,7 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { StudyToolTabs } from "@/components/studytools/StudyToolTabs";
 import { FlashcardItem } from "@/components/studytools/Flashcard";
 import { QuizQuestion } from "@/components/studytools/QuizComponent";
-import { Material, Segment, Summary, Flashcard, Quiz } from "@/types/database";
+import { Material, Segment, Summary, Flashcard, Quiz, QuizType } from "@/types/database";
 
 // Component for the material upload tab
 const MaterialUploader = ({ 
@@ -228,6 +228,7 @@ const StudyContent = ({
     answer: card.answer
   })) || null;
   
+  // Fix the type validation for quizzes
   const quizItems: QuizQuestion[] | null = quizzes?.map(quiz => ({
     question: quiz.prompt,
     options: quiz.choices || ["Option A", "Option B", "Option C", "Option D"],
@@ -493,7 +494,20 @@ const CourseTutor = () => {
         throw error;
       }
       
-      return data || [];
+      // Type validation to ensure the 'type' field is either 'mcq' or 'short'
+      const validatedData = data?.map(quiz => {
+        // Ensure quiz.type is either 'mcq' or 'short'
+        const validType: QuizType = quiz.type === 'mcq' || quiz.type === 'short' 
+          ? quiz.type as QuizType
+          : 'mcq'; // Default to 'mcq' if type is invalid
+          
+        return {
+          ...quiz,
+          type: validType
+        } as Quiz;
+      }) || [];
+      
+      return validatedData;
     },
     enabled: !!selectedSegment
   });

@@ -4,7 +4,7 @@ import { useLocation, NavLink } from "react-router-dom";
 import { 
   MessageSquare, 
   BookOpen, 
-  GraduationCap, 
+  Calculator, 
   Calendar,
   Book,
   LayoutDashboard,
@@ -42,13 +42,13 @@ export function NavigationItems({ isCollapsed }: NavigationItemsProps) {
     },
     {
       title: "Research Assistant",
-      href: "/research-assistant",
+      href: "/research",
       icon: <Book className="h-4 w-4" />
     },
     {
-      title: "Study Assistant",
-      href: "/study-assistant",
-      icon: <GraduationCap className="h-4 w-4" />
+      title: "GP Calculator",
+      href: "/gp-calculator",
+      icon: <Calculator className="h-4 w-4" />
     },
     {
       title: "Study Planner",

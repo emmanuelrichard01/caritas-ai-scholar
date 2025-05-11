@@ -4,7 +4,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  'Content-Type': 'application/json'
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -22,7 +23,7 @@ serve(async (req) => {
       console.error('Error parsing request JSON:', jsonError);
       return new Response(
         JSON.stringify({ error: 'Invalid JSON in request body' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        { headers: corsHeaders, status: 400 }
       );
     }
     
@@ -32,7 +33,7 @@ serve(async (req) => {
       console.error('Invalid or missing search query');
       return new Response(
         JSON.stringify({ error: 'Invalid search query' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        { headers: corsHeaders, status: 400 }
       );
     }
 
@@ -42,7 +43,7 @@ serve(async (req) => {
       console.error('API key not configured');
       return new Response(
         JSON.stringify({ error: 'API key not configured' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        { headers: corsHeaders, status: 500 }
       );
     }
 
@@ -154,7 +155,7 @@ serve(async (req) => {
         query: query,
         total: academicResults.length
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: corsHeaders }
     );
     
   } catch (error) {
@@ -166,7 +167,7 @@ serve(async (req) => {
         message: error.message 
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         status: 500
       }
     );

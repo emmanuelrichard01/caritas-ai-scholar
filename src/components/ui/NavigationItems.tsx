@@ -47,7 +47,7 @@ export function NavigationItems({ isCollapsed }: NavigationItemsProps) {
     },
     {
       title: "GP Calculator",
-      href: "/gp-calculator",
+      href: "/gpa-calculator",
       icon: <Calculator className="h-4 w-4" />
     },
     {

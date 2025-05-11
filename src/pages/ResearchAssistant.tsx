@@ -15,7 +15,12 @@ const ResearchAssistant = () => {
   const [searchResults, setSearchResults] = useState<ResearchResultItem[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [savedArticles, setSavedArticles] = useState<ResearchResultItem[]>([]);
-  const { processQuery, isProcessing, result } = useAIProcessor();
+  const { processQuery, isProcessing, result } = useAIProcessor({
+    onError: (error) => {
+      console.error("AI processing error:", error);
+      toast.error("AI processing failed. Using offline mode for now.");
+    }
+  });
   
   const handleSearch = async () => {
     if (!query.trim()) {
@@ -27,38 +32,80 @@ const ResearchAssistant = () => {
     
     try {
       // Get AI-generated research insights
-      await processQuery(query, "research");
-      
-      // Get real search results
-      const response = await fetch('/api/search-academic-results', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ query })
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Search API error:", errorText);
-        throw new Error(`Failed to fetch research results (${response.status})`);
+      try {
+        await processQuery(query, "research");
+      } catch (aiError) {
+        console.error("AI error:", aiError);
+        toast.error("AI insights are currently unavailable. Continuing with search results.");
       }
       
-      // Check for HTML response
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error("Unexpected response format:", text.substring(0, 100) + "...");
-        throw new Error("Server returned an invalid response format");
+      // Get real search results with a timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      
+      try {
+        const response = await fetch('/api/search-academic-results', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query }),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Search API error:", errorText);
+          throw new Error(`Failed to fetch research results (${response.status})`);
+        }
+        
+        // Check for HTML response
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error("Unexpected response format:", text.substring(0, 100) + "...");
+          throw new Error("Server returned an invalid response format");
+        }
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        setSearchResults(data.results || []);
+      } catch (fetchError) {
+        console.error("Search API fetch error:", fetchError);
+        
+        if (fetchError.name === 'AbortError') {
+          setSearchError("Search request timed out. Please try again later.");
+        } else {
+          setSearchError(fetchError instanceof Error ? fetchError.message : "Unknown error occurred");
+        }
+        
+        // Set some sample results for better UX when offline
+        setSearchResults([
+          {
+            title: "Sample Research Paper (Offline Mode)",
+            authors: "Demo Author",
+            journal: "Journal of Computer Science",
+            year: "2024",
+            link: "#",
+            abstract: "This is a sample research paper shown because the search API is currently unavailable. Please try again later to get real search results."
+          },
+          {
+            title: "Understanding AI in Education",
+            authors: "Jane Smith, John Doe",
+            journal: "Educational Technology Review",
+            year: "2023",
+            link: "#",
+            abstract: "A comprehensive review of artificial intelligence applications in educational contexts and their impact on learning outcomes."
+          }
+        ]);
+        toast.info("Using sample results while the search service is unavailable.");
       }
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      
-      setSearchResults(data.results || []);
     } catch (error) {
       console.error("Error processing research query:", error);
       setSearchError(error instanceof Error ? error.message : "Unknown error occurred");
@@ -74,6 +121,29 @@ const ResearchAssistant = () => {
       toast.info("This article is already in your library");
     }
   };
+  
+  // Store saved articles in local storage
+  useEffect(() => {
+    if (savedArticles.length > 0) {
+      try {
+        localStorage.setItem('savedArticles', JSON.stringify(savedArticles));
+      } catch (err) {
+        console.error('Failed to save to localStorage:', err);
+      }
+    }
+  }, [savedArticles]);
+  
+  // Load saved articles from local storage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('savedArticles');
+      if (saved) {
+        setSavedArticles(JSON.parse(saved));
+      }
+    } catch (err) {
+      console.error('Failed to load from localStorage:', err);
+    }
+  }, []);
   
   return (
     <PageLayout
@@ -167,7 +237,11 @@ const ResearchAssistant = () => {
                 variant="outline" 
                 size="sm"
                 className="mt-4 text-xs dark:border-slate-700 dark:text-slate-300"
-                onClick={() => setSavedArticles([])}
+                onClick={() => {
+                  setSavedArticles([]);
+                  localStorage.removeItem('savedArticles');
+                  toast.success("Library cleared");
+                }}
               >
                 Clear Library
               </Button>

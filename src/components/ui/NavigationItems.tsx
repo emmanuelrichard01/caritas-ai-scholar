@@ -26,14 +26,14 @@ export function NavigationItems({ isCollapsed }: NavigationItemsProps) {
   
   const navItems: NavItem[] = [
     {
-      title: "Dashboard",
+      title: "Chat",
       href: "/",
-      icon: <LayoutDashboard className="h-4 w-4" />
+      icon: <MessageSquare className="h-4 w-4" />
     },
     {
-      title: "New Chat",
-      href: "/chat/new",
-      icon: <PlusCircle className="h-4 w-4" />
+      title: "Dashboard",
+      href: "/dashboard",
+      icon: <LayoutDashboard className="h-4 w-4" />
     },
     {
       title: "Course Tutor",

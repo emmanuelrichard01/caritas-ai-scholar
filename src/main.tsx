@@ -1,26 +1,25 @@
 
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import "./index.css";
 
-// Only try to configure if window.ethereum is not already defined and property is not already configured
-if (typeof window !== 'undefined') {
+// Fix for the ethereum redefinition error (conflict with browser extensions)
+// This check prevents redefining the ethereum property if already defined by a browser extension
+if (!window.ethereum) {
   try {
-    if (!Object.getOwnPropertyDescriptor(window, 'ethereum')) {
-      Object.defineProperty(window, 'ethereum', {
-        value: undefined,
-        writable: true,
-        configurable: true,
-      });
-    }
-  } catch (error) {
-    console.log('Ethereum property already defined, using existing definition');
+    Object.defineProperty(window, 'ethereum', {
+      value: undefined,
+      configurable: true,
+      writable: true
+    });
+  } catch (err) {
+    console.warn('Failed to set ethereum placeholder:', err);
   }
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
-)
+  </React.StrictMode>
+);

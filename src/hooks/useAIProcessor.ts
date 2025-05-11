@@ -46,7 +46,9 @@ export function useAIProcessor(options?: AIProcessorOptions) {
               'Content-Type': 'application/json',
               'Accept': 'application/json'
             },
-            body: JSON.stringify({ query })
+            body: JSON.stringify({ query }),
+            // Add timeout to the fetch request
+            signal: AbortSignal.timeout(30000) // 30 second timeout
           });
           
           // Check for non-OK response early
@@ -108,7 +110,13 @@ export function useAIProcessor(options?: AIProcessorOptions) {
     try {
       console.log('Using fallback process-ai-query for:', category);
       
-      const { data, error } = await supabase.functions.invoke('process-ai-query', {
+      // Set a timeout for the function invocation
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Function timed out after 30 seconds')), 30000)
+      );
+      
+      // Invoke the function with a race against the timeout
+      const functionPromise = supabase.functions.invoke('process-ai-query', {
         body: {
           query,
           userId,
@@ -117,6 +125,9 @@ export function useAIProcessor(options?: AIProcessorOptions) {
           provider: category === 'google-ai' ? 'google' : (category === 'openrouter' ? 'openrouter' : 'default')
         }
       });
+      
+      // Race between the function call and the timeout
+      const { data, error } = await Promise.race([functionPromise, timeoutPromise]) as any;
       
       if (error) {
         throw new Error(`Supabase function error: ${error.message}`);
@@ -135,6 +146,13 @@ export function useAIProcessor(options?: AIProcessorOptions) {
       return data.answer;
     } catch (error) {
       console.error('Error with fallback processing:', error);
+      
+      // Provide a more user-friendly message for timeouts
+      if (error instanceof Error && error.message.includes('timed out')) {
+        toast.error('The AI service is taking too long to respond. Please try again later.');
+        return "The AI service is currently experiencing high demand. Please try your query again in a few minutes.";
+      }
+      
       throw new Error(`Error processing ${category} query: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };

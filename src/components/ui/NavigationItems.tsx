@@ -46,7 +46,7 @@ export function NavigationItems({ isCollapsed }: NavigationItemsProps) {
       icon: <Book className="h-4 w-4" />
     },
     {
-      title: "GP Calculator",
+      title: "GPA Calculator",
       href: "/gpa-calculator",
       icon: <Calculator className="h-4 w-4" />
     },

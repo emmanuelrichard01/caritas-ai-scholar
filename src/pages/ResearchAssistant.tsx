@@ -27,7 +27,7 @@ const ResearchAssistant = () => {
   // Load saved articles on component mount
   useEffect(() => {
     loadSavedArticles();
-  }, []);
+  }, [loadSavedArticles]);
   
   return (
     <PageLayout

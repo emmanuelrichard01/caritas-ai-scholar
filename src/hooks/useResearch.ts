@@ -15,7 +15,7 @@ export const useResearch = () => {
   const { processQuery, isProcessing, result } = useAIProcessor({
     onError: (error) => {
       console.error("AI processing error:", error);
-      toast.error("AI processing failed. Using offline mode for now.");
+      toast.error("AI insights are currently unavailable. Continuing with search results.");
     }
   });
 
@@ -67,47 +67,44 @@ export const useResearch = () => {
     setIsSearching(true);
     
     try {
-      // Get AI-generated research insights
-      try {
-        await processQuery(query, "research");
-      } catch (aiError) {
-        console.error("AI error:", aiError);
-        toast.error("AI insights are currently unavailable. Continuing with search results.");
-      }
+      // Get AI-generated research insights (non-blocking)
+      processQuery(query, "research").catch(error => {
+        console.error("AI insights error:", error);
+        // Continue with search even if AI fails
+      });
       
       // Call the Supabase edge function for search results
-      try {
-        console.log('Calling search-academic-results edge function with query:', query);
-        
-        const { data, error } = await supabase.functions.invoke('search-academic-results', {
-          body: { query }
-        });
-        
-        if (error) {
-          console.error("Edge function error:", error);
-          throw new Error(`Search function error: ${error.message}`);
-        }
-        
-        if (data && Array.isArray(data.results) && data.results.length > 0) {
-          setSearchResults(data.results);
-        } else {
-          console.warn("No results returned from edge function");
-          setSearchResults(getFallbackResults(query));
-          toast.info("No relevant academic results found. Showing suggested resources.");
-        }
-      } catch (fetchError) {
-        console.error("Search edge function error:", fetchError);
-        setSearchError(fetchError instanceof Error ? fetchError.message : "Unknown error occurred");
-        
-        // Set fallback results for better UX
-        setSearchResults(getFallbackResults(query));
-        toast.info("Using sample results while the search service is unavailable.");
+      console.log('Calling search-academic-results edge function with query:', query);
+      
+      const { data, error } = await supabase.functions.invoke('search-academic-results', {
+        body: { query }
+      });
+      
+      if (error) {
+        console.error("Search function error:", error);
+        throw new Error(`Search failed: ${error.message}`);
+      }
+      
+      console.log('Search function response:', data);
+      
+      if (data && Array.isArray(data.results) && data.results.length > 0) {
+        console.log(`Found ${data.results.length} search results`);
+        setSearchResults(data.results);
+        toast.success(`Found ${data.results.length} scholarly resources`);
+      } else {
+        console.warn("No results returned from search function");
+        const fallbackResults = getFallbackResults(query);
+        setSearchResults(fallbackResults);
+        toast.info("No current results found. Showing suggested academic resources.");
       }
     } catch (error) {
-      console.error("Error processing research query:", error);
-      setSearchError(error instanceof Error ? error.message : "Unknown error occurred");
-      setSearchResults(getFallbackResults(query));
-      toast.error("Failed to retrieve research results. Using offline mode.");
+      console.error("Error during research search:", error);
+      setSearchError(error instanceof Error ? error.message : "Search service temporarily unavailable");
+      
+      // Provide fallback results for better UX
+      const fallbackResults = getFallbackResults(query);
+      setSearchResults(fallbackResults);
+      toast.error("Search service temporarily unavailable. Showing sample results.");
     } finally {
       setIsSearching(false);
     }
@@ -118,7 +115,7 @@ export const useResearch = () => {
     const queryWords = searchQuery.split(' ').filter(word => word.length > 2);
     const mainTopic = queryWords.length > 0 ? 
       queryWords[Math.floor(Math.random() * queryWords.length)] : 
-      'Education';
+      'Academic Research';
     
     const capitalizedTopic = mainTopic.charAt(0).toUpperCase() + mainTopic.slice(1);
     
@@ -127,27 +124,27 @@ export const useResearch = () => {
         title: `Recent Advances in ${capitalizedTopic} Research`,
         authors: "Johnson, A. & Smith, B.",
         journal: "Journal of Advanced Studies",
-        year: "2023",
-        abstract: `This comprehensive study examines the latest developments in ${mainTopic} research, highlighting key trends and methodological innovations that have emerged in recent years.`,
-        link: "https://example.org/research/recent-advances",
+        year: "2024",
+        abstract: `This comprehensive study examines the latest developments in ${mainTopic} research, highlighting key trends and methodological innovations that have emerged in recent years. The research provides valuable insights for students and researchers.`,
+        link: "https://scholar.google.com/search?q=" + encodeURIComponent(searchQuery),
         relevance: 94
       },
       {
         title: `A Systematic Review of ${capitalizedTopic} Applications`,
         authors: "Chen, C. et al.",
         journal: "International Review of Applied Sciences",
-        year: "2022",
-        abstract: `This paper provides a systematic review of current research and methodologies in ${mainTopic}. The authors analyze existing literature and identify key trends, challenges, and future directions.`,
-        link: "https://example.org/research/systematic-review",
+        year: "2023",
+        abstract: `This paper provides a systematic review of current research and methodologies in ${mainTopic}. The authors analyze existing literature and identify key trends, challenges, and future directions in the field.`,
+        link: "https://scholar.google.com/search?q=" + encodeURIComponent(`${searchQuery} systematic review`),
         relevance: 87
       },
       {
-        title: `Applications and Implications of ${capitalizedTopic} in Education`,
+        title: `Contemporary Perspectives on ${capitalizedTopic}`,
         authors: "García, M. & Kim, J.",
-        journal: "Journal of Educational Technology",
+        journal: "Journal of Academic Research",
         year: "2023",
-        abstract: `This study examines the practical applications and broader implications of ${mainTopic} in educational settings. The research findings suggest significant benefits for student engagement and learning outcomes.`,
-        link: "https://example.org/research/applications",
+        abstract: `This study examines contemporary approaches and perspectives in ${mainTopic}. The research findings suggest significant implications for academic understanding and practical applications in the field.`,
+        link: "https://scholar.google.com/search?q=" + encodeURIComponent(`${searchQuery} contemporary perspectives`),
         relevance: 82
       }
     ];

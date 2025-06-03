@@ -7,40 +7,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Handle CORS preflight requests
-const handleCors = (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: corsHeaders,
-    });
-  }
-};
-
 serve(async (req) => {
-  try {
-    // Handle CORS
-    const corsResponse = handleCors(req);
-    if (corsResponse) return corsResponse;
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
-    // Parse request body
+  try {
     const { segmentId, type } = await req.json();
 
     if (!segmentId || !type) {
       throw new Error("Missing required parameters: segmentId, type");
     }
 
-    console.log(`Generating ${type} for segment ${segmentId}`);
-
-    // Initialize Supabase client with auth context
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") || "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-      }
     );
+
+    console.log(`Generating ${type} for segment ${segmentId}`);
 
     // Get segment content
     const { data: segment, error: segmentError } = await supabaseClient
@@ -50,113 +34,38 @@ serve(async (req) => {
       .single();
 
     if (segmentError || !segment) {
-      console.error("Error retrieving segment:", segmentError);
-      throw new Error(`Segment not found: ${segmentError?.message || "Unknown error"}`);
+      throw new Error(`Failed to fetch segment: ${segmentError?.message || "Segment not found"}`);
     }
 
-    console.log(`Retrieved segment: ${segment.title}`);
+    let result;
+    switch (type) {
+      case 'summary':
+        result = await generateSummary(supabaseClient, segment);
+        break;
+      case 'flashcards':
+        result = await generateFlashcards(supabaseClient, segment);
+        break;
+      case 'quiz':
+        result = await generateQuiz(supabaseClient, segment);
+        break;
+      default:
+        throw new Error(`Unknown study aid type: ${type}`);
+    }
 
-    // Generate based on type requested
-    if (type === "summary") {
-      // Generate a summary with bullet points
-      const bullets = generateSummaryBullets(segment.text, segment.title);
-      
-      // Insert or update summary
-      const { data, error } = await supabaseClient
-        .from("summaries")
-        .upsert({
-          segment_id: segmentId,
-          bullets,
-        })
-        .select()
-        .single();
-      
-      if (error) {
-        console.error("Error creating summary:", error);
-        throw new Error(`Failed to create summary: ${error.message}`);
+    return new Response(
+      JSON.stringify({
+        message: `${type} generated successfully`,
+        result
+      }),
+      {
+        headers: { 
+          ...corsHeaders,
+          "Content-Type": "application/json" 
+        },
       }
-      
-      console.log("Summary created successfully");
-      return new Response(
-        JSON.stringify({
-          message: "Summary generated successfully",
-          result: data,
-        }),
-        {
-          headers: { 
-            ...corsHeaders,
-            "Content-Type": "application/json" 
-          },
-        }
-      );
-    } 
-    else if (type === "flashcards") {
-      // Create flashcards
-      const flashcards = generateFlashcards(segment.text, segment.title);
-      
-      // Insert flashcards
-      const { data, error } = await supabaseClient
-        .from("flashcards")
-        .insert(flashcards.map(fc => ({
-          segment_id: segmentId,
-          question: fc.question,
-          answer: fc.answer
-        })))
-        .select();
-      
-      if (error) {
-        console.error("Error creating flashcards:", error);
-        throw new Error(`Failed to create flashcards: ${error.message}`);
-      }
-      
-      console.log(`${flashcards.length} flashcards created successfully`);
-      return new Response(
-        JSON.stringify({
-          message: "Flashcards generated successfully",
-          result: data,
-        }),
-        {
-          headers: { 
-            ...corsHeaders,
-            "Content-Type": "application/json" 
-          },
-        }
-      );
-    }
-    else if (type === "quiz") {
-      // Create quiz questions
-      const quizQuestions = generateQuizQuestions(segment.text, segment.title);
-      
-      // Insert quiz questions
-      const { data, error } = await supabaseClient
-        .from("quizzes")
-        .insert(quizQuestions)
-        .select();
-      
-      if (error) {
-        console.error("Error creating quiz questions:", error);
-        throw new Error(`Failed to create quiz questions: ${error.message}`);
-      }
-      
-      console.log(`${quizQuestions.length} quiz questions created successfully`);
-      return new Response(
-        JSON.stringify({
-          message: "Quiz generated successfully",
-          result: data,
-        }),
-        {
-          headers: { 
-            ...corsHeaders,
-            "Content-Type": "application/json" 
-          },
-        }
-      );
-    }
-    else {
-      throw new Error(`Invalid study aid type: ${type}`);
-    }
+    );
   } catch (error) {
-    console.error("Error generating study aid:", error);
+    console.error(`Error generating study aids:`, error);
     
     return new Response(
       JSON.stringify({ 
@@ -173,152 +82,159 @@ serve(async (req) => {
   }
 });
 
-// Helper function to generate summary bullets
-function generateSummaryBullets(text: string, title: string): string[] {
-  // In a real implementation, you would use an AI service
-  // This is a simplified version that extracts key sentences
+async function generateSummary(supabaseClient: any, segment: any) {
+  const content = segment.text;
+  const bullets = extractKeyPoints(content);
   
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
-  const keywords = title.toLowerCase().split(/\s+/);
-  
-  // Find sentences that seem important (contain keywords from title)
-  const importantSentences = sentences
-    .filter(sentence => {
-      const lowerSentence = sentence.toLowerCase();
-      return keywords.some(keyword => 
-        keyword.length > 3 && lowerSentence.includes(keyword.toLowerCase())
-      );
+  const { data, error } = await supabaseClient
+    .from("summaries")
+    .insert({
+      segment_id: segment.id,
+      bullets
     })
-    .slice(0, 3);
-    
-  // If we don't have enough important sentences, add some more from the beginning
-  let bullets = [...importantSentences];
-  if (bullets.length < 3) {
-    const additionalSentences = sentences
-      .filter(sentence => !importantSentences.includes(sentence))
-      .slice(0, 3 - bullets.length);
-    bullets = [...bullets, ...additionalSentences];
-  }
-  
-  // Convert sentences to bullet points format
-  return bullets.map(sentence => {
-    sentence = sentence.trim();
-    // Capitalize first letter
-    return sentence.charAt(0).toUpperCase() + sentence.slice(1);
-  });
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
 }
 
-// Helper function to generate flashcards
-function generateFlashcards(text: string, title: string) {
-  // In a real implementation, you would use an AI service
-  // This is a simplified version that creates basic flashcards
+async function generateFlashcards(supabaseClient: any, segment: any) {
+  const content = segment.text;
+  const flashcards = createFlashcardsFromContent(content);
   
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
-  const cards = [];
+  const flashcardData = flashcards.map(card => ({
+    segment_id: segment.id,
+    question: card.question,
+    answer: card.answer
+  }));
+
+  const { data, error } = await supabaseClient
+    .from("flashcards")
+    .insert(flashcardData)
+    .select();
+
+  if (error) throw error;
+  return data;
+}
+
+async function generateQuiz(supabaseClient: any, segment: any) {
+  const content = segment.text;
+  const quizQuestions = createQuizFromContent(content);
   
-  // Create flashcards based on sentences
-  for (let i = 0; i < Math.min(5, sentences.length); i++) {
-    const sentence = sentences[i].trim();
-    
-    // Simple method: find a key term and create a question about it
-    const words = sentence.split(/\s+/);
-    const keyTermIndex = Math.floor(words.length / 2);
-    const keyTerm = words[keyTermIndex];
-    
-    if (keyTerm && keyTerm.length > 3) {
-      // Create a question by removing the key term
-      const question = `What ${keyTerm.length > 5 ? 'term' : 'concept'} is described as: "${
-        sentence.replace(new RegExp(`\\b${keyTerm}\\b`, 'i'), '______')
-      }"?`;
+  const quizData = quizQuestions.map(q => ({
+    segment_id: segment.id,
+    type: 'mcq',
+    prompt: q.question,
+    choices: q.choices,
+    correct_answer: q.correctAnswer,
+    explanation: q.explanation
+  }));
+
+  const { data, error } = await supabaseClient
+    .from("quizzes")
+    .insert(quizData)
+    .select();
+
+  if (error) throw error;
+  return data;
+}
+
+function extractKeyPoints(content: string): string[] {
+  const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
+  const keyPoints: string[] = [];
+  
+  // Extract important sentences based on keywords and structure
+  const importantKeywords = ['important', 'key', 'main', 'primary', 'significant', 'crucial', 'essential', 'fundamental'];
+  
+  sentences.forEach(sentence => {
+    const lowerSentence = sentence.toLowerCase();
+    if (importantKeywords.some(keyword => lowerSentence.includes(keyword)) || 
+        sentence.length > 50 && sentence.length < 200) {
+      keyPoints.push(sentence.trim());
+    }
+  });
+  
+  // If no key points found, take first few sentences
+  if (keyPoints.length === 0) {
+    return sentences.slice(0, 5).map(s => s.trim());
+  }
+  
+  return keyPoints.slice(0, 8);
+}
+
+function createFlashcardsFromContent(content: string): Array<{question: string, answer: string}> {
+  const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
+  const flashcards: Array<{question: string, answer: string}> = [];
+  
+  // Create definition-based flashcards
+  sentences.forEach(sentence => {
+    if (sentence.includes(' is ') || sentence.includes(' are ') || sentence.includes(' means ')) {
+      const parts = sentence.split(/ is | are | means /);
+      if (parts.length >= 2) {
+        flashcards.push({
+          question: `What is ${parts[0].trim()}?`,
+          answer: parts[1].trim()
+        });
+      }
+    }
+  });
+  
+  // Generate basic comprehension questions
+  const topics = extractTopics(content);
+  topics.forEach(topic => {
+    flashcards.push({
+      question: `Explain the concept of ${topic}`,
+      answer: `Review the material for detailed information about ${topic}`
+    });
+  });
+  
+  return flashcards.slice(0, 10);
+}
+
+function createQuizFromContent(content: string): Array<{question: string, choices: string[], correctAnswer: string, explanation: string}> {
+  const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
+  const questions: Array<{question: string, choices: string[], correctAnswer: string, explanation: string}> = [];
+  
+  sentences.slice(0, 5).forEach((sentence, index) => {
+    const words = sentence.split(' ').filter(w => w.length > 3);
+    if (words.length > 5) {
+      const keyWord = words[Math.floor(words.length / 2)];
+      const question = `What is mentioned about ${keyWord} in the material?`;
+      const correctAnswer = sentence.trim();
       
-      cards.push({
+      questions.push({
         question,
-        answer: `${keyTerm.charAt(0).toUpperCase() + keyTerm.slice(1)}`
-      });
-    } else {
-      // Fallback: create a simple recall question
-      cards.push({
-        question: `What is described in the following: "${sentence.substring(0, sentence.length / 2)}..."?`,
-        answer: sentence
+        choices: [
+          correctAnswer,
+          `Alternative explanation ${index + 1}`,
+          `Different perspective ${index + 1}`,
+          `Unrelated concept ${index + 1}`
+        ],
+        correctAnswer,
+        explanation: `This information is directly stated in the source material.`
       });
     }
-  }
-  
-  // Add a title-based flashcard
-  cards.push({
-    question: `What are the main concepts covered in "${title}"?`,
-    answer: "Key concepts include: " + 
-      sentences.slice(0, 3).map(s => s.trim().toLowerCase()).join(' ... ')
   });
   
-  return cards;
+  return questions.slice(0, 5);
 }
 
-// Helper function to generate quiz questions
-function generateQuizQuestions(text: string, title: string) {
-  // In a real implementation, you would use an AI service
-  // This is a simplified version that creates basic multiple-choice questions
+function extractTopics(content: string): string[] {
+  const words = content.toLowerCase().split(/\W+/);
+  const topicWords = words.filter(word => 
+    word.length > 5 && 
+    !['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'man', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use'].includes(word)
+  );
   
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 15);
-  const quizQuestions = [];
-  
-  // Create a few multiple choice questions
-  for (let i = 0; i < Math.min(3, sentences.length); i++) {
-    const sentence = sentences[i].trim();
-    const words = sentence.split(/\s+/).filter(word => word.length > 4);
-    
-    if (words.length > 3) {
-      // Pick a word to be the correct answer
-      const correctWordIndex = Math.floor(Math.random() * words.length);
-      const correctWord = words[correctWordIndex];
-      
-      // Create prompt by replacing the word with a blank
-      const prompt = `${sentence.replace(new RegExp(`\\b${correctWord}\\b`, 'i'), "______")}`;
-      
-      // Create choices - one correct and 3 incorrect
-      const otherWords = text
-        .split(/\s+/)
-        .filter(word => word.length > 3 && word.toLowerCase() !== correctWord.toLowerCase())
-        .slice(0, 10);
-      
-      const shuffledChoices = [correctWord];
-      while (shuffledChoices.length < 4 && otherWords.length > 0) {
-        const randomIndex = Math.floor(Math.random() * otherWords.length);
-        const word = otherWords.splice(randomIndex, 1)[0];
-        if (!shuffledChoices.includes(word)) {
-          shuffledChoices.push(word);
-        }
-      }
-      
-      // Fill in if we don't have enough choices
-      while (shuffledChoices.length < 4) {
-        shuffledChoices.push(`Option ${shuffledChoices.length + 1}`);
-      }
-      
-      // Shuffle choices
-      for (let j = shuffledChoices.length - 1; j > 0; j--) {
-        const k = Math.floor(Math.random() * (j + 1));
-        [shuffledChoices[j], shuffledChoices[k]] = [shuffledChoices[k], shuffledChoices[j]];
-      }
-      
-      quizQuestions.push({
-        segment_id: text.length, // This will be overwritten with the actual segment_id
-        type: "mcq",
-        prompt,
-        choices: shuffledChoices,
-        correct_answer: correctWord,
-        explanation: `The correct answer is "${correctWord}" because it fits the context of the sentence.`
-      });
-    }
-  }
-  
-  // Add a simple short-answer question
-  quizQuestions.push({
-    type: "short",
-    prompt: `Summarize the main idea of "${title}" in one sentence.`,
-    correct_answer: "This is a subjective question with multiple possible answers.",
-    explanation: "Your answer should capture the key concept discussed in the text."
+  // Count frequency and return most common topics
+  const frequency: {[key: string]: number} = {};
+  topicWords.forEach(word => {
+    frequency[word] = (frequency[word] || 0) + 1;
   });
   
-  return quizQuestions;
+  return Object.entries(frequency)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 5)
+    .map(([word]) => word);
 }

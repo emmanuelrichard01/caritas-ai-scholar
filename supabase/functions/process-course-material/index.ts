@@ -7,29 +7,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Handle CORS preflight requests
-const handleCors = (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: corsHeaders,
-    });
-  }
-};
-
 serve(async (req) => {
-  try {
-    // Handle CORS
-    const corsResponse = handleCors(req);
-    if (corsResponse) return corsResponse;
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
-    // Parse request body
+  try {
     const { filePath, title, userId, materialId, prompt = "" } = await req.json();
 
     if (!filePath || !title || !userId || !materialId) {
       throw new Error("Missing required parameters: filePath, title, userId, materialId");
     }
 
-    // Initialize Supabase client with auth context
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") || "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
@@ -42,7 +31,7 @@ serve(async (req) => {
 
     console.log(`Processing course material: ${title} for user ${userId}, material ${materialId}`);
 
-    // Get file content from storage
+    // Download file from storage
     const { data: fileData, error: fileError } = await supabaseClient
       .storage
       .from("course-materials")
@@ -55,7 +44,6 @@ serve(async (req) => {
 
     console.log("File downloaded successfully, converting to text");
 
-    // Convert file to text depending on the type
     let text: string;
     try {
       text = await fileData.text();
@@ -66,7 +54,7 @@ serve(async (req) => {
 
     console.log(`Extracted ${text.length} characters from file`);
     
-    // Save file path and info to uploads table
+    // Save upload record
     const { error: uploadError } = await supabaseClient
       .from("uploads")
       .insert({
@@ -78,63 +66,10 @@ serve(async (req) => {
       
     if (uploadError) {
       console.error("Error saving upload record:", uploadError);
-      // Continue anyway - non-critical error
     }
     
-    // Process the text more intelligently by splitting on paragraphs and headings
-    const lines = text.split("\n").filter(line => line.trim().length > 0);
-    
-    const segments: { material_id: string, title: string, text: string }[] = [];
-    let currentSegmentTitle = "Introduction";
-    let currentSegmentText = "";
-    
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      
-      // Check if this line looks like a heading (all caps, starts with Chapter, etc.)
-      const isHeading = (
-        trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 5
-        || /^(chapter|section|part|unit)\s+\d+/i.test(trimmedLine)
-        || /^[IVXivx]+\.\s+/i.test(trimmedLine)  // Roman numerals with period
-        || /^\d+\.\d+\s+/i.test(trimmedLine)     // Numbered sections like 1.1, 2.3
-      );
-      
-      if (isHeading || segments.length === 0) {
-        // If we have accumulated text for a segment, save it
-        if (currentSegmentText.trim().length > 0) {
-          segments.push({
-            material_id: materialId,
-            title: currentSegmentTitle,
-            text: currentSegmentText.trim()
-          });
-        }
-        
-        // Start a new segment
-        currentSegmentTitle = isHeading ? trimmedLine : "Introduction";
-        currentSegmentText = isHeading ? "" : trimmedLine + "\n";
-      } else {
-        // Add to current segment
-        currentSegmentText += trimmedLine + "\n";
-      }
-    }
-    
-    // Add the last segment if it has content
-    if (currentSegmentText.trim().length > 0) {
-      segments.push({
-        material_id: materialId,
-        title: currentSegmentTitle,
-        text: currentSegmentText.trim()
-      });
-    }
-    
-    // If we still didn't get any segments, create at least one
-    if (segments.length === 0) {
-      segments.push({
-        material_id: materialId,
-        title: "Content",
-        text: text.trim() || "No readable content could be extracted from this file."
-      });
-    }
+    // Enhanced text processing with better segmentation
+    const segments = processTextIntoSegments(text, materialId);
 
     console.log(`Created ${segments.length} segments from the document`);
 
@@ -183,3 +118,66 @@ serve(async (req) => {
     );
   }
 });
+
+function processTextIntoSegments(text: string, materialId: string) {
+  const lines = text.split("\n").filter(line => line.trim().length > 0);
+  const segments: { material_id: string, title: string, text: string }[] = [];
+  
+  let currentSegmentTitle = "Introduction";
+  let currentSegmentText = "";
+  let segmentCount = 0;
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    // Enhanced heading detection
+    const isHeading = (
+      trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 5 && trimmedLine.length < 100
+      || /^(chapter|section|part|unit|lesson|module)\s+\d+/i.test(trimmedLine)
+      || /^[IVXivx]+\.\s+/i.test(trimmedLine)
+      || /^\d+\.\d+\s+/i.test(trimmedLine)
+      || /^#{1,6}\s+/.test(trimmedLine) // Markdown headers
+      || trimmedLine.endsWith(':') && trimmedLine.length < 50
+    );
+    
+    if (isHeading && currentSegmentText.trim().length > 50) {
+      // Save current segment if it has substantial content
+      segments.push({
+        material_id: materialId,
+        title: currentSegmentTitle,
+        text: currentSegmentText.trim()
+      });
+      
+      // Start new segment
+      currentSegmentTitle = trimmedLine.replace(/^#+\s*/, '').replace(/:$/, '');
+      currentSegmentText = "";
+      segmentCount++;
+    } else if (isHeading && currentSegmentText.trim().length <= 50) {
+      // Update title if we haven't collected much content yet
+      currentSegmentTitle = trimmedLine.replace(/^#+\s*/, '').replace(/:$/, '');
+    } else {
+      // Add to current segment
+      currentSegmentText += trimmedLine + "\n";
+    }
+  }
+  
+  // Add the last segment if it has content
+  if (currentSegmentText.trim().length > 0) {
+    segments.push({
+      material_id: materialId,
+      title: currentSegmentTitle,
+      text: currentSegmentText.trim()
+    });
+  }
+  
+  // If no segments were created, create at least one
+  if (segments.length === 0) {
+    segments.push({
+      material_id: materialId,
+      title: "Content",
+      text: text.trim() || "No readable content could be extracted from this file."
+    });
+  }
+
+  return segments;
+}

@@ -2,6 +2,7 @@
 import { useState, useCallback } from "react";
 import { ResearchResultItem } from "@/components/research/ResearchResult";
 import { useAIProcessor } from "@/hooks/useAIProcessor";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const useResearch = () => {
@@ -74,66 +75,29 @@ export const useResearch = () => {
         toast.error("AI insights are currently unavailable. Continuing with search results.");
       }
       
-      // Get real search results with a timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-      
+      // Call the Supabase edge function for search results
       try {
-        const response = await fetch('/api/search-academic-results', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({ query }),
-          signal: controller.signal
+        console.log('Calling search-academic-results edge function with query:', query);
+        
+        const { data, error } = await supabase.functions.invoke('search-academic-results', {
+          body: { query }
         });
         
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch research results (${response.status})`);
+        if (error) {
+          console.error("Edge function error:", error);
+          throw new Error(`Search function error: ${error.message}`);
         }
         
-        // Carefully handle the response
-        const contentType = response.headers.get('content-type');
-        const responseText = await response.text();
-        
-        // Check for HTML response
-        if (responseText.includes('<!DOCTYPE html>') || responseText.includes('<html')) {
-          console.error("Received HTML instead of JSON response:", responseText.substring(0, 150) + "...");
-          throw new Error("Server returned HTML instead of JSON data. The API endpoint may be misconfigured.");
-        }
-        
-        // Try to parse the response as JSON
-        let data;
-        try {
-          data = JSON.parse(responseText);
-        } catch (jsonError) {
-          console.error("Failed to parse response as JSON:", jsonError);
-          throw new Error("Invalid response format from server");
-        }
-        
-        if (data.error) {
-          console.warn("API returned error with results:", data.error);
-          toast.warning("Search API reported an error, but returned some results.");
-        }
-        
-        if (Array.isArray(data.results) && data.results.length > 0) {
+        if (data && Array.isArray(data.results) && data.results.length > 0) {
           setSearchResults(data.results);
         } else {
-          console.warn("API returned no results");
+          console.warn("No results returned from edge function");
           setSearchResults(getFallbackResults(query));
           toast.info("No relevant academic results found. Showing suggested resources.");
         }
       } catch (fetchError) {
-        console.error("Search API fetch error:", fetchError);
-        
-        if (fetchError.name === 'AbortError') {
-          setSearchError("Search request timed out. Please try again later.");
-        } else {
-          setSearchError(fetchError instanceof Error ? fetchError.message : "Unknown error occurred");
-        }
+        console.error("Search edge function error:", fetchError);
+        setSearchError(fetchError instanceof Error ? fetchError.message : "Unknown error occurred");
         
         // Set fallback results for better UX
         setSearchResults(getFallbackResults(query));
@@ -165,7 +129,7 @@ export const useResearch = () => {
         journal: "Journal of Advanced Studies",
         year: "2023",
         abstract: `This comprehensive study examines the latest developments in ${mainTopic} research, highlighting key trends and methodological innovations that have emerged in recent years.`,
-        link: "#",
+        link: "https://example.org/research/recent-advances",
         relevance: 94
       },
       {
@@ -174,7 +138,7 @@ export const useResearch = () => {
         journal: "International Review of Applied Sciences",
         year: "2022",
         abstract: `This paper provides a systematic review of current research and methodologies in ${mainTopic}. The authors analyze existing literature and identify key trends, challenges, and future directions.`,
-        link: "#",
+        link: "https://example.org/research/systematic-review",
         relevance: 87
       },
       {
@@ -183,7 +147,7 @@ export const useResearch = () => {
         journal: "Journal of Educational Technology",
         year: "2023",
         abstract: `This study examines the practical applications and broader implications of ${mainTopic} in educational settings. The research findings suggest significant benefits for student engagement and learning outcomes.`,
-        link: "#",
+        link: "https://example.org/research/applications",
         relevance: 82
       }
     ];

@@ -1,95 +1,170 @@
 
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 interface FormattedContentProps {
   content: string;
+  className?: string;
+  variant?: 'default' | 'chat' | 'research';
 }
 
-export const FormattedContent = ({ content }: FormattedContentProps) => {
+export const FormattedContent = ({ content, className, variant = 'default' }: FormattedContentProps) => {
   if (!content) return null;
   
-  const lines = content.split('\n');
-  const renderedContent: JSX.Element[] = [];
-  
-  let currentListItems: JSX.Element[] = [];
-  let inList = false;
-  
-  lines.forEach((line, index) => {
-    // Handle headers
-    if (line.startsWith('# ')) {
-      if (inList) {
-        renderedContent.push(<ul key={`ul-${index}`} className="mb-4">{currentListItems}</ul>);
-        currentListItems = [];
-        inList = false;
-      }
-      renderedContent.push(<h2 key={index} className="text-xl font-bold mt-6 mb-3 dark:text-white">{line.substring(2)}</h2>);
-    } 
-    else if (line.startsWith('## ')) {
-      if (inList) {
-        renderedContent.push(<ul key={`ul-${index}`} className="mb-4">{currentListItems}</ul>);
-        currentListItems = [];
-        inList = false;
-      }
-      renderedContent.push(<h3 key={index} className="text-lg font-medium mt-5 mb-2 dark:text-white">{line.substring(3)}</h3>);
-    } 
-    else if (line.startsWith('• ')) {
-      inList = true;
-      currentListItems.push(
-        <li key={`li-${index}`} className="ml-2 flex gap-2 my-1">
-          <span className="text-emerald-500">•</span>
-          <span className="dark:text-slate-300">{line.substring(2)}</span>
-        </li>
-      );
-    }
-    else if (line.startsWith('1. ') || line.startsWith('2. ') || line.startsWith('3. ') || line.startsWith('4. ')) {
-      if (inList && !line.match(/^\d+\./)) {
-        renderedContent.push(<ul key={`ul-${index}`} className="mb-4">{currentListItems}</ul>);
-        currentListItems = [];
-        inList = false;
+  const parseContent = (text: string) => {
+    const lines = text.split('\n');
+    const elements: JSX.Element[] = [];
+    
+    let currentList: JSX.Element[] = [];
+    let listType: 'ul' | 'ol' | null = null;
+    let inCodeBlock = false;
+    let codeContent = '';
+    
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+      
+      // Handle code blocks
+      if (trimmedLine.startsWith('```')) {
+        if (inCodeBlock) {
+          // End code block
+          elements.push(
+            <pre key={`code-${index}`} className="bg-muted p-4 rounded-lg overflow-x-auto text-sm my-4 border">
+              <code className="text-foreground font-mono">{codeContent}</code>
+            </pre>
+          );
+          codeContent = '';
+          inCodeBlock = false;
+        } else {
+          // Start code block
+          inCodeBlock = true;
+          flushList();
+        }
+        return;
       }
       
-      if (line.match(/^\d+\./)) {
-        inList = true;
-        const content = line.replace(/^\d+\.\s/, '');
-        
-        // Check if it has a nested bold title
-        const boldMatch = content.match(/\*\*(.*?)\*\*\s(.*)/);
-        
-        if (boldMatch) {
-          currentListItems.push(
-            <li key={`li-${index}`} className="ml-2 my-2 dark:text-slate-300">
-              <strong>{boldMatch[1]}:</strong> {boldMatch[2]}
-            </li>
-          );
-        } else {
-          currentListItems.push(
-            <li key={`li-${index}`} className="ml-2 my-2 dark:text-slate-300">{content}</li>
-          );
+      if (inCodeBlock) {
+        codeContent += line + '\n';
+        return;
+      }
+      
+      // Handle headers
+      if (trimmedLine.startsWith('### ')) {
+        flushList();
+        elements.push(
+          <h3 key={index} className="text-lg font-semibold text-foreground mt-6 mb-3 leading-tight">
+            {trimmedLine.substring(4)}
+          </h3>
+        );
+      } else if (trimmedLine.startsWith('## ')) {
+        flushList();
+        elements.push(
+          <h2 key={index} className="text-xl font-semibold text-foreground mt-6 mb-3 leading-tight">
+            {trimmedLine.substring(3)}
+          </h2>
+        );
+      } else if (trimmedLine.startsWith('# ')) {
+        flushList();
+        elements.push(
+          <h1 key={index} className="text-2xl font-bold text-foreground mt-6 mb-4 leading-tight">
+            {trimmedLine.substring(2)}
+          </h1>
+        );
+      }
+      // Handle numbered lists
+      else if (/^\d+\.\s/.test(trimmedLine)) {
+        if (listType !== 'ol') {
+          flushList();
+          listType = 'ol';
         }
+        const content = trimmedLine.replace(/^\d+\.\s/, '');
+        currentList.push(
+          <li key={`li-${index}`} className="mb-2 leading-relaxed">
+            {formatInlineText(content)}
+          </li>
+        );
+      }
+      // Handle bullet points
+      else if (trimmedLine.startsWith('• ') || trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+        if (listType !== 'ul') {
+          flushList();
+          listType = 'ul';
+        }
+        const content = trimmedLine.substring(2);
+        currentList.push(
+          <li key={`li-${index}`} className="mb-2 leading-relaxed flex items-start">
+            <span className="text-primary mr-2 mt-1 text-sm">•</span>
+            <span className="flex-1">{formatInlineText(content)}</span>
+          </li>
+        );
+      }
+      // Handle blockquotes
+      else if (trimmedLine.startsWith('> ')) {
+        flushList();
+        elements.push(
+          <blockquote key={index} className="border-l-4 border-primary/20 pl-4 py-2 my-4 italic text-foreground/80 bg-muted/30 rounded-r">
+            {formatInlineText(trimmedLine.substring(2))}
+          </blockquote>
+        );
+      }
+      // Handle empty lines
+      else if (trimmedLine === '') {
+        flushList();
+        elements.push(<div key={index} className="h-3" />);
+      }
+      // Handle regular paragraphs
+      else if (trimmedLine.length > 0) {
+        flushList();
+        elements.push(
+          <p key={index} className="mb-4 text-foreground/90 leading-relaxed">
+            {formatInlineText(trimmedLine)}
+          </p>
+        );
+      }
+    });
+    
+    flushList();
+    
+    function flushList() {
+      if (currentList.length > 0) {
+        const ListComponent = listType === 'ol' ? 'ol' : 'ul';
+        elements.push(
+          <ListComponent key={`list-${elements.length}`} className={cn(
+            "mb-4 space-y-1",
+            listType === 'ol' ? "list-decimal list-inside" : ""
+          )}>
+            {currentList}
+          </ListComponent>
+        );
+        currentList = [];
+        listType = null;
       }
     }
-    else if (line.trim() === '') {
-      if (inList) {
-        renderedContent.push(<ul key={`ul-${index}`} className="mb-4">{currentListItems}</ul>);
-        currentListItems = [];
-        inList = false;
-      }
-      renderedContent.push(<div key={index} className="h-2"></div>);
-    }
-    else {
-      if (inList) {
-        renderedContent.push(<ul key={`ul-${index}`} className="mb-4">{currentListItems}</ul>);
-        currentListItems = [];
-        inList = false;
-      }
-      renderedContent.push(<p key={index} className="mb-2 dark:text-slate-300">{line}</p>);
-    }
-  });
+    
+    return elements;
+  };
   
-  // Don't forget any remaining list items
-  if (inList) {
-    renderedContent.push(<ul key="final-list" className="mb-4">{currentListItems}</ul>);
-  }
+  const formatInlineText = (text: string) => {
+    // Handle bold text
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
+    // Handle italic text
+    text = text.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+    // Handle inline code
+    text = text.replace(/`(.*?)`/g, '<code class="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-primary">$1</code>');
+    // Handle underlined text
+    text = text.replace(/_(.*?)_/g, '<u class="underline">$1</u>');
+    
+    return <span dangerouslySetInnerHTML={{ __html: text }} />;
+  };
   
-  return <>{renderedContent}</>;
+  const variantClasses = {
+    default: 'prose-enhanced',
+    chat: 'prose-enhanced text-sm md:text-base',
+    research: 'prose-enhanced text-sm'
+  };
+  
+  return (
+    <div className={cn(variantClasses[variant], className)}>
+      {parseContent(content)}
+    </div>
+  );
 };

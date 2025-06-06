@@ -56,9 +56,11 @@ export const FileUploader = ({
         console.log(`Validating file ${index + 1}: ${file.name}, size: ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
         
         const fileExtension = file.name.split('.').pop()?.toLowerCase();
-        const isValidType = acceptTypes
+        const allowedExtensions = acceptTypes
           .split(',')
-          .some(type => type.trim().replace('.', '').includes(fileExtension || ''));
+          .map(type => type.trim().replace('.', ''));
+        
+        const isValidType = allowedExtensions.includes(fileExtension || '');
           
         if (!isValidType) {
           toast.error(`Invalid file type: ${file.name}. Supported: ${supportedFormats}`);
@@ -107,7 +109,10 @@ export const FileUploader = ({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log('File input changed:', e.target.files?.length);
-    processFiles(e.target.files);
+    const selectedFiles = e.target.files;
+    if (selectedFiles && selectedFiles.length > 0) {
+      processFiles(selectedFiles);
+    }
     // Reset the input value so the same file can be uploaded again if removed
     if (fileInputRef.current) {
       fileInputRef.current.value = '';

@@ -41,26 +41,26 @@ export function useApiStatus() {
           throw new Error(error.message || 'Failed to fetch API status');
         }
         
-        // Ensure we always return a consistent structure
+        // Ensure we always return a consistent structure with safe fallbacks
         const safeData: ApiStatusData = {
           openRouter: {
-            available: data?.openRouter?.available || false,
-            creditsRemaining: data?.openRouter?.creditsRemaining,
-            creditsGranted: data?.openRouter?.creditsGranted,
-            rateLimitRemaining: data?.openRouter?.rateLimitRemaining,
-            rateLimit: data?.openRouter?.rateLimit,
+            available: Boolean(data?.openRouter?.available),
+            creditsRemaining: data?.openRouter?.creditsRemaining || undefined,
+            creditsGranted: data?.openRouter?.creditsGranted || undefined,
+            rateLimitRemaining: data?.openRouter?.rateLimitRemaining || undefined,
+            rateLimit: data?.openRouter?.rateLimit || undefined,
             error: data?.openRouter?.error || (data?.openRouter?.available ? undefined : 'API key not configured')
           },
           googleAI: {
-            available: data?.googleAI?.available || false,
-            dailyLimit: data?.googleAI?.dailyLimit,
-            remainingRequests: data?.googleAI?.remainingRequests,
+            available: Boolean(data?.googleAI?.available),
+            dailyLimit: data?.googleAI?.dailyLimit || undefined,
+            remainingRequests: data?.googleAI?.remainingRequests || undefined,
             status: data?.googleAI?.status || (data?.googleAI?.available ? 'Active' : 'Not Configured'),
             error: data?.googleAI?.error || (data?.googleAI?.available ? undefined : 'API key not configured')
           },
           serperAI: {
-            available: data?.serperAI?.available || false,
-            monthlyLimit: data?.serperAI?.monthlyLimit,
+            available: Boolean(data?.serperAI?.available),
+            monthlyLimit: data?.serperAI?.monthlyLimit || undefined,
             status: data?.serperAI?.status || (data?.serperAI?.available ? 'Active' : 'Not Configured'),
             error: data?.serperAI?.error || (data?.serperAI?.available ? undefined : 'API key not configured')
           }
@@ -69,7 +69,7 @@ export function useApiStatus() {
         return safeData;
       } catch (error) {
         console.error('Error in API status query:', error);
-        // Return a safe fallback structure
+        // Return a safe fallback structure on any error
         return {
           openRouter: {
             available: false,

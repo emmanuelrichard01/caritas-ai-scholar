@@ -19,7 +19,7 @@ export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
   const getStatusText = (available: boolean, error?: string) => {
     if (error) return "Error";
     if (available) return "Active";
-    return "Inactive";
+    return "Not Configured";
   };
 
   const getStatusColor = (available: boolean, error?: string) => {
@@ -62,7 +62,7 @@ export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Google Gemini AI */}
             <div className="border rounded-lg p-4 dark:border-slate-700">
               <div className="flex justify-between items-center mb-3">
@@ -76,7 +76,7 @@ export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
               </div>
               
               <div className="text-xs text-muted-foreground space-y-1">
-                <p><span className="font-medium">Status:</span> {apiStatus?.googleAI?.status || 'Unknown'}</p>
+                <p><span className="font-medium">Purpose:</span> Primary AI for chat and analysis</p>
                 {apiStatus?.googleAI?.dailyLimit && (
                   <p><span className="font-medium">Daily Limit:</span> {apiStatus.googleAI.dailyLimit}</p>
                 )}
@@ -91,7 +91,7 @@ export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-semibold text-sm flex items-center gap-2">
                   {getStatusIcon(apiStatus?.openRouter?.available || false, apiStatus?.openRouter?.error)}
-                  OpenRouter (Backup)
+                  OpenRouter AI
                 </h3>
                 <span className={`text-xs py-1 px-2 rounded-full ${getStatusColor(apiStatus?.openRouter?.available || false, apiStatus?.openRouter?.error)}`}>
                   {getStatusText(apiStatus?.openRouter?.available || false, apiStatus?.openRouter?.error)}
@@ -99,6 +99,7 @@ export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
               </div>
               
               <div className="text-xs text-muted-foreground space-y-1">
+                <p><span className="font-medium">Purpose:</span> Backup AI service</p>
                 {apiStatus?.openRouter?.creditsRemaining && (
                   <p><span className="font-medium">Credits:</span> ${apiStatus.openRouter.creditsRemaining}</p>
                 )}
@@ -110,12 +111,36 @@ export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
                 )}
               </div>
             </div>
+
+            {/* Serper AI */}
+            <div className="border rounded-lg p-4 dark:border-slate-700">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  {getStatusIcon(apiStatus?.serperAI?.available || false, apiStatus?.serperAI?.error)}
+                  Serper Search API
+                </h3>
+                <span className={`text-xs py-1 px-2 rounded-full ${getStatusColor(apiStatus?.serperAI?.available || false, apiStatus?.serperAI?.error)}`}>
+                  {getStatusText(apiStatus?.serperAI?.available || false, apiStatus?.serperAI?.error)}
+                </span>
+              </div>
+              
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p><span className="font-medium">Purpose:</span> Academic search and research</p>
+                {apiStatus?.serperAI?.monthlyLimit && (
+                  <p><span className="font-medium">Monthly Limit:</span> {apiStatus.serperAI.monthlyLimit}</p>
+                )}
+                {apiStatus?.serperAI?.error && (
+                  <p className="text-red-500"><span className="font-medium">Error:</span> {apiStatus.serperAI.error}</p>
+                )}
+              </div>
+            </div>
             
             <div className="text-xs text-muted-foreground bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
-              <p className="font-medium mb-1">About API Usage:</p>
-              <p>• Google Gemini AI is the primary service for chat and research</p>
-              <p>• OpenRouter provides backup AI capabilities when needed</p>
-              <p>• Rate limits ensure fair usage across all users</p>
+              <p className="font-medium mb-1">About API Configuration:</p>
+              <p>• Google Gemini AI provides the primary chat functionality</p>
+              <p>• OpenRouter serves as backup AI when needed</p>
+              <p>• Serper API enables academic research searches</p>
+              <p>• Configure API keys in Supabase Edge Function Secrets</p>
             </div>
           </div>
         )}

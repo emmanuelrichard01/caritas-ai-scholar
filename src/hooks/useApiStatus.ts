@@ -19,6 +19,12 @@ export interface ApiStatusData {
     status?: string;
     error?: string;
   };
+  serperAI?: {
+    available: boolean;
+    monthlyLimit?: string;
+    status?: string;
+    error?: string;
+  };
 }
 
 export function useApiStatus() {
@@ -38,12 +44,17 @@ export function useApiStatus() {
         const fallbackData: ApiStatusData = {
           openRouter: {
             available: false,
-            error: 'Data unavailable'
+            error: 'API key not configured'
           },
           googleAI: {
             available: false,
-            status: 'Unknown',
-            error: 'Data unavailable'
+            status: 'Not Configured',
+            error: 'API key not configured'
+          },
+          serperAI: {
+            available: false,
+            status: 'Not Configured',
+            error: 'API key not configured'
           }
         };
         
@@ -56,7 +67,8 @@ export function useApiStatus() {
         // If data is available but missing expected properties, merge with fallback
         const processedData: ApiStatusData = {
           openRouter: data.openRouter || fallbackData.openRouter,
-          googleAI: data.googleAI || fallbackData.googleAI
+          googleAI: data.googleAI || fallbackData.googleAI,
+          serperAI: data.serperAI || fallbackData.serperAI
         };
         
         return processedData;
@@ -69,6 +81,11 @@ export function useApiStatus() {
             error: error instanceof Error ? error.message : 'Unknown error'
           },
           googleAI: {
+            available: false,
+            status: 'Error',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          },
+          serperAI: {
             available: false,
             status: 'Error',
             error: error instanceof Error ? error.message : 'Unknown error'

@@ -9,6 +9,7 @@ const corsHeaders = {
 
 const googleAIKey = Deno.env.get('GOOGLE_AI_KEY') || '';
 const openRouterKey = Deno.env.get('OPENROUTER_KEY') || '';
+const serperKey = Deno.env.get('SERPER_API_KEY') || '';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -18,28 +19,35 @@ serve(async (req) => {
 
   try {
     const apiStatus = {
-      openRouter: {
-        available: false
-      },
       googleAI: {
-        available: false
+        available: false,
+        status: 'Not Configured',
+        error: 'API key not configured'
+      },
+      openRouter: {
+        available: false,
+        error: 'API key not configured'
+      },
+      serperAI: {
+        available: false,
+        status: 'Not Configured',
+        error: 'API key not configured'
       }
     };
     
     // Check Google AI Studio status
     if (googleAIKey) {
       try {
-        // Make a lightweight request to check if API is working
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${googleAIKey}`, {
           method: 'GET'
         });
         
         if (response.ok) {
           apiStatus.googleAI.available = true;
-          apiStatus.googleAI.status = 'Working';
+          apiStatus.googleAI.status = 'Active';
           apiStatus.googleAI.dailyLimit = "~6000 requests/day";
+          delete apiStatus.googleAI.error;
         } else {
-          const errorData = await response.text();
           apiStatus.googleAI.available = false;
           apiStatus.googleAI.error = `API Error: ${response.status}`;
           apiStatus.googleAI.status = 'Error';
@@ -49,13 +57,9 @@ serve(async (req) => {
         apiStatus.googleAI.error = error.message || 'Connection error';
         apiStatus.googleAI.status = 'Error';
       }
-    } else {
-      apiStatus.googleAI.available = false;
-      apiStatus.googleAI.error = 'API key not configured';
-      apiStatus.googleAI.status = 'Not Configured';
     }
     
-    // Check OpenRouter status if key is available
+    // Check OpenRouter status
     if (openRouterKey) {
       try {
         const response = await fetch('https://openrouter.ai/api/v1/auth/key', {
@@ -75,8 +79,8 @@ serve(async (req) => {
           apiStatus.openRouter.creditsGranted = data.data?.credits_granted;
           apiStatus.openRouter.rateLimitRemaining = data.data?.rate_limit_remaining;
           apiStatus.openRouter.rateLimit = data.data?.rate_limit;
+          delete apiStatus.openRouter.error;
         } else {
-          const errorData = await response.text();
           apiStatus.openRouter.available = false;
           apiStatus.openRouter.error = `API Error: ${response.status}`;
         }
@@ -84,17 +88,46 @@ serve(async (req) => {
         apiStatus.openRouter.available = false;
         apiStatus.openRouter.error = error.message || 'Connection error';
       }
-    } else {
-      apiStatus.openRouter.available = false;
-      apiStatus.openRouter.error = 'API key not configured';
+    }
+
+    // Check Serper AI status
+    if (serperKey) {
+      try {
+        const response = await fetch('https://google.serper.dev/search', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': serperKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            q: 'test query',
+            num: 1
+          })
+        });
+        
+        if (response.ok) {
+          apiStatus.serperAI.available = true;
+          apiStatus.serperAI.status = 'Active';
+          apiStatus.serperAI.monthlyLimit = "2,500 requests/month";
+          delete apiStatus.serperAI.error;
+        } else {
+          apiStatus.serperAI.available = false;
+          apiStatus.serperAI.error = `API Error: ${response.status}`;
+          apiStatus.serperAI.status = 'Error';
+        }
+      } catch (error) {
+        apiStatus.serperAI.available = false;
+        apiStatus.serperAI.error = error.message || 'Connection error';
+        apiStatus.serperAI.status = 'Error';
+      }
     }
     
-    // Add usage data for frontend display (using mock data for now)
     const fullResponse = {
       ...apiStatus,
       usage: {
         googleAI: { used: 25, limit: 60 },
-        openai: { used: 40, limit: 100 }
+        openRouter: { used: 40, limit: 100 },
+        serperAI: { used: 15, limit: 100 }
       },
       resetTime: "24 hours"
     };
@@ -106,15 +139,16 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error checking API status:', error);
     
-    // Return a failsafe response structure that won't break the frontend
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Failed to check API status',
         googleAI: { available: false, error: 'Internal error', status: 'Error' },
         openRouter: { available: false, error: 'Internal error' },
+        serperAI: { available: false, error: 'Internal error', status: 'Error' },
         usage: {
           googleAI: { used: 0, limit: 60 },
-          openai: { used: 0, limit: 100 }
+          openRouter: { used: 0, limit: 100 },
+          serperAI: { used: 0, limit: 100 }
         },
         resetTime: "24 hours"
       }),

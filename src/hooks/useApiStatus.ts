@@ -37,44 +37,39 @@ export function useApiStatus() {
         const { data, error } = await supabase.functions.invoke('api-info');
         
         if (error) {
+          console.error('Supabase function error:', error);
           throw new Error(error.message || 'Failed to fetch API status');
         }
         
-        // Create fallback data structure to ensure our app doesn't crash
-        const fallbackData: ApiStatusData = {
+        // Ensure we always return a consistent structure
+        const safeData: ApiStatusData = {
           openRouter: {
-            available: false,
-            error: 'API key not configured'
+            available: data?.openRouter?.available || false,
+            creditsRemaining: data?.openRouter?.creditsRemaining,
+            creditsGranted: data?.openRouter?.creditsGranted,
+            rateLimitRemaining: data?.openRouter?.rateLimitRemaining,
+            rateLimit: data?.openRouter?.rateLimit,
+            error: data?.openRouter?.error || (data?.openRouter?.available ? undefined : 'API key not configured')
           },
           googleAI: {
-            available: false,
-            status: 'Not Configured',
-            error: 'API key not configured'
+            available: data?.googleAI?.available || false,
+            dailyLimit: data?.googleAI?.dailyLimit,
+            remainingRequests: data?.googleAI?.remainingRequests,
+            status: data?.googleAI?.status || (data?.googleAI?.available ? 'Active' : 'Not Configured'),
+            error: data?.googleAI?.error || (data?.googleAI?.available ? undefined : 'API key not configured')
           },
           serperAI: {
-            available: false,
-            status: 'Not Configured',
-            error: 'API key not configured'
+            available: data?.serperAI?.available || false,
+            monthlyLimit: data?.serperAI?.monthlyLimit,
+            status: data?.serperAI?.status || (data?.serperAI?.available ? 'Active' : 'Not Configured'),
+            error: data?.serperAI?.error || (data?.serperAI?.available ? undefined : 'API key not configured')
           }
         };
         
-        // If data is null or undefined, use fallback
-        if (!data) {
-          console.warn('API info returned no data, using fallback');
-          return fallbackData;
-        }
-        
-        // If data is available but missing expected properties, merge with fallback
-        const processedData: ApiStatusData = {
-          openRouter: data.openRouter || fallbackData.openRouter,
-          googleAI: data.googleAI || fallbackData.googleAI,
-          serperAI: data.serperAI || fallbackData.serperAI
-        };
-        
-        return processedData;
+        return safeData;
       } catch (error) {
         console.error('Error in API status query:', error);
-        // Return a working fallback structure even when errors occur
+        // Return a safe fallback structure
         return {
           openRouter: {
             available: false,

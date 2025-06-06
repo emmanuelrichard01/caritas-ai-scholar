@@ -63,16 +63,18 @@ export function NavigationItems({ isCollapsed }: NavigationItemsProps) {
   ];
   
   return (
-    <div className="space-y-1 py-2">
+    <div className="space-y-1 px-2">
       {navItems.map((item) => (
         <NavLink
           key={item.href}
           to={item.href}
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent",
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground",
               isCollapsed ? "justify-center" : "justify-start",
-              isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+              isActive 
+                ? "bg-caritas text-white hover:bg-caritas-light" 
+                : "text-muted-foreground"
             )
           }
         >

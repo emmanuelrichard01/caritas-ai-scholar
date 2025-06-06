@@ -7,20 +7,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Handle CORS preflight requests
-const handleCors = (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: corsHeaders,
-    });
-  }
-};
-
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
-    // Handle CORS
-    const corsResponse = handleCors(req);
-    if (corsResponse) return corsResponse;
+    console.log("Upload course material function called");
 
     // Parse request body 
     const formData = await req.formData();
@@ -28,15 +22,17 @@ serve(async (req) => {
     const description = formData.get("description") as string;
     const file = formData.get("file") as File;
     
+    console.log("Received data:", { title, hasFile: !!file, fileName: file?.name });
+    
     // Validate inputs
     if (!title || !file) {
       throw new Error("Title and file are required");
     }
 
-    // Initialize Supabase client with auth context
+    // Initialize Supabase client with service role key for admin operations
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") || "",
-      Deno.env.get("SUPABASE_ANON_KEY") || "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
       {
         global: {
           headers: { Authorization: req.headers.get("Authorization")! },
@@ -51,13 +47,19 @@ serve(async (req) => {
     } = await supabaseClient.auth.getSession();
 
     if (sessionError || !session) {
+      console.error("Authentication error:", sessionError);
       throw new Error("Authentication required");
     }
 
     const userId = session.user.id;
+    console.log("User ID:", userId);
     
     // Create a storage path for the file
-    const filePath = `${userId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const timestamp = Date.now();
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const filePath = `${userId}/${timestamp}_${sanitizedFileName}`;
+    
+    console.log("Uploading file to path:", filePath);
     
     // Upload file to storage
     const { error: uploadError } = await supabaseClient.storage
@@ -65,8 +67,11 @@ serve(async (req) => {
       .upload(filePath, file);
 
     if (uploadError) {
+      console.error("Upload error:", uploadError);
       throw new Error(`File upload failed: ${uploadError.message}`);
     }
+
+    console.log("File uploaded successfully");
 
     // Create material record
     const { data: material, error: materialError } = await supabaseClient
@@ -80,40 +85,34 @@ serve(async (req) => {
       .single();
 
     if (materialError) {
+      console.error("Material creation error:", materialError);
       throw new Error(`Failed to create material: ${materialError.message}`);
     }
 
-    // Process file content and create segments (simplified here)
-    const fileContent = await file.text();
-    
-    // Simple text segmentation - in a real app, this would be more sophisticated
-    const segments = fileContent
-      .split("\n\n")
-      .filter(segment => segment.trim().length > 0)
-      .map((segment, index) => {
-        return {
-          material_id: material.id,
-          title: `Segment ${index + 1}`,
-          text: segment.trim(),
-        };
-      });
+    console.log("Material created:", material);
 
-    // Insert segments
-    if (segments.length > 0) {
-      const { error: segmentsError } = await supabaseClient
-        .from("segments")
-        .insert(segments);
-
-      if (segmentsError) {
-        throw new Error(`Failed to create segments: ${segmentsError.message}`);
+    // Process the uploaded file
+    const { error: processError } = await supabaseClient.functions.invoke('process-course-material', {
+      body: {
+        filePath,
+        title: file.name,
+        userId,
+        materialId: material.id
       }
+    });
+
+    if (processError) {
+      console.error("Processing error:", processError);
+      throw new Error(`File processing failed: ${processError.message}`);
     }
+
+    console.log("File processed successfully");
 
     return new Response(
       JSON.stringify({
         message: "Material uploaded and processed successfully",
         material,
-        segmentsCount: segments.length,
+        success: true
       }),
       {
         headers: { 
@@ -128,6 +127,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : "Unknown error",
+        success: false
       }),
       {
         status: 400,

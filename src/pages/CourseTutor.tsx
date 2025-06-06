@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Book, Upload, FileText, Brain, Lightbulb, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -119,45 +118,51 @@ const CourseTutor = () => {
     setIsUploading(true);
     
     try {
-      // Create material record
-      const { data: material, error: materialError } = await supabase
-        .from('materials')
-        .insert({
-          user_id: user.id,
-          title: title.trim(),
-        })
-        .select()
-        .single();
+      console.log("Starting upload process...");
       
-      if (materialError) throw materialError;
-      
-      // Process files
-      await Promise.all(files.map(async (file) => {
-        const filePath = `${user.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      // Process each file
+      for (const file of files) {
+        console.log(`Processing file: ${file.name}`);
         
-        const { error: uploadError } = await supabase.storage
-          .from('course-materials')
-          .upload(filePath, file);
+        const formData = new FormData();
+        formData.append('title', title.trim());
+        formData.append('file', file);
         
-        if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
-        
-        const { error: processError } = await supabase.functions.invoke('process-course-material', {
-          body: {
-            filePath,
-            title: file.name,
-            userId: user.id,
-            materialId: material.id
+        // Get the session token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error("No active session");
+        }
+
+        // Call the upload function directly
+        const { data, error } = await supabase.functions.invoke('upload-course-material', {
+          body: formData,
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
           }
         });
         
-        if (processError) throw new Error(`Processing failed: ${processError.message}`);
-      }));
+        if (error) {
+          console.error("Upload function error:", error);
+          throw new Error(`Upload failed: ${error.message}`);
+        }
+        
+        if (!data?.success) {
+          throw new Error(data?.error || "Upload failed");
+        }
+        
+        console.log("Upload successful:", data);
+        
+        // Set the selected material to the newly created one
+        if (data.material) {
+          setSelectedMaterial(data.material.id);
+        }
+      }
       
       toast.success("Material uploaded and processed successfully");
       setFiles([]);
       setTitle("");
       refetchMaterials();
-      setSelectedMaterial(material.id);
       setActiveTab("library");
       
     } catch (error) {

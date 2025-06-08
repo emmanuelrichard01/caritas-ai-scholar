@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { Book, Upload, FileText, Brain, Lightbulb } from "lucide-react";
+import { Book, Upload, FileText, Brain, Lightbulb, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 const CourseTutor = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -22,6 +22,7 @@ const CourseTutor = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Fetch user materials
   const { data: materials, isLoading: isLoadingMaterials, refetch: refetchMaterials } = useQuery({
@@ -131,6 +132,10 @@ const CourseTutor = () => {
     }
   };
 
+  const handleGenerateStudyTools = () => {
+    navigate('/study-tools');
+  };
+
   return (
     <PageLayout
       title="Course Tutor"
@@ -139,9 +144,10 @@ const CourseTutor = () => {
     >
       <div className="space-y-6">
         <Tabs defaultValue="upload" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="upload">Upload Materials</TabsTrigger>
             <TabsTrigger value="library">My Library</TabsTrigger>
+            <TabsTrigger value="tools">Study Tools</TabsTrigger>
           </TabsList>
           
           <TabsContent value="upload" className="space-y-4">
@@ -256,6 +262,52 @@ const CourseTutor = () => {
                   ))}
                 </div>
               )}
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="tools" className="space-y-4">
+            <Card className="p-6">
+              <div className="space-y-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Zap className="h-5 w-5" />
+                  <h2 className="text-lg font-semibold">AI Study Tools</h2>
+                </div>
+                
+                <div className="text-center py-8">
+                  <Brain className="h-16 w-16 mx-auto text-blue-500 mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Generate Study Materials</h3>
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                    Transform your uploaded course materials into comprehensive study aids including notes, flashcards, and quizzes.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="p-4 border rounded-lg">
+                      <FileText className="h-8 w-8 mx-auto text-green-500 mb-2" />
+                      <h4 className="font-medium">Smart Notes</h4>
+                      <p className="text-sm text-gray-600">AI-generated summaries and key points</p>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <Brain className="h-8 w-8 mx-auto text-purple-500 mb-2" />
+                      <h4 className="font-medium">Flashcards</h4>
+                      <p className="text-sm text-gray-600">Interactive Q&A for active recall</p>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <Lightbulb className="h-8 w-8 mx-auto text-yellow-500 mb-2" />
+                      <h4 className="font-medium">Practice Quizzes</h4>
+                      <p className="text-sm text-gray-600">Test your knowledge with AI-generated questions</p>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={handleGenerateStudyTools}
+                    size="lg"
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Brain className="h-5 w-5 mr-2" />
+                    Open Study Tools
+                  </Button>
+                </div>
+              </div>
             </Card>
           </TabsContent>
         </Tabs>

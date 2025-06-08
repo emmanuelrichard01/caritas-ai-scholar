@@ -26,71 +26,76 @@ export const FileUploader = ({
 }: FileUploaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const validateFile = (file: File): string | null => {
+    // Check file type
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    const allowedExtensions = acceptTypes.split(',').map(type => type.trim().replace('.', ''));
+    
+    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+      return `Invalid file type. Supported formats: ${supportedFormats}`;
+    }
+    
+    // Check file size
+    const fileSizeMB = file.size / (1024 * 1024);
+    if (fileSizeMB > maxSizeMB) {
+      return `File too large (${fileSizeMB.toFixed(1)}MB). Maximum size: ${maxSizeMB}MB`;
+    }
+    
+    return null;
+  };
 
   const processFiles = (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) {
-      console.log('No files to process');
+      console.log('No files selected');
       return;
     }
     
     console.log(`Processing ${fileList.length} files`);
-    setIsLoading(true);
-    setUploadProgress(10);
+    setIsProcessing(true);
+    setUploadProgress(20);
     
     try {
-      // Validate file count
+      // Check total file count
       if (files.length + fileList.length > maxFiles) {
         toast.error(`Maximum ${maxFiles} files allowed`);
-        setIsLoading(false);
-        setUploadProgress(0);
         return;
       }
       
-      // Validate file types and size
-      const newFiles: File[] = [];
-      let totalSize = files.reduce((sum, file) => sum + file.size, 0) / (1024 * 1024);
+      const validFiles: File[] = [];
       
-      Array.from(fileList).forEach((file, index) => {
-        console.log(`Validating file ${index + 1}: ${file.name}, size: ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
+      // Validate each file
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        console.log(`Validating: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
         
-        const fileExtension = file.name.split('.').pop()?.toLowerCase();
-        const allowedExtensions = acceptTypes
-          .split(',')
-          .map(type => type.trim().replace('.', ''));
-        
-        const isValidType = allowedExtensions.includes(fileExtension || '');
-          
-        if (!isValidType) {
-          toast.error(`Invalid file type: ${file.name}. Supported: ${supportedFormats}`);
-          return;
+        const validationError = validateFile(file);
+        if (validationError) {
+          toast.error(`${file.name}: ${validationError}`);
+          continue;
         }
         
-        const fileSizeMB = file.size / (1024 * 1024);
-        totalSize += fileSizeMB;
+        // Check for duplicates
+        const isDuplicate = files.some(existingFile => 
+          existingFile.name === file.name && existingFile.size === file.size
+        );
         
-        if (fileSizeMB > maxSizeMB) {
-          toast.error(`File too large: ${file.name} (${fileSizeMB.toFixed(1)}MB). Max size: ${maxSizeMB}MB`);
-          return;
+        if (isDuplicate) {
+          toast.error(`File already added: ${file.name}`);
+          continue;
         }
         
-        newFiles.push(file);
-      });
-      
-      if (totalSize > maxSizeMB * maxFiles) {
-        toast.error(`Total size (${totalSize.toFixed(1)}MB) exceeds maximum allowed`);
-        setIsLoading(false);
-        setUploadProgress(0);
-        return;
+        validFiles.push(file);
       }
       
       setUploadProgress(80);
       
-      if (newFiles.length > 0) {
-        console.log(`Adding ${newFiles.length} valid files`);
-        onFilesChange([...files, ...newFiles]);
-        toast.success(`Added ${newFiles.length} file(s) successfully`);
+      if (validFiles.length > 0) {
+        console.log(`Adding ${validFiles.length} valid files`);
+        onFilesChange([...files, ...validFiles]);
+        toast.success(`Added ${validFiles.length} file(s)`);
         setUploadProgress(100);
       } else {
         toast.error('No valid files to add');
@@ -102,18 +107,15 @@ export const FileUploader = ({
     } finally {
       setTimeout(() => {
         setUploadProgress(0);
-        setIsLoading(false);
+        setIsProcessing(false);
       }, 1000);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('File input changed:', e.target.files?.length);
-    const selectedFiles = e.target.files;
-    if (selectedFiles && selectedFiles.length > 0) {
-      processFiles(selectedFiles);
-    }
-    // Reset the input value so the same file can be uploaded again if removed
+    console.log('File input changed');
+    processFiles(e.target.files);
+    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -121,8 +123,7 @@ export const FileUploader = ({
 
   const removeFile = (index: number) => {
     console.log(`Removing file at index ${index}`);
-    const newFiles = [...files];
-    newFiles.splice(index, 1);
+    const newFiles = files.filter((_, i) => i !== index);
     onFilesChange(newFiles);
     toast.success('File removed');
   };
@@ -140,7 +141,7 @@ export const FileUploader = ({
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    console.log('Files dropped:', e.dataTransfer.files?.length);
+    console.log('Files dropped');
     processFiles(e.dataTransfer.files);
   };
 
@@ -162,10 +163,10 @@ export const FileUploader = ({
             <span className="font-semibold">Click to upload</span> or drag and drop
           </p>
           <p className="text-xs text-gray-500 dark:text-slate-500">
-            {supportedFormats} (Max: {maxSizeMB}MB{maxFiles ? `, ${maxFiles} files` : ''})
+            {supportedFormats} (Max: {maxSizeMB}MB, {maxFiles} files)
           </p>
           
-          {isLoading && uploadProgress > 0 && (
+          {isProcessing && uploadProgress > 0 && (
             <div className="w-full mt-4">
               <Progress value={uploadProgress} className="h-2" />
               <p className="text-xs text-center mt-1">Processing files...</p>
@@ -174,26 +175,22 @@ export const FileUploader = ({
           
           <Button 
             variant="outline" 
-            onClick={() => {
-              console.log('Upload button clicked');
-              fileInputRef.current?.click();
-            }}
-            className="dark:border-slate-700 dark:text-slate-300 mt-3 w-full max-w-xs"
-            disabled={isLoading}
+            onClick={() => fileInputRef.current?.click()}
+            className="mt-3 w-full max-w-xs"
+            disabled={isProcessing}
           >
             <FileUp className="h-4 w-4 mr-2" />
-            {isLoading ? 'Processing...' : 'Select Files'}
+            {isProcessing ? 'Processing...' : 'Select Files'}
           </Button>
           
           <Input
             ref={fileInputRef}
-            id="file-input"
             type="file"
             multiple
             onChange={handleFileChange}
             className="hidden"
             accept={acceptTypes}
-            disabled={isLoading}
+            disabled={isProcessing}
           />
         </div>
       </div>

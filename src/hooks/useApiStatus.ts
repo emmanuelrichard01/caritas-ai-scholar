@@ -32,59 +32,49 @@ export function useApiStatus() {
   
   const { data: apiStatus, isLoading, error, refetch } = useQuery({
     queryKey: ['api-status'],
-    queryFn: async () => {
+    queryFn: async (): Promise<ApiStatusData> => {
       try {
+        console.log('Fetching API status...');
         const { data, error } = await supabase.functions.invoke('api-info');
         
         if (error) {
           console.error('Supabase function error:', error);
-          throw new Error(error.message || 'Failed to fetch API status');
+          throw new Error('Failed to fetch API status');
         }
         
-        // Ensure we always return a consistent structure with safe fallbacks
-        const safeData: ApiStatusData = {
+        console.log('API status data received:', data);
+        
+        // Return safe default structure
+        return {
           openRouter: {
             available: Boolean(data?.openRouter?.available),
-            creditsRemaining: data?.openRouter?.creditsRemaining || undefined,
-            creditsGranted: data?.openRouter?.creditsGranted || undefined,
-            rateLimitRemaining: data?.openRouter?.rateLimitRemaining || undefined,
-            rateLimit: data?.openRouter?.rateLimit || undefined,
-            error: data?.openRouter?.error || (data?.openRouter?.available ? undefined : 'API key not configured')
+            creditsRemaining: data?.openRouter?.creditsRemaining,
+            creditsGranted: data?.openRouter?.creditsGranted,
+            rateLimitRemaining: data?.openRouter?.rateLimitRemaining,
+            rateLimit: data?.openRouter?.rateLimit,
+            error: data?.openRouter?.error
           },
           googleAI: {
             available: Boolean(data?.googleAI?.available),
-            dailyLimit: data?.googleAI?.dailyLimit || undefined,
-            remainingRequests: data?.googleAI?.remainingRequests || undefined,
-            status: data?.googleAI?.status || (data?.googleAI?.available ? 'Active' : 'Not Configured'),
-            error: data?.googleAI?.error || (data?.googleAI?.available ? undefined : 'API key not configured')
+            dailyLimit: data?.googleAI?.dailyLimit,
+            remainingRequests: data?.googleAI?.remainingRequests,
+            status: data?.googleAI?.status || 'Not Configured',
+            error: data?.googleAI?.error
           },
           serperAI: {
             available: Boolean(data?.serperAI?.available),
-            monthlyLimit: data?.serperAI?.monthlyLimit || undefined,
-            status: data?.serperAI?.status || (data?.serperAI?.available ? 'Active' : 'Not Configured'),
-            error: data?.serperAI?.error || (data?.serperAI?.available ? undefined : 'API key not configured')
+            monthlyLimit: data?.serperAI?.monthlyLimit,
+            status: data?.serperAI?.status || 'Not Configured',
+            error: data?.serperAI?.error
           }
         };
-        
-        return safeData;
       } catch (error) {
-        console.error('Error in API status query:', error);
-        // Return a safe fallback structure on any error
+        console.error('Error fetching API status:', error);
+        // Return safe fallback
         return {
-          openRouter: {
-            available: false,
-            error: error instanceof Error ? error.message : 'Unknown error'
-          },
-          googleAI: {
-            available: false,
-            status: 'Error',
-            error: error instanceof Error ? error.message : 'Unknown error'
-          },
-          serperAI: {
-            available: false,
-            status: 'Error',
-            error: error instanceof Error ? error.message : 'Unknown error'
-          }
+          openRouter: { available: false, error: 'Connection error' },
+          googleAI: { available: false, status: 'Error', error: 'Connection error' },
+          serperAI: { available: false, status: 'Error', error: 'Connection error' }
         };
       }
     },
@@ -96,15 +86,17 @@ export function useApiStatus() {
     setIsRefreshing(true);
     try {
       await refetch();
-    } catch (error) {
-      console.error('Error refreshing API status:', error);
     } finally {
       setIsRefreshing(false);
     }
   };
   
   return {
-    apiStatus,
+    apiStatus: apiStatus || {
+      openRouter: { available: false, error: 'Loading...' },
+      googleAI: { available: false, status: 'Loading...', error: 'Loading...' },
+      serperAI: { available: false, status: 'Loading...', error: 'Loading...' }
+    },
     isLoading,
     error,
     refreshStatus,

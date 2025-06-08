@@ -22,14 +22,20 @@ serve(async (req) => {
     const description = formData.get("description") as string;
     const file = formData.get("file") as File;
     
-    console.log("Received data:", { title, hasFile: !!file, fileName: file?.name });
+    console.log("Received data:", { 
+      title, 
+      description,
+      hasFile: !!file, 
+      fileName: file?.name,
+      fileSize: file?.size 
+    });
     
     // Validate inputs
     if (!title || !file) {
       throw new Error("Title and file are required");
     }
 
-    // Initialize Supabase client with service role key for admin operations
+    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") || "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
@@ -54,32 +60,13 @@ serve(async (req) => {
     const userId = session.user.id;
     console.log("User ID:", userId);
     
-    // Create a storage path for the file
-    const timestamp = Date.now();
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `${userId}/${timestamp}_${sanitizedFileName}`;
-    
-    console.log("Uploading file to path:", filePath);
-    
-    // Upload file to storage
-    const { error: uploadError } = await supabaseClient.storage
-      .from("course-materials")
-      .upload(filePath, file);
-
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      throw new Error(`File upload failed: ${uploadError.message}`);
-    }
-
-    console.log("File uploaded successfully");
-
-    // Create material record
+    // Create material record first
     const { data: material, error: materialError } = await supabaseClient
       .from("materials")
       .insert({
         user_id: userId,
-        title,
-        description: description || null,
+        title: title.trim(),
+        description: description?.trim() || null,
       })
       .select()
       .single();
@@ -91,8 +78,47 @@ serve(async (req) => {
 
     console.log("Material created:", material);
 
+    // Create a storage path for the file
+    const timestamp = Date.now();
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const filePath = `${userId}/${material.id}/${timestamp}_${sanitizedFileName}`;
+    
+    console.log("Uploading file to path:", filePath);
+    
+    // Upload file to storage
+    const { error: uploadError } = await supabaseClient.storage
+      .from("course-materials")
+      .upload(filePath, file, {
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      // Try to clean up the material record
+      await supabaseClient.from("materials").delete().eq("id", material.id);
+      throw new Error(`File upload failed: ${uploadError.message}`);
+    }
+
+    console.log("File uploaded successfully");
+
+    // Save upload record
+    const { error: uploadRecordError } = await supabaseClient
+      .from("uploads")
+      .insert({
+        user_id: userId,
+        file_path: filePath,
+        filename: sanitizedFileName,
+        content_type: file.type || "application/octet-stream"
+      });
+      
+    if (uploadRecordError) {
+      console.error("Error saving upload record:", uploadRecordError);
+      // Don't fail the whole process for this
+    }
+
     // Process the uploaded file
-    const { error: processError } = await supabaseClient.functions.invoke('process-course-material', {
+    console.log("Starting file processing...");
+    const { data: processData, error: processError } = await supabaseClient.functions.invoke('process-course-material', {
       body: {
         filePath,
         title: file.name,
@@ -103,15 +129,17 @@ serve(async (req) => {
 
     if (processError) {
       console.error("Processing error:", processError);
-      throw new Error(`File processing failed: ${processError.message}`);
+      // Don't fail - material is uploaded even if processing fails
+      console.log("File uploaded but processing failed - material still available");
+    } else {
+      console.log("File processed successfully:", processData);
     }
-
-    console.log("File processed successfully");
 
     return new Response(
       JSON.stringify({
-        message: "Material uploaded and processed successfully",
+        message: "Material uploaded successfully",
         material,
+        processedSuccessfully: !processError,
         success: true
       }),
       {

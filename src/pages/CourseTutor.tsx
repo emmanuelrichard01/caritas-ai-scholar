@@ -1,30 +1,25 @@
+
 import { useState } from "react";
-import { Book, Upload, FileText, Brain, Lightbulb, Target } from "lucide-react";
+import { Book, Upload, FileText, Brain, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { PageLayout } from "@/components/PageLayout";
 import { FileUploader } from "@/components/FileUploader";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { StudyToolTabs } from "@/components/studytools/StudyToolTabs";
-import { FlashcardItem } from "@/components/studytools/Flashcard";
-import { QuizQuestion } from "@/components/studytools/QuizComponent";
-import { Material, Segment, Summary, Flashcard, Quiz, QuizType } from "@/types/database";
 
 const CourseTutor = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
-  const [selectedMaterial, setSelectedMaterial] = useState<string | null>(null);
-  const [selectedSegment, setSelectedSegment] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("upload");
+  const [description, setDescription] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   const { user } = useAuth();
 
@@ -34,6 +29,7 @@ const CourseTutor = () => {
     queryFn: async () => {
       if (!user) return [];
       
+      console.log('Fetching materials for user:', user.id);
       const { data, error } = await supabase
         .from('materials')
         .select('*')
@@ -42,99 +38,59 @@ const CourseTutor = () => {
         
       if (error) {
         console.error("Error fetching materials:", error);
-        throw error;
+        return [];
       }
       
+      console.log('Fetched materials:', data);
       return data || [];
     },
     enabled: !!user
   });
 
-  // Fetch segments for selected material
-  const { data: segments, isLoading: isLoadingSegments } = useQuery({
-    queryKey: ['segments', selectedMaterial],
-    queryFn: async () => {
-      if (!selectedMaterial) return [];
-      
-      const { data, error } = await supabase
-        .from('segments')
-        .select('*')
-        .eq('material_id', selectedMaterial)
-        .order('created_at', { ascending: true });
-        
-      if (error) {
-        console.error("Error fetching segments:", error);
-        throw error;
-      }
-      
-      return data || [];
-    },
-    enabled: !!selectedMaterial
-  });
-
-  // Get study aids for selected segment
-  const { data: summaries, refetch: refetchSummaries } = useQuery({
-    queryKey: ['summaries', selectedSegment],
-    queryFn: async () => {
-      if (!selectedSegment) return [];
-      const { data, error } = await supabase.from('summaries').select('*').eq('segment_id', selectedSegment);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!selectedSegment
-  });
-
-  const { data: flashcards, refetch: refetchFlashcards } = useQuery({
-    queryKey: ['flashcards', selectedSegment],
-    queryFn: async () => {
-      if (!selectedSegment) return [];
-      const { data, error } = await supabase.from('flashcards').select('*').eq('segment_id', selectedSegment);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!selectedSegment
-  });
-
-  const { data: quizzes, refetch: refetchQuizzes } = useQuery({
-    queryKey: ['quizzes', selectedSegment],
-    queryFn: async () => {
-      if (!selectedSegment) return [];
-      const { data, error } = await supabase.from('quizzes').select('*').eq('segment_id', selectedSegment);
-      if (error) throw error;
-      return (data || []).map(quiz => ({
-        ...quiz,
-        type: (quiz.type === 'mcq' || quiz.type === 'short' ? quiz.type : 'mcq') as QuizType
-      }));
-    },
-    enabled: !!selectedSegment
-  });
-
   const handleUploadMaterial = async () => {
-    if (!user || !title.trim() || files.length === 0) {
-      toast.error("Please fill in all required fields");
+    if (!user) {
+      toast.error("Please log in to upload materials");
+      return;
+    }
+    
+    if (!title.trim()) {
+      toast.error("Please enter a title for your material");
+      return;
+    }
+    
+    if (files.length === 0) {
+      toast.error("Please select at least one file to upload");
       return;
     }
     
     setIsUploading(true);
+    setUploadProgress(0);
     
     try {
-      console.log("Starting upload process...");
+      console.log('Starting upload process...');
+      setUploadProgress(20);
       
-      // Process each file
-      for (const file of files) {
-        console.log(`Processing file: ${file.name}`);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        console.log(`Uploading file ${i + 1}/${files.length}: ${file.name}`);
         
+        // Create form data
         const formData = new FormData();
-        formData.append('title', title.trim());
+        formData.append('title', `${title} - ${file.name}`);
+        formData.append('description', description || '');
         formData.append('file', file);
         
-        // Get the session token
+        setUploadProgress(20 + (i * 60) / files.length);
+        
+        // Get session
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          throw new Error("No active session");
+          throw new Error("Authentication required");
         }
 
-        // Call the upload function directly
+        console.log('Calling upload function...');
+        
+        // Upload file
         const { data, error } = await supabase.functions.invoke('upload-course-material', {
           body: formData,
           headers: {
@@ -143,341 +99,157 @@ const CourseTutor = () => {
         });
         
         if (error) {
-          console.error("Upload function error:", error);
+          console.error('Upload error:', error);
           throw new Error(`Upload failed: ${error.message}`);
         }
         
         if (!data?.success) {
+          console.error('Upload response:', data);
           throw new Error(data?.error || "Upload failed");
         }
         
-        console.log("Upload successful:", data);
-        
-        // Set the selected material to the newly created one
-        if (data.material) {
-          setSelectedMaterial(data.material.id);
-        }
+        console.log('Upload successful:', data);
       }
       
-      toast.success("Material uploaded and processed successfully");
+      setUploadProgress(100);
+      toast.success(`Successfully uploaded ${files.length} file(s)`);
+      
+      // Reset form
       setFiles([]);
       setTitle("");
+      setDescription("");
+      
+      // Refresh materials list
       refetchMaterials();
-      setActiveTab("library");
       
     } catch (error) {
-      console.error("Error uploading material:", error);
-      toast.error("Failed to upload material: " + (error instanceof Error ? error.message : "Unknown error"));
+      console.error("Upload error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Upload failed";
+      toast.error(errorMessage);
     } finally {
       setIsUploading(false);
+      setTimeout(() => setUploadProgress(0), 2000);
     }
   };
-
-  const generateStudyAid = async (type: 'summary' | 'flashcards' | 'quiz') => {
-    if (!selectedSegment) {
-      toast.error("Please select a segment first");
-      return;
-    }
-    
-    setIsProcessing(true);
-    
-    try {
-      const { error } = await supabase.functions.invoke('generate-study-aids', {
-        body: { segmentId: selectedSegment, type }
-      });
-      
-      if (error) throw error;
-      
-      toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} generated successfully`);
-      
-      // Refresh the appropriate data
-      if (type === 'summary') refetchSummaries();
-      else if (type === 'flashcards') refetchFlashcards();
-      else if (type === 'quiz') refetchQuizzes();
-      
-    } catch (error) {
-      console.error(`Error generating ${type}:`, error);
-      toast.error(`Failed to generate ${type}`);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const currentSegment = segments?.find(s => s.id === selectedSegment);
-  
-  // Convert for StudyToolTabs
-  const flashcardItems: FlashcardItem[] | null = flashcards?.map(card => ({
-    question: card.question,
-    answer: card.answer
-  })) || null;
-  
-  const quizItems: QuizQuestion[] | null = quizzes?.map(quiz => ({
-    question: quiz.prompt,
-    options: quiz.choices || ["Option A", "Option B", "Option C", "Option D"],
-    correctAnswer: quiz.choices?.indexOf(quiz.correct_answer) || 0,
-    explanation: quiz.explanation
-  })) || null;
-  
-  const notes: string | null = summaries && summaries.length > 0 
-    ? summaries[0].bullets.map(bullet => `• ${bullet}`).join('\n\n')
-    : null;
 
   return (
     <PageLayout
       title="Course Tutor"
-      subtitle="Upload course materials and generate AI-powered study aids with advanced learning analytics"
+      subtitle="Upload course materials and generate AI-powered study aids"
       icon={<Book className="h-6 w-6" />}
     >
       <div className="space-y-6">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="p-4">
-            <div className="flex items-center space-x-3">
-              <FileText className="h-8 w-8 text-blue-600" />
-              <div>
-                <p className="text-sm text-gray-600">Materials</p>
-                <p className="text-2xl font-bold">{materials?.length || 0}</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center space-x-3">
-              <Brain className="h-8 w-8 text-green-600" />
-              <div>
-                <p className="text-sm text-gray-600">Study Aids</p>
-                <p className="text-2xl font-bold">{(summaries?.length || 0) + (flashcards?.length || 0) + (quizzes?.length || 0)}</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center space-x-3">
-              <Target className="h-8 w-8 text-purple-600" />
-              <div>
-                <p className="text-sm text-gray-600">Progress</p>
-                <Progress value={selectedSegment ? 75 : 0} className="mt-1" />
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="upload">Upload</TabsTrigger>
-            <TabsTrigger value="library">Library</TabsTrigger>
-            <TabsTrigger value="study">Study Tools</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        <Tabs defaultValue="upload" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="upload">Upload Materials</TabsTrigger>
+            <TabsTrigger value="library">My Library</TabsTrigger>
           </TabsList>
           
           <TabsContent value="upload" className="space-y-4">
             <Card className="p-6">
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex items-center space-x-2 mb-4">
                   <Upload className="h-5 w-5" />
                   <h2 className="text-lg font-semibold">Upload Course Materials</h2>
                 </div>
                 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Material Title *</label>
+                    <Input
+                      placeholder="e.g., Introduction to Computer Science"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      disabled={isUploading}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Description (Optional)</label>
+                    <Textarea
+                      placeholder="Brief description of the material..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      disabled={isUploading}
+                      rows={3}
+                    />
+                  </div>
+                </div>
+                
                 <div>
-                  <label className="block text-sm font-medium mb-1">Material Title</label>
-                  <Input
-                    placeholder="e.g., Introduction to Computer Science"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                  <label className="block text-sm font-medium mb-2">Files *</label>
+                  <FileUploader 
+                    files={files} 
+                    onFilesChange={setFiles}
+                    maxFiles={5}
+                    maxSizeMB={50}
+                    supportedFormats="PDF, DOC, DOCX, PPT, PPTX, TXT"
+                    acceptTypes=".pdf,.doc,.docx,.ppt,.pptx,.txt"
                   />
                 </div>
                 
-                <FileUploader 
-                  files={files} 
-                  onFilesChange={setFiles}
-                  maxFiles={5}
-                  maxSizeMB={50}
-                  supportedFormats="PDF, DOC, DOCX, PPT, PPTX, TXT"
-                  acceptTypes=".pdf,.doc,.docx,.ppt,.pptx,.txt"
-                />
+                {uploadProgress > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Upload Progress</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-2" />
+                  </div>
+                )}
                 
                 <Button 
                   onClick={handleUploadMaterial} 
                   disabled={isUploading || !title.trim() || files.length === 0}
                   className="w-full"
+                  size="lg"
                 >
-                  {isUploading ? "Processing..." : "Upload & Process Material"}
+                  {isUploading ? "Uploading..." : `Upload ${files.length} File(s)`}
                 </Button>
               </div>
             </Card>
           </TabsContent>
           
           <TabsContent value="library" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="p-6">
-                <h2 className="text-lg font-semibold mb-4">My Materials</h2>
-                {isLoadingMaterials ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                  </div>
-                ) : materials?.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-500">No materials uploaded yet</p>
-                    <Button variant="link" onClick={() => setActiveTab("upload")}>
-                      Upload your first material
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {materials?.map((material) => (
-                      <div 
-                        key={material.id} 
-                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                          selectedMaterial === material.id ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'
-                        }`}
-                        onClick={() => setSelectedMaterial(material.id)}
-                      >
-                        <h3 className="font-medium">{material.title}</h3>
-                        <p className="text-sm text-gray-500">
-                          {new Date(material.uploaded_at).toLocaleDateString()}
-                        </p>
-                        {selectedMaterial === material.id && (
-                          <Badge variant="secondary" className="mt-2">Selected</Badge>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-              
-              {selectedMaterial && (
-                <Card className="p-6">
-                  <h2 className="text-lg font-semibold mb-4">Segments</h2>
-                  {isLoadingSegments ? (
-                    <div className="flex justify-center py-8">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                    </div>
-                  ) : segments?.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">No segments available</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {segments?.map((segment, index) => (
-                        <div 
-                          key={segment.id} 
-                          className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                            selectedSegment === segment.id ? 'bg-green-50 border-green-200' : 'hover:bg-gray-50'
-                          }`}
-                          onClick={() => setSelectedSegment(segment.id)}
-                        >
-                          <h4 className="font-medium">
-                            {segment.title || `Segment ${index + 1}`}
-                          </h4>
-                          <p className="text-sm text-gray-500 line-clamp-2">
-                            {segment.text.substring(0, 100)}...
-                          </p>
-                          {selectedSegment === segment.id && (
-                            <Badge variant="secondary" className="mt-2">Active</Badge>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </Card>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="study" className="space-y-4">
-            {!selectedSegment ? (
-              <Card className="p-8 text-center">
-                <Lightbulb className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Ready to Study?</h3>
-                <p className="text-gray-600 mb-4">
-                  Select a material and segment from the Library tab to generate study aids
-                </p>
-                <Button onClick={() => setActiveTab("library")}>
-                  Go to Library
-                </Button>
-              </Card>
-            ) : (
-              <div className="space-y-6">
-                {/* Study Aid Generation */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card className="p-4">
-                    <div className="text-center space-y-3">
-                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto">
-                        <FileText className="h-6 w-6 text-blue-600" />
-                      </div>
-                      <h3 className="font-semibold">Summary</h3>
-                      <p className="text-sm text-gray-600">Key points and highlights</p>
-                      <Button 
-                        onClick={() => generateStudyAid('summary')}
-                        disabled={isProcessing}
-                        size="sm"
-                        className="w-full"
-                      >
-                        {summaries?.length ? 'Regenerate' : 'Generate'}
-                      </Button>
-                    </div>
-                  </Card>
-                  
-                  <Card className="p-4">
-                    <div className="text-center space-y-3">
-                      <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-                        <Brain className="h-6 w-6 text-green-600" />
-                      </div>
-                      <h3 className="font-semibold">Flashcards</h3>
-                      <p className="text-sm text-gray-600">Q&A for memorization</p>
-                      <Button 
-                        onClick={() => generateStudyAid('flashcards')}
-                        disabled={isProcessing}
-                        size="sm"
-                        className="w-full"
-                      >
-                        {flashcards?.length ? 'Regenerate' : 'Generate'}
-                      </Button>
-                    </div>
-                  </Card>
-                  
-                  <Card className="p-4">
-                    <div className="text-center space-y-3">
-                      <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mx-auto">
-                        <Target className="h-6 w-6 text-purple-600" />
-                      </div>
-                      <h3 className="font-semibold">Quiz</h3>
-                      <p className="text-sm text-gray-600">Test your knowledge</p>
-                      <Button 
-                        onClick={() => generateStudyAid('quiz')}
-                        disabled={isProcessing}
-                        size="sm"
-                        className="w-full"
-                      >
-                        {quizzes?.length ? 'Regenerate' : 'Generate'}
-                      </Button>
-                    </div>
-                  </Card>
-                </div>
-                
-                {/* Study Tools Display */}
-                {(notes || flashcardItems || quizItems) && (
-                  <StudyToolTabs 
-                    notes={notes} 
-                    flashcards={flashcardItems} 
-                    quizQuestions={quizItems}
-                    materialContext={currentSegment?.text || ''}
-                  />
-                )}
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="analytics" className="space-y-4">
             <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4">Learning Analytics</h2>
-              <div className="text-center py-12">
-                <Target className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Analytics Dashboard</h3>
-                <p className="text-gray-600">
-                  Track your learning progress, study patterns, and performance metrics
-                </p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Coming soon with study session tracking and performance insights
-                </p>
+              <div className="flex items-center space-x-2 mb-4">
+                <FileText className="h-5 w-5" />
+                <h2 className="text-lg font-semibold">My Materials</h2>
               </div>
+              
+              {!user ? (
+                <div className="text-center py-8">
+                  <Lightbulb className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Sign In Required</h3>
+                  <p className="text-gray-600">Please sign in to view your materials</p>
+                </div>
+              ) : isLoadingMaterials ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : materials?.length === 0 ? (
+                <div className="text-center py-8">
+                  <Brain className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No Materials Yet</h3>
+                  <p className="text-gray-600 mb-4">Upload your first course material to get started</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {materials?.map((material) => (
+                    <Card key={material.id} className="p-4 hover:shadow-md transition-shadow">
+                      <div className="space-y-2">
+                        <h3 className="font-semibold line-clamp-2">{material.title}</h3>
+                        {material.description && (
+                          <p className="text-sm text-gray-600 line-clamp-2">{material.description}</p>
+                        )}
+                        <p className="text-xs text-gray-500">
+                          Uploaded: {new Date(material.uploaded_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </Card>
           </TabsContent>
         </Tabs>

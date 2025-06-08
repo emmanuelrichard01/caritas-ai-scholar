@@ -91,8 +91,8 @@ const CourseTutor = () => {
 
         console.log('Calling upload function with auth token...');
         
-        // Upload file with proper authentication
-        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/upload-course-material`, {
+        // Upload file with proper authentication - using the direct URL
+        const response = await fetch(`https://yvlrspteukuooobkvzdz.supabase.co/functions/v1/upload-course-material`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session.access_token}`,

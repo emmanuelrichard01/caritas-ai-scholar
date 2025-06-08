@@ -16,6 +16,54 @@ serve(async (req) => {
   try {
     console.log("Upload course material function called");
 
+    // Initialize Supabase client first
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") || "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
+    );
+
+    // Get the authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("No authorization header found");
+      return new Response(
+        JSON.stringify({ 
+          error: "Authentication required - no auth header",
+          success: false
+        }),
+        {
+          status: 401,
+          headers: { 
+            ...corsHeaders,
+            "Content-Type": "application/json" 
+          },
+        }
+      );
+    }
+
+    // Verify the JWT token
+    const jwt = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(jwt);
+
+    if (userError || !user) {
+      console.error("Authentication error:", userError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Authentication failed",
+          success: false
+        }),
+        {
+          status: 401,
+          headers: { 
+            ...corsHeaders,
+            "Content-Type": "application/json" 
+          },
+        }
+      );
+    }
+
+    console.log("User authenticated:", user.id);
+
     // Parse request body 
     const formData = await req.formData();
     const title = formData.get("title") as string;
@@ -32,33 +80,23 @@ serve(async (req) => {
     
     // Validate inputs
     if (!title || !file) {
-      throw new Error("Title and file are required");
+      console.error("Missing required fields");
+      return new Response(
+        JSON.stringify({ 
+          error: "Title and file are required",
+          success: false
+        }),
+        {
+          status: 400,
+          headers: { 
+            ...corsHeaders,
+            "Content-Type": "application/json" 
+          },
+        }
+      );
     }
 
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") || "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-      }
-    );
-
-    // Get user ID from session
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabaseClient.auth.getSession();
-
-    if (sessionError || !session) {
-      console.error("Authentication error:", sessionError);
-      throw new Error("Authentication required");
-    }
-
-    const userId = session.user.id;
-    console.log("User ID:", userId);
+    const userId = user.id;
     
     // Create material record first
     const { data: material, error: materialError } = await supabaseClient
@@ -73,7 +111,19 @@ serve(async (req) => {
 
     if (materialError) {
       console.error("Material creation error:", materialError);
-      throw new Error(`Failed to create material: ${materialError.message}`);
+      return new Response(
+        JSON.stringify({ 
+          error: `Failed to create material: ${materialError.message}`,
+          success: false
+        }),
+        {
+          status: 400,
+          headers: { 
+            ...corsHeaders,
+            "Content-Type": "application/json" 
+          },
+        }
+      );
     }
 
     console.log("Material created:", material);
@@ -96,7 +146,19 @@ serve(async (req) => {
       console.error("Upload error:", uploadError);
       // Try to clean up the material record
       await supabaseClient.from("materials").delete().eq("id", material.id);
-      throw new Error(`File upload failed: ${uploadError.message}`);
+      return new Response(
+        JSON.stringify({ 
+          error: `File upload failed: ${uploadError.message}`,
+          success: false
+        }),
+        {
+          status: 400,
+          headers: { 
+            ...corsHeaders,
+            "Content-Type": "application/json" 
+          },
+        }
+      );
     }
 
     console.log("File uploaded successfully");
@@ -118,28 +180,31 @@ serve(async (req) => {
 
     // Process the uploaded file
     console.log("Starting file processing...");
-    const { data: processData, error: processError } = await supabaseClient.functions.invoke('process-course-material', {
-      body: {
-        filePath,
-        title: file.name,
-        userId,
-        materialId: material.id
-      }
-    });
+    try {
+      const { data: processData, error: processError } = await supabaseClient.functions.invoke('process-course-material', {
+        body: {
+          filePath,
+          title: file.name,
+          userId,
+          materialId: material.id
+        }
+      });
 
-    if (processError) {
-      console.error("Processing error:", processError);
+      if (processError) {
+        console.error("Processing error:", processError);
+        // Don't fail - material is uploaded even if processing fails
+      } else {
+        console.log("File processed successfully:", processData);
+      }
+    } catch (processError) {
+      console.error("Processing exception:", processError);
       // Don't fail - material is uploaded even if processing fails
-      console.log("File uploaded but processing failed - material still available");
-    } else {
-      console.log("File processed successfully:", processData);
     }
 
     return new Response(
       JSON.stringify({
         message: "Material uploaded successfully",
         material,
-        processedSuccessfully: !processError,
         success: true
       }),
       {
@@ -154,11 +219,11 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : "Unknown error occurred",
         success: false
       }),
       {
-        status: 400,
+        status: 500,
         headers: { 
           ...corsHeaders, 
           "Content-Type": "application/json" 

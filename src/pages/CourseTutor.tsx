@@ -70,6 +70,13 @@ const CourseTutor = () => {
       console.log('Starting upload process...');
       setUploadProgress(20);
       
+      // Get current session for auth
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error("Please log in again - session expired");
+      }
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         console.log(`Uploading file ${i + 1}/${files.length}: ${file.name}`);
@@ -81,31 +88,23 @@ const CourseTutor = () => {
         formData.append('file', file);
         
         setUploadProgress(20 + (i * 60) / files.length);
-        
-        // Get session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          throw new Error("Authentication required");
-        }
 
-        console.log('Calling upload function...');
+        console.log('Calling upload function with auth token...');
         
-        // Upload file
-        const { data, error } = await supabase.functions.invoke('upload-course-material', {
-          body: formData,
+        // Upload file with proper authentication
+        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/upload-course-material`, {
+          method: 'POST',
           headers: {
-            Authorization: `Bearer ${session.access_token}`
-          }
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: formData
         });
         
-        if (error) {
-          console.error('Upload error:', error);
-          throw new Error(`Upload failed: ${error.message}`);
-        }
+        const data = await response.json();
         
-        if (!data?.success) {
-          console.error('Upload response:', data);
-          throw new Error(data?.error || "Upload failed");
+        if (!response.ok || !data?.success) {
+          console.error('Upload response:', { status: response.status, data });
+          throw new Error(data?.error || `Upload failed with status ${response.status}`);
         }
         
         console.log('Upload successful:', data);
@@ -124,7 +123,7 @@ const CourseTutor = () => {
       
     } catch (error) {
       console.error("Upload error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Upload failed";
+      const errorMessage = error instanceof Error ? error.message : "Upload failed - please try again";
       toast.error(errorMessage);
     } finally {
       setIsUploading(false);
@@ -153,6 +152,13 @@ const CourseTutor = () => {
                   <h2 className="text-lg font-semibold">Upload Course Materials</h2>
                 </div>
                 
+                {!user && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800">
+                    <p className="font-medium">Authentication Required</p>
+                    <p className="text-sm">Please sign in to upload course materials.</p>
+                  </div>
+                )}
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Material Title *</label>
@@ -160,7 +166,7 @@ const CourseTutor = () => {
                       placeholder="e.g., Introduction to Computer Science"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      disabled={isUploading}
+                      disabled={isUploading || !user}
                     />
                   </div>
                   
@@ -170,7 +176,7 @@ const CourseTutor = () => {
                       placeholder="Brief description of the material..."
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      disabled={isUploading}
+                      disabled={isUploading || !user}
                       rows={3}
                     />
                   </div>
@@ -200,7 +206,7 @@ const CourseTutor = () => {
                 
                 <Button 
                   onClick={handleUploadMaterial} 
-                  disabled={isUploading || !title.trim() || files.length === 0}
+                  disabled={isUploading || !title.trim() || files.length === 0 || !user}
                   className="w-full"
                   size="lg"
                 >

@@ -27,6 +27,12 @@ export interface ApiStatusData {
   };
 }
 
+const defaultApiStatus: ApiStatusData = {
+  openRouter: { available: false, error: 'Not available' },
+  googleAI: { available: false, status: 'Not configured', error: 'Not available' },
+  serperAI: { available: false, status: 'Not configured', error: 'Not available' }
+};
+
 export function useApiStatus() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   
@@ -35,47 +41,45 @@ export function useApiStatus() {
     queryFn: async (): Promise<ApiStatusData> => {
       try {
         console.log('Fetching API status...');
+        
         const { data, error } = await supabase.functions.invoke('api-info');
         
         if (error) {
           console.error('Supabase function error:', error);
-          throw new Error('Failed to fetch API status');
+          return defaultApiStatus;
         }
         
-        console.log('API status data received:', data);
+        console.log('API status response:', data);
         
-        // Return safe default structure
+        // Safely parse the response with fallbacks
+        const safeData = data || {};
+        
         return {
           openRouter: {
-            available: Boolean(data?.openRouter?.available),
-            creditsRemaining: data?.openRouter?.creditsRemaining,
-            creditsGranted: data?.openRouter?.creditsGranted,
-            rateLimitRemaining: data?.openRouter?.rateLimitRemaining,
-            rateLimit: data?.openRouter?.rateLimit,
-            error: data?.openRouter?.error
+            available: Boolean(safeData.openRouter?.available),
+            creditsRemaining: safeData.openRouter?.creditsRemaining || undefined,
+            creditsGranted: safeData.openRouter?.creditsGranted || undefined,
+            rateLimitRemaining: safeData.openRouter?.rateLimitRemaining || undefined,
+            rateLimit: safeData.openRouter?.rateLimit || undefined,
+            error: safeData.openRouter?.error || (safeData.openRouter?.available ? undefined : 'Not configured')
           },
           googleAI: {
-            available: Boolean(data?.googleAI?.available),
-            dailyLimit: data?.googleAI?.dailyLimit,
-            remainingRequests: data?.googleAI?.remainingRequests,
-            status: data?.googleAI?.status || 'Not Configured',
-            error: data?.googleAI?.error
+            available: Boolean(safeData.googleAI?.available),
+            dailyLimit: safeData.googleAI?.dailyLimit || undefined,
+            remainingRequests: safeData.googleAI?.remainingRequests || undefined,
+            status: safeData.googleAI?.status || 'Not configured',
+            error: safeData.googleAI?.error || (safeData.googleAI?.available ? undefined : 'Not configured')
           },
           serperAI: {
-            available: Boolean(data?.serperAI?.available),
-            monthlyLimit: data?.serperAI?.monthlyLimit,
-            status: data?.serperAI?.status || 'Not Configured',
-            error: data?.serperAI?.error
+            available: Boolean(safeData.serperAI?.available),
+            monthlyLimit: safeData.serperAI?.monthlyLimit || undefined,
+            status: safeData.serperAI?.status || 'Not configured',
+            error: safeData.serperAI?.error || (safeData.serperAI?.available ? undefined : 'Not configured')
           }
         };
       } catch (error) {
         console.error('Error fetching API status:', error);
-        // Return safe fallback
-        return {
-          openRouter: { available: false, error: 'Connection error' },
-          googleAI: { available: false, status: 'Error', error: 'Connection error' },
-          serperAI: { available: false, status: 'Error', error: 'Connection error' }
-        };
+        return defaultApiStatus;
       }
     },
     retry: 1,
@@ -92,11 +96,7 @@ export function useApiStatus() {
   };
   
   return {
-    apiStatus: apiStatus || {
-      openRouter: { available: false, error: 'Loading...' },
-      googleAI: { available: false, status: 'Loading...', error: 'Loading...' },
-      serperAI: { available: false, status: 'Loading...', error: 'Loading...' }
-    },
+    apiStatus: apiStatus || defaultApiStatus,
     isLoading,
     error,
     refreshStatus,

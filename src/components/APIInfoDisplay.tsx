@@ -28,6 +28,15 @@ export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
     return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20";
   };
 
+  const formatRateLimit = (rateLimit: any) => {
+    if (!rateLimit) return "Not available";
+    if (typeof rateLimit === "string") return rateLimit;
+    if (typeof rateLimit === "object" && rateLimit.requests && rateLimit.interval) {
+      return `${rateLimit.requests} requests per ${rateLimit.interval}`;
+    }
+    return "Available";
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
@@ -80,6 +89,9 @@ export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
                 {apiStatus?.googleAI?.dailyLimit && (
                   <p><span className="font-medium">Daily Limit:</span> {apiStatus.googleAI.dailyLimit}</p>
                 )}
+                {apiStatus?.googleAI?.status && (
+                  <p><span className="font-medium">Status:</span> {apiStatus.googleAI.status}</p>
+                )}
                 {apiStatus?.googleAI?.error && (
                   <p className="text-red-500"><span className="font-medium">Error:</span> {apiStatus.googleAI.error}</p>
                 )}
@@ -100,11 +112,11 @@ export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
               
               <div className="text-xs text-muted-foreground space-y-1">
                 <p><span className="font-medium">Purpose:</span> Backup AI service</p>
-                {apiStatus?.openRouter?.creditsRemaining && (
+                {apiStatus?.openRouter?.creditsRemaining !== undefined && (
                   <p><span className="font-medium">Credits:</span> ${apiStatus.openRouter.creditsRemaining}</p>
                 )}
                 {apiStatus?.openRouter?.rateLimit && (
-                  <p><span className="font-medium">Rate Limit:</span> {apiStatus.openRouter.rateLimit}</p>
+                  <p><span className="font-medium">Rate Limit:</span> {formatRateLimit(apiStatus.openRouter.rateLimit)}</p>
                 )}
                 {apiStatus?.openRouter?.error && (
                   <p className="text-red-500"><span className="font-medium">Error:</span> {apiStatus.openRouter.error}</p>
@@ -128,6 +140,9 @@ export const APIInfoDisplay = ({ onClose }: APIInfoDisplayProps) => {
                 <p><span className="font-medium">Purpose:</span> Academic search and research</p>
                 {apiStatus?.serperAI?.monthlyLimit && (
                   <p><span className="font-medium">Monthly Limit:</span> {apiStatus.serperAI.monthlyLimit}</p>
+                )}
+                {apiStatus?.serperAI?.status && (
+                  <p><span className="font-medium">Status:</span> {apiStatus.serperAI.status}</p>
                 )}
                 {apiStatus?.serperAI?.error && (
                   <p className="text-red-500"><span className="font-medium">Error:</span> {apiStatus.serperAI.error}</p>

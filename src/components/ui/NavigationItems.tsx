@@ -4,7 +4,6 @@ import {
   GraduationCap, 
   Calculator, 
   Calendar, 
-  Book, 
   Brain,
   Search, 
   History,
@@ -38,16 +37,10 @@ export const navigationItems: NavigationItem[] = [
     description: "Plan and organize your study sessions"
   },
   {
-    href: "/course-tutor",
-    icon: Book,
-    label: "Course Tutor", 
-    description: "Upload and manage course materials"
-  },
-  {
-    href: "/study-tools",
-    icon: Brain,
-    label: "Study Tools",
-    description: "Generate AI-powered study aids"
+    href: "/course-assistant",
+    icon: GraduationCap,
+    label: "Course Assistant", 
+    description: "Upload materials & generate study aids"
   },
   {
     href: "/research-assistant",

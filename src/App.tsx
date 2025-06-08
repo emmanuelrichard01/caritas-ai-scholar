@@ -9,8 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import GPACalculator from "./pages/GPACalculator";
 import StudyPlanner from "./pages/StudyPlanner";
-import CourseTutor from "./pages/CourseTutor";
-import StudyTools from "./pages/StudyTools";
+import CourseAssistant from "./pages/CourseAssistant";
 import ResearchAssistant from "./pages/ResearchAssistant";
 import History from "./pages/History";
 import NotFound from "./pages/NotFound";
@@ -30,8 +29,7 @@ function App() {
               <Route path="/auth" element={<Auth />} />
               <Route path="/gpa-calculator" element={<GPACalculator />} />
               <Route path="/study-planner" element={<StudyPlanner />} />
-              <Route path="/course-tutor" element={<CourseTutor />} />
-              <Route path="/study-tools" element={<StudyTools />} />
+              <Route path="/course-assistant" element={<CourseAssistant />} />
               <Route path="/research-assistant" element={<ResearchAssistant />} />
               <Route path="/history" element={<History />} />
               <Route path="*" element={<NotFound />} />

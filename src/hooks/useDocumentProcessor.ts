@@ -24,36 +24,43 @@ export function useDocumentProcessor() {
     setResult(null);
 
     try {
+      // Get current session for auth
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error("Please log in again - session expired");
+      }
+
       // Process each file
       const processResults = await Promise.all(
         files.map(async (file) => {
           try {
-            // Create a storage path for the file
-            const filePath = `${user.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+            // Create form data for upload
+            const formData = new FormData();
+            formData.append('title', file.name);
+            formData.append('description', prompt || 'Study material processing');
+            formData.append('file', file);
             
-            // Upload the file to storage
-            const { error: uploadError } = await supabase.storage
-              .from('course-materials')
-              .upload(filePath, file);
-
-            if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
-
-            // Call the edge function to process the document
-            const { data, error } = await supabase.functions.invoke('process-course-material', {
-              body: {
-                filePath,
-                title: file.name,
-                userId: user.id,
-                prompt
-              }
+            // First upload the material using the upload function
+            const uploadResponse = await fetch(`https://yvlrspteukuooobkvzdz.supabase.co/functions/v1/upload-course-material`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: formData
             });
+            
+            const uploadData = await uploadResponse.json();
+            
+            if (!uploadResponse.ok || !uploadData?.success) {
+              throw new Error(uploadData?.error || `Upload failed with status ${uploadResponse.status}`);
+            }
 
-            if (error) throw new Error(`Processing failed: ${error.message}`);
-
-            return data?.result || `Processed ${file.name}`;
+            // Return the result from processing
+            return uploadData.message || `Processed ${file.name}`;
           } catch (fileError) {
             console.error(`Error processing file ${file.name}:`, fileError);
-            return `Failed to process ${file.name}: ${fileError instanceof Error ? fileError.message : 'Unknown error'}`;
+            throw fileError;
           }
         })
       );

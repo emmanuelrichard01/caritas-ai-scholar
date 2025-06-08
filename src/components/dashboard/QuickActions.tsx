@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calculator, Calendar, Book, Brain, Search, Upload } from "lucide-react";
+import { Calculator, Calendar, GraduationCap, Search, Brain } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export const QuickActions = () => {
@@ -23,18 +23,11 @@ export const QuickActions = () => {
       color: "bg-green-500"
     },
     {
-      title: "Upload Materials",
-      description: "Add new course materials",
-      icon: Upload,
-      action: () => navigate("/course-tutor"),
+      title: "Course Assistant",
+      description: "Upload materials & generate study aids",
+      icon: GraduationCap,
+      action: () => navigate("/course-assistant"),
       color: "bg-purple-500"
-    },
-    {
-      title: "Generate Study Tools",
-      description: "Create flashcards and quizzes",
-      icon: Brain,
-      action: () => navigate("/study-tools"),
-      color: "bg-orange-500"
     },
     {
       title: "Research Assistant",
@@ -54,16 +47,16 @@ export const QuickActions = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
           {actions.map((action, index) => (
             <Button
               key={index}
               variant="outline"
-              className="h-auto p-4 flex flex-col items-center space-y-2 hover:shadow-md transition-all"
+              className="h-auto p-4 flex flex-col items-center space-y-2 hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
               onClick={action.action}
             >
-              <div className={`p-2 rounded-full ${action.color} text-white`}>
-                <action.icon className="h-5 w-5" />
+              <div className={`p-3 rounded-full ${action.color} text-white`}>
+                <action.icon className="h-6 w-6" />
               </div>
               <div className="text-center">
                 <div className="font-medium text-sm">{action.title}</div>

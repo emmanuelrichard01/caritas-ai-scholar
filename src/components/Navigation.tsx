@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { 
   MessageSquare, 
@@ -16,7 +15,7 @@ import { NavbarProfile } from "./ui/NavbarProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocation } from "react-router-dom";
 import { APIInfoDisplay } from "@/components/APIInfoDisplay";
-import { NavigationItems } from "./ui/NavigationItems";
+import { navigationItems } from "./ui/NavigationItems";
 
 const Navigation = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -138,7 +137,31 @@ const Navigation = () => {
         </div>
         
         <div className="flex-1 overflow-y-auto pt-4 md:pt-0">
-          <NavigationItems isCollapsed={isCollapsed && !isMobile} />
+          <div className="px-3 py-2">
+            <div className="space-y-1">
+              {navigationItems.map((item) => (
+                <Button
+                  key={item.href}
+                  variant={location.pathname === item.href ? "secondary" : "ghost"}
+                  className={cn(
+                    "w-full justify-start gap-2 text-left font-normal",
+                    isCollapsed && !isMobile ? "px-2" : "px-3"
+                  )}
+                  onClick={() => window.location.href = item.href}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {(!isCollapsed || isMobile) && (
+                    <div className="flex flex-col">
+                      <span>{item.label}</span>
+                      {item.description && (
+                        <span className="text-xs text-muted-foreground">{item.description}</span>
+                      )}
+                    </div>
+                  )}
+                </Button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="border-t p-4 bg-background/50 dark:bg-slate-900/50 flex flex-col gap-2">

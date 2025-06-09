@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageLayout } from "@/components/PageLayout";
@@ -9,6 +8,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { FormattedContent } from "@/components/FormattedContent";
 import {
   Select,
   SelectContent,
@@ -242,9 +242,13 @@ const History = () => {
                 </div>
               </div>
               
-              <pre className="whitespace-pre-wrap font-sans text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                {item.content}
-              </pre>
+              <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                <FormattedContent 
+                  content={item.content} 
+                  variant="default"
+                  className="max-w-none"
+                />
+              </div>
               
               <Button
                 variant="ghost"

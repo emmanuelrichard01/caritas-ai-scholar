@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Book, Upload, FileText, Brain, Lightbulb, Zap, GraduationCap, BookOpen, Sparkles } from "lucide-react";
+import { Book, Upload, FileText, Brain, Lightbulb, Zap, GraduationCap, BookOpen, Sparkles, Trash2, Eye, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +24,7 @@ const CourseAssistant = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [studyQuery, setStudyQuery] = useState("");
+  const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
   
   const { user } = useAuth();
   const {
@@ -128,18 +129,45 @@ const CourseAssistant = () => {
     }
   };
 
-  const handleGenerateStudyMaterials = async () => {
+  const handleDeleteMaterial = async (materialId: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('materials')
+        .delete()
+        .eq('id', materialId)
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      
+      toast.success("Material deleted successfully");
+      refetchMaterials();
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete material");
+    }
+  };
+
+  const handleGenerateFromMaterial = async (materialId: string) => {
     if (!user) {
       toast.error("Please log in to generate study materials");
       return;
     }
     
-    if (files.length === 0) {
-      toast.error("Please upload at least one file");
+    // Find the material
+    const material = materials?.find(m => m.id === materialId);
+    if (!material) {
+      toast.error("Material not found");
       return;
     }
     
-    await generateStudyMaterials(files, studyQuery);
+    setSelectedMaterialId(materialId);
+    
+    // Create a mock file object to pass to the generation function
+    const mockFile = new File([material.title], `${material.title}.txt`, { type: 'text/plain' });
+    
+    await generateStudyMaterials([mockFile], studyQuery || `Generate comprehensive study materials for: ${material.title}`);
   };
 
   return (
@@ -167,7 +195,7 @@ const CourseAssistant = () => {
           <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-xl">
             <TabsTrigger value="upload" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Upload className="h-4 w-4 mr-2" />
-              Upload & Generate
+              Upload Materials
             </TabsTrigger>
             <TabsTrigger value="library" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <BookOpen className="h-4 w-4 mr-2" />
@@ -180,19 +208,18 @@ const CourseAssistant = () => {
           </TabsList>
           
           <TabsContent value="upload" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Upload Section */}
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Upload className="h-5 w-5 text-blue-600" />
-                    Upload Materials
-                  </CardTitle>
-                  <CardDescription>
-                    Upload your course materials to get started
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="h-5 w-5 text-blue-600" />
+                  Upload Course Materials
+                </CardTitle>
+                <CardDescription>
+                  Upload your course materials to build your study library
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Material Title *</label>
                     <Input
@@ -206,108 +233,48 @@ const CourseAssistant = () => {
                   
                   <div>
                     <label className="block text-sm font-medium mb-2">Description (Optional)</label>
-                    <Textarea
-                      placeholder="Brief description of the material..."
+                    <Input
+                      placeholder="Brief description..."
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       disabled={isUploading || !user}
-                      rows={3}
                       className="focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Files *</label>
-                    <FileUploader 
-                      files={files} 
-                      onFilesChange={setFiles}
-                      maxFiles={5}
-                      maxSizeMB={50}
-                      supportedFormats="PDF, DOC, DOCX, PPT, PPTX, TXT"
-                      acceptTypes=".pdf,.doc,.docx,.ppt,.pptx,.txt"
-                    />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">Files *</label>
+                  <FileUploader 
+                    files={files} 
+                    onFilesChange={setFiles}
+                    maxFiles={5}
+                    maxSizeMB={50}
+                    supportedFormats="PDF, DOC, DOCX, PPT, PPTX, TXT"
+                    acceptTypes=".pdf,.doc,.docx,.ppt,.pptx,.txt"
+                  />
+                </div>
+                
+                {uploadProgress > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Upload Progress</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-2" />
                   </div>
-                  
-                  {uploadProgress > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Upload Progress</span>
-                        <span>{uploadProgress}%</span>
-                      </div>
-                      <Progress value={uploadProgress} className="h-2" />
-                    </div>
-                  )}
-                  
-                  <Button 
-                    onClick={handleUploadMaterial} 
-                    disabled={isUploading || !title.trim() || files.length === 0 || !user}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    size="lg"
-                  >
-                    {isUploading ? "Uploading..." : `Upload ${files.length} File(s)`}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Study Tools Generation */}
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Brain className="h-5 w-5 text-purple-600" />
-                    Generate Study Tools
-                  </CardTitle>
-                  <CardDescription>
-                    Create AI-powered study materials from your uploads
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Study Focus (Optional)</label>
-                    <Input
-                      placeholder="e.g., Focus on key concepts, important formulas..."
-                      value={studyQuery}
-                      onChange={(e) => setStudyQuery(e.target.value)}
-                      disabled={isGenerating || !user}
-                      className="focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="p-3 border rounded-lg bg-green-50 dark:bg-green-950/20">
-                      <FileText className="h-6 w-6 mx-auto text-green-600 mb-1" />
-                      <p className="text-xs font-medium">Smart Notes</p>
-                    </div>
-                    <div className="p-3 border rounded-lg bg-purple-50 dark:bg-purple-950/20">
-                      <Brain className="h-6 w-6 mx-auto text-purple-600 mb-1" />
-                      <p className="text-xs font-medium">Flashcards</p>
-                    </div>
-                    <div className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-950/20">
-                      <Lightbulb className="h-6 w-6 mx-auto text-orange-600 mb-1" />
-                      <p className="text-xs font-medium">Quizzes</p>
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    onClick={handleGenerateStudyMaterials} 
-                    disabled={isGenerating || files.length === 0 || !user}
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                    size="lg"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Brain className="h-4 w-4 mr-2 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="h-4 w-4 mr-2" />
-                        Generate Study Tools
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+                )}
+                
+                <Button 
+                  onClick={handleUploadMaterial} 
+                  disabled={isUploading || !title.trim() || files.length === 0 || !user}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  size="lg"
+                >
+                  {isUploading ? "Uploading..." : `Upload ${files.length} File(s)`}
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="library" className="space-y-4">
@@ -315,10 +282,10 @@ const CourseAssistant = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BookOpen className="h-5 w-5 text-blue-600" />
-                  My Materials
+                  My Materials Library
                 </CardTitle>
                 <CardDescription>
-                  Manage your uploaded course materials
+                  Manage your uploaded course materials and generate study tools
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -358,6 +325,35 @@ const CourseAssistant = () => {
                               <Upload className="h-3 w-3" />
                               {new Date(material.uploaded_at).toLocaleDateString()}
                             </p>
+                            
+                            <div className="flex gap-2 pt-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleGenerateFromMaterial(material.id)}
+                                disabled={isGenerating}
+                                className="flex-1 bg-purple-600 hover:bg-purple-700"
+                              >
+                                {isGenerating && selectedMaterialId === material.id ? (
+                                  <>
+                                    <Brain className="h-3 w-3 mr-1 animate-spin" />
+                                    Generating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Zap className="h-3 w-3 mr-1" />
+                                    Study Tools
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteMaterial(material.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -369,12 +365,53 @@ const CourseAssistant = () => {
           </TabsContent>
           
           <TabsContent value="tools" className="space-y-4">
-            <StudyToolTabs 
-              notes={notes}
-              flashcards={flashcards}
-              quizQuestions={quizQuestions}
-              materialContext={materialContext}
-            />
+            {notes || flashcards || quizQuestions ? (
+              <div className="space-y-4">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">Study Focus (Optional)</label>
+                  <Input
+                    placeholder="e.g., Focus on key concepts, important formulas..."
+                    value={studyQuery}
+                    onChange={(e) => setStudyQuery(e.target.value)}
+                    disabled={isGenerating || !user}
+                    className="focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                
+                <StudyToolTabs 
+                  notes={notes}
+                  flashcards={flashcards}
+                  quizQuestions={quizQuestions}
+                  materialContext={materialContext}
+                />
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-12">
+                  <div className="text-center">
+                    <Brain className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">No Study Tools Generated</h3>
+                    <p className="text-gray-600 mb-4">
+                      Go to "My Library" and click "Study Tools" on any material to generate AI-powered study aids
+                    </p>
+                    <div className="grid grid-cols-3 gap-3 max-w-md mx-auto">
+                      <div className="p-3 border rounded-lg bg-green-50 dark:bg-green-950/20">
+                        <FileText className="h-6 w-6 mx-auto text-green-600 mb-1" />
+                        <p className="text-xs font-medium">Smart Notes</p>
+                      </div>
+                      <div className="p-3 border rounded-lg bg-purple-50 dark:bg-purple-950/20">
+                        <Brain className="h-6 w-6 mx-auto text-purple-600 mb-1" />
+                        <p className="text-xs font-medium">Flashcards</p>
+                      </div>
+                      <div className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-950/20">
+                        <Lightbulb className="h-6 w-6 mx-auto text-orange-600 mb-1" />
+                        <p className="text-xs font-medium">Quizzes</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>

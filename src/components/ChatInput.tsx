@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Bold, Italic, Send, Underline } from "lucide-react";
+import { Send } from "lucide-react";
 import { FormEvent, useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,7 @@ const ChatInput = ({ onSendMessage, disabled = false, showPromptSuggestions = fa
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
     }
   }, [inputValue]);
 
@@ -45,126 +45,44 @@ const ChatInput = ({ onSendMessage, disabled = false, showPromptSuggestions = fa
     }
   };
 
-  const applyFormatting = (format: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = inputValue.substring(start, end);
-
-    let formattedText = '';
-    let cursorPosition = 0;
-
-    switch (format) {
-      case 'bold':
-        formattedText = `**${selectedText}**`;
-        cursorPosition = start + 2;
-        break;
-      case 'italic':
-        formattedText = `*${selectedText}*`;
-        cursorPosition = start + 1;
-        break;
-      case 'underline':
-        formattedText = `_${selectedText}_`;
-        cursorPosition = start + 1;
-        break;
-      default:
-        return;
-    }
-
-    // Insert the formatted text
-    const newText = inputValue.substring(0, start) + formattedText + inputValue.substring(end);
-    setInputValue(newText);
-
-    // Set cursor position after formatting
-    setTimeout(() => {
-      textarea.focus();
-      if (selectedText) {
-        textarea.selectionStart = start;
-        textarea.selectionEnd = start + formattedText.length;
-      } else {
-        textarea.selectionStart = cursorPosition;
-        textarea.selectionEnd = cursorPosition;
-      }
-    }, 0);
-  };
-
   return (
-    <div className="border-t border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky bottom-0 py-4 dark:bg-slate-900/80 dark:border-slate-800">
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col items-center gap-2 max-w-3xl mx-auto px-4"
-      >
-        <div className={cn(
-          "w-full relative flex flex-col rounded-xl",
-          isFocused ? "ring-2 ring-caritas ring-opacity-50" : "ring-1 ring-border dark:ring-slate-700",
-          "transition-all duration-200"
-        )}>
-          {/* Formatting toolbar */}
-          <div className="flex items-center gap-1 px-3 py-2 border-b dark:border-slate-700">
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800" 
-              onClick={() => applyFormatting('bold')}
-              title="Bold"
-            >
-              <Bold className="h-4 w-4" />
-            </Button>
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800" 
-              onClick={() => applyFormatting('italic')}
-              title="Italic"
-            >
-              <Italic className="h-4 w-4" />
-            </Button>
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800" 
-              onClick={() => applyFormatting('underline')}
-              title="Underline"
-            >
-              <Underline className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="flex w-full items-end">
-            <Textarea
-              ref={textareaRef}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask about Caritas University, study tips, or academic guidance..."
-              className="flex-1 min-h-[40px] max-h-[200px] resize-none bg-transparent border-0 p-3 pt-2 pb-1 focus-visible:ring-0 focus:outline-none placeholder:text-muted-foreground/70"
-              disabled={disabled}
-              rows={1}
-            />
-            <Button 
-              type="submit" 
-              size="icon" 
-              disabled={disabled || !inputValue.trim()}
-              className="bg-caritas hover:bg-caritas-light transition-colors my-1 mr-2 rounded-lg"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="text-xs text-muted-foreground flex justify-between w-full px-2">
-          <span>Use Shift+Enter for new line</span>
-          <span>Markdown formatting supported</span>
-        </div>
-      </form>
-    </div>
+    <form onSubmit={handleSubmit} className="w-full">
+      <div className={cn(
+        "relative flex items-end rounded-2xl border bg-background shadow-sm transition-all duration-200",
+        isFocused ? "ring-2 ring-caritas/20 border-caritas/30" : "border-border",
+        "hover:border-caritas/40"
+      )}>
+        <Textarea
+          ref={textareaRef}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask about Caritas University, study tips, or academic guidance..."
+          className="flex-1 min-h-[52px] max-h-[120px] resize-none bg-transparent border-0 p-4 pr-12 focus-visible:ring-0 focus:outline-none placeholder:text-muted-foreground/60 text-sm"
+          disabled={disabled}
+          rows={1}
+        />
+        <Button 
+          type="submit" 
+          size="icon"
+          disabled={disabled || !inputValue.trim()}
+          className="absolute right-2 bottom-2 h-8 w-8 bg-caritas hover:bg-caritas-light transition-all duration-200 rounded-lg shadow-sm"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      <div className="flex justify-between items-center mt-2 px-1">
+        <span className="text-xs text-muted-foreground/70">
+          Press Shift+Enter for new line
+        </span>
+        <span className="text-xs text-muted-foreground/50">
+          Powered by AI
+        </span>
+      </div>
+    </form>
   );
 };
 

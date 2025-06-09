@@ -10,6 +10,8 @@ import { Trash2 } from 'lucide-react';
 import { useAIProcessor } from '@/hooks/useAIProcessor';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 export interface Message {
   role: 'user' | 'assistant' | 'system' | 'error';
@@ -22,6 +24,7 @@ export const ChatContainer = () => {
   const { user } = useAuth();
   const { processQuery, isProcessing } = useAIProcessor();
   const [showApiInfo, setShowApiInfo] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim()) return;
@@ -75,41 +78,46 @@ export const ChatContainer = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={cn(
+      "flex flex-col h-screen transition-all duration-300",
+      isMobile ? 'pt-16' : 'pl-[70px] md:pl-[260px]'
+    )}>
       {showApiInfo && <APIInfoDisplay onClose={() => setShowApiInfo(false)} />}
       
       {/* Chat messages area */}
-      <div className="flex-grow overflow-auto p-4">
-        {isFirstMessage && messages.length === 0 ? (
-          <WelcomeScreen 
-            onStartChat={() => setIsFirstMessage(false)}
-            onSelectSuggestion={(suggestion) => handleSendMessage(suggestion)}
-          />
-        ) : (
-          <div className="space-y-6">
-            {messages.map((message, index) => (
-              <ChatMessage 
-                key={index} 
-                message={message.content}
-                isUser={message.role === 'user'}
-                isLoading={false} 
-              />
-            ))}
-            {isProcessing && (
-              <div className="flex items-center text-sm text-slate-500 dark:text-slate-400">
-                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-transparent dark:border-slate-400"></div>
-                Thinking...
-              </div>
-            )}
-          </div>
-        )}
+      <div className="flex-grow overflow-auto">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {isFirstMessage && messages.length === 0 ? (
+            <WelcomeScreen 
+              onStartChat={() => setIsFirstMessage(false)}
+              onSelectSuggestion={(suggestion) => handleSendMessage(suggestion)}
+            />
+          ) : (
+            <div className="space-y-6">
+              {messages.map((message, index) => (
+                <ChatMessage 
+                  key={index} 
+                  message={message.content}
+                  isUser={message.role === 'user'}
+                  isLoading={false} 
+                />
+              ))}
+              {isProcessing && (
+                <div className="flex items-center text-sm text-slate-500 dark:text-slate-400">
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-transparent dark:border-slate-400"></div>
+                  Thinking...
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
       
-      {/* Chat input area */}
-      <div className="border-t dark:border-slate-800 bg-white dark:bg-slate-950">
-        <div className="container max-w-4xl mx-auto p-4 flex flex-col">
-          <div className="flex justify-end items-center mb-2">            
-            {messages.length > 0 && (
+      {/* Chat input area - Fixed at bottom */}
+      <div className="border-t dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          {messages.length > 0 && (
+            <div className="flex justify-end mb-3">
               <Button
                 variant="ghost"
                 size="sm"
@@ -119,8 +127,8 @@ export const ChatContainer = () => {
                 <Trash2 className="h-3 w-3 mr-1" />
                 Clear History
               </Button>
-            )}
-          </div>
+            </div>
+          )}
           
           <ChatInput 
             onSendMessage={handleSendMessage} 

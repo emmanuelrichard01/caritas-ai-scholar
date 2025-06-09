@@ -1,21 +1,13 @@
+
 import { cn } from "@/lib/utils";
-import { 
-  MessageSquare, 
-  Moon, 
-  Sun, 
-  ChevronLeft, 
-  ChevronRight,
-  AlertTriangle,
-  Menu,
-  X
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { NavbarProfile } from "./ui/NavbarProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocation } from "react-router-dom";
 import { APIInfoDisplay } from "@/components/APIInfoDisplay";
-import { navigationItems } from "./ui/NavigationItems";
+import { NavigationHeader } from "@/components/navigation/NavigationHeader";
+import { NavigationMenu } from "@/components/navigation/NavigationMenu";
+import { NavigationControls } from "@/components/navigation/NavigationControls";
+import { MobileHeader } from "@/components/navigation/MobileHeader";
 
 const Navigation = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -67,23 +59,10 @@ const Navigation = () => {
   
   return (
     <>
-      {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 h-16 bg-background/80 backdrop-blur-lg border-b flex items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-caritas flex items-center justify-center">
-            <MessageSquare className="h-4 w-4 text-white" />
-          </div>
-          <span className="font-semibold">CARITAS AI</span>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleMobileMenu}
-          className="h-8 w-8"
-        >
-          {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-        </Button>
-      </div>
+      <MobileHeader 
+        isMobileMenuOpen={isMobileMenuOpen}
+        onToggleMobileMenu={toggleMobileMenu}
+      />
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
@@ -103,107 +82,24 @@ const Navigation = () => {
           "md:top-0"
         )}
       >
-        {/* Header - Desktop only */}
-        <div className={cn(
-          "hidden md:flex h-16 items-center gap-2 border-b px-4 bg-caritas/5 dark:bg-caritas/10",
-          isCollapsed ? "justify-center" : "justify-between"
-        )}>
-          {!isCollapsed && (
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-caritas flex items-center justify-center">
-                <MessageSquare className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-semibold">CARITAS AI</span>
-            </div>
-          )}
-          {isCollapsed && (
-            <div className="h-8 w-8 rounded-lg bg-caritas flex items-center justify-center">
-              <MessageSquare className="h-4 w-4 text-white" />
-            </div>
-          )}
-          {/* Toggle button - Desktop only */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 absolute right-[-12px] top-[28px] bg-background dark:bg-slate-900 shadow border z-50"
-            onClick={toggleSidebar}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+        <NavigationHeader 
+          isCollapsed={isCollapsed}
+          isMobile={isMobile}
+          onToggleSidebar={toggleSidebar}
+        />
         
-        <div className="flex-1 overflow-y-auto pt-4 md:pt-0">
-          <div className="px-3 py-2">
-            <div className="space-y-1">
-              {navigationItems.map((item) => (
-                <Button
-                  key={item.href}
-                  variant={location.pathname === item.href ? "secondary" : "ghost"}
-                  className={cn(
-                    "w-full justify-start gap-2 text-left font-normal",
-                    isCollapsed && !isMobile ? "px-2" : "px-3"
-                  )}
-                  onClick={() => window.location.href = item.href}
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  {(!isCollapsed || isMobile) && (
-                    <div className="flex flex-col">
-                      <span>{item.label}</span>
-                      {item.description && (
-                        <span className="text-xs text-muted-foreground">{item.description}</span>
-                      )}
-                    </div>
-                  )}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <NavigationMenu 
+          isCollapsed={isCollapsed}
+          isMobile={isMobile}
+        />
 
-        <div className="border-t p-4 bg-background/50 dark:bg-slate-900/50 flex flex-col gap-2">
-          <Button
-            variant="ghost"
-            size={isCollapsed && !isMobile ? "icon" : "default"}
-            onClick={toggleTheme}
-            className={cn(
-              "transition-colors",
-              isCollapsed && !isMobile ? "w-10 h-10 p-0 justify-center" : "w-full justify-start gap-2"
-            )}
-            title="Toggle theme"
-          >
-            {theme === "dark" ? (
-              <>
-                <Sun className="h-4 w-4" />
-                {(!isCollapsed || isMobile) && <span>Light Mode</span>}
-              </>
-            ) : (
-              <>
-                <Moon className="h-4 w-4" />
-                {(!isCollapsed || isMobile) && <span>Dark Mode</span>}
-              </>
-            )}
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size={isCollapsed && !isMobile ? "icon" : "default"}
-            onClick={() => setShowApiInfo(true)}
-            className={cn(
-              "transition-colors",
-              isCollapsed && !isMobile ? "w-10 h-10 p-0 justify-center" : "w-full justify-start gap-2"
-            )}
-            title="API Status"
-          >
-            <AlertTriangle className="h-4 w-4" />
-            {(!isCollapsed || isMobile) && <span>API Status</span>}
-          </Button>
-
-          <NavbarProfile isCollapsed={isCollapsed && !isMobile} />
-        </div>
+        <NavigationControls 
+          isCollapsed={isCollapsed}
+          isMobile={isMobile}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onShowApiInfo={() => setShowApiInfo(true)}
+        />
       </div>
       
       {showApiInfo && <APIInfoDisplay onClose={() => setShowApiInfo(false)} />}

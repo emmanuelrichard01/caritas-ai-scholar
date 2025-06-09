@@ -4,7 +4,6 @@ import {
   GraduationCap, 
   Calculator, 
   Calendar, 
-  Brain,
   Search, 
   History,
   User

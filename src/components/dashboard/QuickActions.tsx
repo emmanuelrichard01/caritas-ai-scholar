@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calculator, Calendar, GraduationCap, Search, Brain } from "lucide-react";
+import { Calculator, Calendar, GraduationCap, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export const QuickActions = () => {
@@ -39,28 +39,28 @@ export const QuickActions = () => {
   ];
 
   return (
-    <Card>
+    <Card className="h-fit">
       <CardHeader>
-        <CardTitle>Quick Actions</CardTitle>
+        <CardTitle className="text-xl">Quick Actions</CardTitle>
         <CardDescription>
           Jump into your most common tasks
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-3">
           {actions.map((action, index) => (
             <Button
               key={index}
               variant="outline"
-              className="h-auto p-4 flex flex-col items-center space-y-2 hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
+              className="h-auto p-4 flex items-center gap-4 hover:shadow-md transition-all duration-200 hover:scale-[1.02] justify-start"
               onClick={action.action}
             >
-              <div className={`p-3 rounded-full ${action.color} text-white`}>
-                <action.icon className="h-6 w-6" />
+              <div className={`p-3 rounded-lg ${action.color} text-white shrink-0`}>
+                <action.icon className="h-5 w-5" />
               </div>
-              <div className="text-center">
-                <div className="font-medium text-sm">{action.title}</div>
-                <div className="text-xs text-muted-foreground">{action.description}</div>
+              <div className="text-left min-w-0 flex-1">
+                <div className="font-medium text-sm truncate">{action.title}</div>
+                <div className="text-xs text-muted-foreground truncate">{action.description}</div>
               </div>
             </Button>
           ))}

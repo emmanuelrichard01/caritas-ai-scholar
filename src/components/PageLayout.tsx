@@ -17,21 +17,33 @@ export const PageLayout = ({ title, subtitle, icon, children }: PageLayoutProps)
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
       <Navigation />
       
-      <div className={`flex-1 transition-all duration-300 ${isMobile ? 'pt-16' : 'pl-[70px] md:pl-[260px]'}`}>
-        <div className="p-4 md:p-6 max-w-6xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center mb-4 md:mb-6 gap-3 sm:gap-4">
-            <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-blue-600 flex items-center justify-center text-white">
+      <div className={cn(
+        "flex-1 transition-all duration-300",
+        isMobile ? 'pt-16' : 'pl-[70px] md:pl-[260px]'
+      )}>
+        <div className="p-4 md:p-6 max-w-7xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center mb-6 gap-3 sm:gap-4">
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-caritas to-caritas-light flex items-center justify-center text-white shadow-lg">
               {icon}
             </div>
-            <div>
-              <h1 className="text-lg md:text-xl lg:text-2xl font-bold dark:text-white">{title}</h1>
-              {subtitle && <p className="text-sm md:text-base text-muted-foreground dark:text-slate-400">{subtitle}</p>}
+            <div className="min-w-0">
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground truncate">{title}</h1>
+              {subtitle && (
+                <p className="text-sm md:text-base text-muted-foreground mt-1 leading-relaxed">
+                  {subtitle}
+                </p>
+              )}
             </div>
           </div>
           
-          {children}
+          <div className="space-y-6">
+            {children}
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
+// Add missing import
+import { cn } from "@/lib/utils";

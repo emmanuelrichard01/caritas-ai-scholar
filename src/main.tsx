@@ -6,15 +6,20 @@ import "./index.css";
 
 // Fix for the ethereum redefinition error (conflict with browser extensions)
 // This check prevents redefining the ethereum property if already defined by a browser extension
-if (!window.ethereum) {
+if (typeof window !== 'undefined' && !window.hasOwnProperty('ethereum')) {
   try {
-    Object.defineProperty(window, 'ethereum', {
-      value: undefined,
-      configurable: true,
-      writable: true
-    });
+    // Only define if it doesn't exist and the property is configurable
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'ethereum');
+    if (!descriptor || descriptor.configurable !== false) {
+      Object.defineProperty(window, 'ethereum', {
+        value: undefined,
+        configurable: true,
+        writable: true
+      });
+    }
   } catch (err) {
-    console.warn('Failed to set ethereum placeholder:', err);
+    // Silently ignore if we can't set the property
+    console.debug('Ethereum property already defined by extension');
   }
 }
 

@@ -68,12 +68,12 @@ serve(async (req) => {
       console.error("Error saving upload record:", uploadError);
     }
     
-    // Enhanced text processing with better segmentation
+    // Enhanced text processing with better segmentation and sanitization
     const segments = processTextIntoSegments(text, materialId);
 
     console.log(`Created ${segments.length} segments from the document`);
 
-    // Insert segments
+    // Insert segments with better error handling
     const { data: segmentsData, error: segmentsError } = await supabaseClient
       .from("segments")
       .insert(segments)
@@ -119,8 +119,20 @@ serve(async (req) => {
   }
 });
 
+function sanitizeText(text: string): string {
+  // Remove null bytes and other problematic Unicode characters
+  return text
+    .replace(/\0/g, '') // Remove null bytes
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '') // Remove control characters
+    .replace(/\uFFFD/g, '') // Remove replacement characters
+    .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width characters
+    .trim();
+}
+
 function processTextIntoSegments(text: string, materialId: string) {
-  const lines = text.split("\n").filter(line => line.trim().length > 0);
+  // First sanitize the text
+  const sanitizedText = sanitizeText(text);
+  const lines = sanitizedText.split("\n").filter(line => line.trim().length > 0);
   const segments: { material_id: string, title: string, text: string }[] = [];
   
   let currentSegmentTitle = "Introduction";
@@ -144,8 +156,8 @@ function processTextIntoSegments(text: string, materialId: string) {
       // Save current segment if it has substantial content
       segments.push({
         material_id: materialId,
-        title: currentSegmentTitle,
-        text: currentSegmentText.trim()
+        title: sanitizeText(currentSegmentTitle),
+        text: sanitizeText(currentSegmentText.trim())
       });
       
       // Start new segment
@@ -165,17 +177,17 @@ function processTextIntoSegments(text: string, materialId: string) {
   if (currentSegmentText.trim().length > 0) {
     segments.push({
       material_id: materialId,
-      title: currentSegmentTitle,
-      text: currentSegmentText.trim()
+      title: sanitizeText(currentSegmentTitle),
+      text: sanitizeText(currentSegmentText.trim())
     });
   }
   
-  // If no segments were created, create at least one
+  // If no segments were created, create at least one with the entire content
   if (segments.length === 0) {
     segments.push({
       material_id: materialId,
       title: "Content",
-      text: text.trim() || "No readable content could be extracted from this file."
+      text: sanitizeText(sanitizedText) || "No readable content could be extracted from this file."
     });
   }
 

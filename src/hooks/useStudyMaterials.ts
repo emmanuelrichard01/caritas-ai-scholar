@@ -19,6 +19,8 @@ export const useStudyMaterials = () => {
     setIsGenerating(true);
     
     try {
+      console.log("Fetching material and segments for:", materialId);
+      
       // Fetch material and its segments
       const { data: material, error: materialError } = await supabase
         .from('materials')
@@ -27,8 +29,11 @@ export const useStudyMaterials = () => {
         .single();
       
       if (materialError) {
-        throw new Error("Failed to fetch material");
+        console.error("Material fetch error:", materialError);
+        throw new Error("Failed to fetch material: " + materialError.message);
       }
+      
+      console.log("Material found:", material.title);
       
       const { data: segments, error: segmentsError } = await supabase
         .from('segments')
@@ -36,11 +41,23 @@ export const useStudyMaterials = () => {
         .eq('material_id', materialId);
       
       if (segmentsError) {
-        throw new Error("Failed to fetch material content");
+        console.error("Segments fetch error:", segmentsError);
+        throw new Error("Failed to fetch material content: " + segmentsError.message);
       }
       
+      console.log(`Found ${segments?.length || 0} segments`);
+      
       if (!segments || segments.length === 0) {
-        throw new Error("No content found for this material");
+        // Check if the material was recently uploaded and might still be processing
+        const uploadTime = new Date(material.uploaded_at);
+        const now = new Date();
+        const timeDiff = now.getTime() - uploadTime.getTime();
+        
+        if (timeDiff < 30000) { // Less than 30 seconds ago
+          throw new Error("Material is still being processed. Please wait a moment and try again.");
+        } else {
+          throw new Error("No content found for this material. The file may not have been processed correctly. Try re-uploading the material.");
+        }
       }
       
       // Combine all segments into comprehensive content
@@ -50,6 +67,8 @@ export const useStudyMaterials = () => {
       
       const materialTitle = material.title;
       setMaterialContext(fullContent);
+      
+      console.log("Starting AI generation for notes...");
       
       // Generate comprehensive study notes
       const notesPrompt = `Based on the following course material titled "${materialTitle}", create comprehensive study notes with clear headings, bullet points, and key concepts. Make it well-structured and easy to review.
@@ -65,8 +84,10 @@ Format the response with clear headings and bullet points for easy studying.`;
       
       if (notesResponse) {
         setNotes(notesResponse);
+        console.log("Notes generated successfully");
         
         // Generate flashcards
+        console.log("Starting AI generation for flashcards...");
         const flashcardsPrompt = `Based on the study material "${materialTitle}", create exactly 10 flashcards for key concepts. 
 
 Material Content:
@@ -89,6 +110,7 @@ Make sure each flashcard tests a different important concept from the material.`
             if (jsonMatch) {
               const parsedFlashcards = JSON.parse(jsonMatch[0]);
               setFlashcards(parsedFlashcards);
+              console.log("Flashcards generated successfully");
             } else {
               // Fallback if JSON parsing fails
               setFlashcards([
@@ -110,6 +132,7 @@ Make sure each flashcard tests a different important concept from the material.`
         }
         
         // Generate quiz questions
+        console.log("Starting AI generation for quiz questions...");
         const quizPrompt = `Based on the study material "${materialTitle}", create exactly 5 multiple-choice quiz questions.
 
 Material Content:
@@ -149,6 +172,7 @@ Make sure each question tests different important concepts from the material.`;
               }));
               
               setQuizQuestions(validQuestions);
+              console.log("Quiz questions generated successfully");
             } else {
               // Fallback quiz question
               setQuizQuestions([

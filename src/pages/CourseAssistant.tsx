@@ -1,8 +1,8 @@
+
 import { useState } from "react";
-import { Book, Upload, FileText, Brain, Lightbulb, Zap, GraduationCap, BookOpen, Sparkles, Trash2, Eye, Download } from "lucide-react";
+import { Book, Upload, FileText, Brain, Lightbulb, Zap, GraduationCap, BookOpen, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { PageLayout } from "@/components/PageLayout";
@@ -32,7 +32,7 @@ const CourseAssistant = () => {
     flashcards,
     quizQuestions,
     materialContext,
-    generateStudyMaterials
+    generateStudyMaterialsFromUploaded
   } = useStudyMaterials();
 
   // Fetch user materials
@@ -155,48 +155,8 @@ const CourseAssistant = () => {
     }
     
     setSelectedMaterialId(materialId);
-    
-    try {
-      // Get material segments from the database
-      const { data: segments, error } = await supabase
-        .from('segments')
-        .select('*')
-        .eq('material_id', materialId);
-      
-      if (error) {
-        console.error("Error fetching segments:", error);
-        toast.error("Failed to load material content");
-        return;
-      }
-      
-      if (!segments || segments.length === 0) {
-        toast.error("No content found for this material");
-        return;
-      }
-      
-      // Combine all segments into a single content string
-      const fullContent = segments.map(segment => `${segment.title}\n${segment.text}`).join('\n\n');
-      
-      // Find the material for context
-      const material = materials?.find(m => m.id === materialId);
-      const materialTitle = material?.title || 'Course Material';
-      
-      // Create a blob with the content and convert to File
-      const blob = new Blob([fullContent], { type: 'text/plain' });
-      const file = new File([blob], `${materialTitle}.txt`, { type: 'text/plain' });
-      
-      // Generate study materials using the actual content
-      await generateStudyMaterials(
-        [file], 
-        studyQuery || `Generate comprehensive study materials for: ${materialTitle}`
-      );
-      
-    } catch (error) {
-      console.error("Error generating study materials:", error);
-      toast.error("Failed to generate study materials");
-    } finally {
-      setSelectedMaterialId(null);
-    }
+    await generateStudyMaterialsFromUploaded(materialId, studyQuery);
+    setSelectedMaterialId(null);
   };
 
   return (
@@ -398,68 +358,121 @@ const CourseAssistant = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-purple-600" />
-                  AI Study Tools
+                  AI Study Tools Generator
                 </CardTitle>
                 <CardDescription>
-                  Generate study aids from your uploaded materials
+                  Generate comprehensive study materials from your uploaded content
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium mb-2">Study Focus (Optional)</label>
                   <Input
-                    placeholder="e.g., Focus on key concepts, important formulas..."
+                    placeholder="e.g., Focus on key concepts, important formulas, specific chapters..."
                     value={studyQuery}
                     onChange={(e) => setStudyQuery(e.target.value)}
                     disabled={isGenerating || !user}
                     className="focus:ring-2 focus:ring-purple-500"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Leave blank to generate comprehensive study materials covering all topics
+                  </p>
                 </div>
                 
                 {materials && materials.length > 0 ? (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Select a material to generate study tools:
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium">Select Material to Analyze</h3>
+                      <Badge variant="secondary" className="text-xs">
+                        {materials.length} material{materials.length > 1 ? 's' : ''} available
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
                       {materials.map((material) => (
-                        <Button
-                          key={material.id}
-                          variant="outline"
-                          onClick={() => handleGenerateFromMaterial(material.id)}
-                          disabled={isGenerating}
-                          className="h-auto p-4 text-left hover:bg-purple-50 dark:hover:bg-purple-950/20 transition-all duration-200 group border hover:border-purple-300 rounded-lg"
-                        >
-                          <div className="flex items-center gap-3 w-full">
-                            <div className="text-purple-600 group-hover:text-purple-700 transition-colors p-2 bg-purple-100 dark:bg-purple-950/50 rounded-md flex-shrink-0">
-                              <FileText className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col items-start min-w-0 flex-1">
-                              <span className="font-medium text-foreground text-sm truncate w-full">{material.title}</span>
-                              <span className="text-xs text-muted-foreground mt-0.5">
-                                {new Date(material.uploaded_at).toLocaleDateString()}
-                              </span>
-                            </div>
-                            {isGenerating && selectedMaterialId === material.id && (
-                              <div className="ml-2">
-                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-600 border-t-transparent"></div>
+                        <Card key={material.id} className="hover:shadow-md transition-all duration-200 cursor-pointer group">
+                          <CardContent className="p-4">
+                            <div className="space-y-3">
+                              <div className="flex items-start justify-between">
+                                <h4 className="font-medium line-clamp-2 flex-1 text-sm">{material.title}</h4>
+                                <Badge variant="outline" className="ml-2 shrink-0 text-xs">
+                                  <FileText className="h-3 w-3 mr-1" />
+                                  Material
+                                </Badge>
                               </div>
-                            )}
-                          </div>
-                        </Button>
+                              
+                              {material.description && (
+                                <p className="text-xs text-muted-foreground line-clamp-2">{material.description}</p>
+                              )}
+                              
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Upload className="h-3 w-3" />
+                                Uploaded {new Date(material.uploaded_at).toLocaleDateString()}
+                              </p>
+                              
+                              <Button
+                                onClick={() => handleGenerateFromMaterial(material.id)}
+                                disabled={isGenerating}
+                                className="w-full bg-purple-600 hover:bg-purple-700 text-sm h-8"
+                                size="sm"
+                              >
+                                {isGenerating && selectedMaterialId === material.id ? (
+                                  <>
+                                    <Brain className="h-3 w-3 mr-2 animate-spin" />
+                                    Generating Study Tools...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Zap className="h-3 w-3 mr-2" />
+                                    Generate Study Tools
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
                       ))}
                     </div>
+                    
+                    {isGenerating && (
+                      <Card className="border-purple-200 bg-purple-50 dark:bg-purple-950/20 dark:border-purple-800">
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-3">
+                            <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400 animate-spin" />
+                            <div>
+                              <p className="font-medium text-purple-800 dark:text-purple-200">Analyzing Your Material</p>
+                              <p className="text-sm text-purple-700 dark:text-purple-300">
+                                Generating comprehensive study notes, flashcards, and quiz questions...
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <Book className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                  <div className="text-center py-12 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
+                    <Book className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No Materials Available</h3>
-                    <p className="text-gray-600 mb-4">Upload course materials first to generate study tools</p>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      Upload course materials first to generate AI-powered study tools
+                    </p>
+                    <Button
+                      onClick={() => {
+                        const uploadTab = document.querySelector('[data-state="inactive"][value="upload"]') as HTMLElement;
+                        uploadTab?.click();
+                      }}
+                      variant="outline"
+                      className="text-purple-600 border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/20"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Go to Upload
+                    </Button>
                   </div>
                 )}
                 
                 {(notes || flashcards || quizQuestions) && (
-                  <div className="mt-6 pt-6 border-t">
+                  <div className="border-t pt-6 mt-6">
                     <StudyToolTabs 
                       notes={notes}
                       flashcards={flashcards}

@@ -1,9 +1,10 @@
 
 import { useState } from "react";
-import { useDocumentProcessor } from "./useDocumentProcessor";
+import { useAIProcessor } from "./useAIProcessor";
 import { FlashcardItem } from "@/components/studytools/Flashcard";
 import { QuizQuestion } from "@/components/studytools/QuizComponent";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useStudyMaterials = () => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -12,136 +13,184 @@ export const useStudyMaterials = () => {
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[] | null>(null);
   const [materialContext, setMaterialContext] = useState<string>("");
   
-  const { processDocuments } = useDocumentProcessor();
+  const { processQuery } = useAIProcessor();
   
-  const generateStudyMaterials = async (files: File[], query: string) => {
-    if (files.length === 0) {
-      toast.error("Please upload at least one file");
-      return;
-    }
-    
+  const generateStudyMaterialsFromUploaded = async (materialId: string, query?: string) => {
     setIsGenerating(true);
     
     try {
-      // First, get the notes
-      const notesResponse = await processDocuments(
-        files, 
-        `Create comprehensive study notes from these materials. Include headings, bullet points, and important concepts. Focus on: ${query || "creating a complete overview"}`
-      );
+      // Fetch material and its segments
+      const { data: material, error: materialError } = await supabase
+        .from('materials')
+        .select('*')
+        .eq('id', materialId)
+        .single();
+      
+      if (materialError) {
+        throw new Error("Failed to fetch material");
+      }
+      
+      const { data: segments, error: segmentsError } = await supabase
+        .from('segments')
+        .select('*')
+        .eq('material_id', materialId);
+      
+      if (segmentsError) {
+        throw new Error("Failed to fetch material content");
+      }
+      
+      if (!segments || segments.length === 0) {
+        throw new Error("No content found for this material");
+      }
+      
+      // Combine all segments into comprehensive content
+      const fullContent = segments.map(segment => 
+        `## ${segment.title}\n${segment.text}`
+      ).join('\n\n');
+      
+      const materialTitle = material.title;
+      setMaterialContext(fullContent);
+      
+      // Generate comprehensive study notes
+      const notesPrompt = `Based on the following course material titled "${materialTitle}", create comprehensive study notes with clear headings, bullet points, and key concepts. Make it well-structured and easy to review.
+
+Material Content:
+${fullContent}
+
+${query ? `Focus specifically on: ${query}` : 'Cover all important topics comprehensively.'}
+
+Format the response with clear headings and bullet points for easy studying.`;
+      
+      const notesResponse = await processQuery(notesPrompt, 'course-tutor');
       
       if (notesResponse) {
         setNotes(notesResponse);
-        setMaterialContext(notesResponse);
         
-        // Next, generate flashcards
-        const flashcardsResponse = await processDocuments(
-          files,
-          "Generate 10 flashcards with questions and answers based on the most important concepts in these materials. Format as JSON."
-        );
+        // Generate flashcards
+        const flashcardsPrompt = `Based on the study material "${materialTitle}", create exactly 10 flashcards for key concepts. 
+
+Material Content:
+${fullContent}
+
+Create flashcards that test understanding of the most important concepts. Format your response as a JSON array like this:
+[
+  {"question": "What is...", "answer": "..."},
+  {"question": "Define...", "answer": "..."}
+]
+
+Make sure each flashcard tests a different important concept from the material.`;
+        
+        const flashcardsResponse = await processQuery(flashcardsPrompt, 'course-tutor');
         
         if (flashcardsResponse) {
           try {
             // Extract JSON from the response
-            const jsonMatch = flashcardsResponse.match(/```json\n([\s\S]*?)\n```/) || 
-                          flashcardsResponse.match(/\[([\s\S]*?)\]/) ||
-                          flashcardsResponse.match(/{[\s\S]*?}/);
-                          
+            const jsonMatch = flashcardsResponse.match(/\[[\s\S]*?\]/);
             if (jsonMatch) {
-              const jsonStr = jsonMatch[0];
-              const parsedFlashcards = JSON.parse(jsonStr);
-              
-              // Handle different possible formats
-              const formattedFlashcards = Array.isArray(parsedFlashcards) 
-                ? parsedFlashcards 
-                : parsedFlashcards.flashcards || [];
-                
-              setFlashcards(formattedFlashcards);
+              const parsedFlashcards = JSON.parse(jsonMatch[0]);
+              setFlashcards(parsedFlashcards);
             } else {
-              console.error("Could not extract JSON from flashcards response");
-              // Create a simple fallback flashcard
+              // Fallback if JSON parsing fails
               setFlashcards([
-                { question: "What are the main topics covered in this material?", answer: "Review the notes tab for a comprehensive overview of all topics." }
-              ]);
-            }
-          } catch (error) {
-            console.error("Error parsing flashcards JSON:", error);
-            setFlashcards([
-              { question: "What are the main topics covered in this material?", answer: "Review the notes tab for a comprehensive overview of all topics." }
-            ]);
-          }
-        }
-        
-        // Finally, generate quiz questions
-        const quizResponse = await processDocuments(
-          files,
-          "Create 5 multiple-choice quiz questions with 4 options each, including the correct answer and explanations. Format as JSON."
-        );
-        
-        if (quizResponse) {
-          try {
-            // Extract JSON from the response
-            const jsonMatch = quizResponse.match(/```json\n([\s\S]*?)\n```/) || 
-                          quizResponse.match(/\[([\s\S]*?)\]/) ||
-                          quizResponse.match(/{[\s\S]*?}/);
-                          
-            if (jsonMatch) {
-              const jsonStr = jsonMatch[0];
-              const parsedQuestions = JSON.parse(jsonStr);
-              
-              // Handle different possible formats
-              const formattedQuestions = Array.isArray(parsedQuestions) 
-                ? parsedQuestions 
-                : parsedQuestions.questions || [];
-                
-              // Ensure questions have the correct format
-              const validQuestions = formattedQuestions.map((q: any) => ({
-                question: q.question || "Question missing",
-                options: q.options || ["Option 1", "Option 2", "Option 3", "Option 4"],
-                correctAnswer: q.correctAnswer || q.correctOption || 0,
-                explanation: q.explanation || "Explanation not provided"
-              }));
-              
-              setQuizQuestions(validQuestions);
-            } else {
-              console.error("Could not extract JSON from quiz response");
-              // Create a fallback quiz question
-              setQuizQuestions([
-                {
-                  question: "What is the best way to understand this material?",
-                  options: [
-                    "Review the generated notes",
-                    "Skip directly to the quiz",
-                    "Ignore the material completely",
-                    "Only read the first page"
-                  ],
-                  correctAnswer: 0,
-                  explanation: "The generated notes provide a comprehensive overview of the material."
+                { 
+                  question: `What are the main topics covered in "${materialTitle}"?`, 
+                  answer: "Review the notes section for a comprehensive overview of all key concepts and topics." 
                 }
               ]);
             }
           } catch (error) {
-            console.error("Error parsing quiz JSON:", error);
+            console.error("Error parsing flashcards:", error);
+            setFlashcards([
+              { 
+                question: `What are the main topics covered in "${materialTitle}"?`, 
+                answer: "Review the notes section for a comprehensive overview of all key concepts and topics." 
+              }
+            ]);
+          }
+        }
+        
+        // Generate quiz questions
+        const quizPrompt = `Based on the study material "${materialTitle}", create exactly 5 multiple-choice quiz questions.
+
+Material Content:
+${fullContent}
+
+Create questions that test understanding of key concepts. Format your response as a JSON array like this:
+[
+  {
+    "question": "What is the main purpose of...?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctAnswer": 0,
+    "explanation": "Explanation of why this is correct..."
+  }
+]
+
+Make sure each question tests different important concepts from the material.`;
+        
+        const quizResponse = await processQuery(quizPrompt, 'course-tutor');
+        
+        if (quizResponse) {
+          try {
+            // Extract JSON from the response
+            const jsonMatch = quizResponse.match(/\[[\s\S]*?\]/);
+            if (jsonMatch) {
+              const parsedQuestions = JSON.parse(jsonMatch[0]);
+              
+              // Validate and format questions
+              const validQuestions = parsedQuestions.map((q: any, index: number) => ({
+                question: q.question || `Question ${index + 1} about ${materialTitle}`,
+                options: Array.isArray(q.options) && q.options.length === 4 
+                  ? q.options 
+                  : ["Option A", "Option B", "Option C", "Option D"],
+                correctAnswer: typeof q.correctAnswer === 'number' && q.correctAnswer >= 0 && q.correctAnswer < 4
+                  ? q.correctAnswer 
+                  : 0,
+                explanation: q.explanation || "Review the material for more details on this topic."
+              }));
+              
+              setQuizQuestions(validQuestions);
+            } else {
+              // Fallback quiz question
+              setQuizQuestions([
+                {
+                  question: `What is the best way to study the material "${materialTitle}"?`,
+                  options: [
+                    "Review the generated notes thoroughly",
+                    "Skip the reading completely",
+                    "Only memorize the first paragraph",
+                    "Ignore all the details"
+                  ],
+                  correctAnswer: 0,
+                  explanation: "The generated notes provide a comprehensive and structured overview of all the important concepts."
+                }
+              ]);
+            }
+          } catch (error) {
+            console.error("Error parsing quiz questions:", error);
             setQuizQuestions([
               {
-                question: "What is the best way to understand this material?",
+                question: `What is the best way to study the material "${materialTitle}"?`,
                 options: [
-                  "Review the generated notes",
-                  "Skip directly to the quiz",
-                  "Ignore the material completely",
-                  "Only read the first page"
+                  "Review the generated notes thoroughly",
+                  "Skip the reading completely", 
+                  "Only memorize the first paragraph",
+                  "Ignore all the details"
                 ],
                 correctAnswer: 0,
-                explanation: "The generated notes provide a comprehensive overview of the material."
+                explanation: "The generated notes provide a comprehensive and structured overview of all the important concepts."
               }
             ]);
           }
         }
         
         toast.success("Study materials generated successfully!");
+      } else {
+        throw new Error("Failed to generate study notes");
       }
     } catch (error) {
       console.error("Error generating study materials:", error);
-      toast.error("Failed to generate study materials. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate study materials";
+      toast.error(errorMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -153,6 +202,6 @@ export const useStudyMaterials = () => {
     flashcards,
     quizQuestions,
     materialContext,
-    generateStudyMaterials
+    generateStudyMaterialsFromUploaded
   };
 };

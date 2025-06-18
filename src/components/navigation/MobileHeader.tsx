@@ -9,7 +9,7 @@ interface MobileHeaderProps {
 
 export const MobileHeader = ({ isMobileMenuOpen, onToggleMobileMenu }: MobileHeaderProps) => {
   return (
-    <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur-lg border-b flex items-center justify-between px-4" style={{ zIndex: 10 }}>
+    <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur-lg border-b flex items-center justify-between px-4 z-50">
       <div className="flex items-center gap-2">
         <div className="h-8 w-8 rounded-lg bg-caritas flex items-center justify-center">
           <MessageSquare className="h-4 w-4 text-white" />

@@ -74,7 +74,10 @@ const Navigation = ({ onCollapseChange }: NavigationProps) => {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm" style={{ zIndex: 40 }} onClick={toggleMobileMenu} />
+        <div 
+          className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40" 
+          onClick={toggleMobileMenu} 
+        />
       )}
 
       {/* Sidebar */}
@@ -83,15 +86,11 @@ const Navigation = ({ onCollapseChange }: NavigationProps) => {
           "fixed left-0 flex flex-col border-r bg-background/95 backdrop-blur-lg transition-all duration-300 ease-in-out",
           "dark:bg-slate-900/95 dark:border-slate-800",
           // Desktop styles
-          "md:translate-x-0 md:top-0 md:h-full",
+          "md:translate-x-0 md:top-0 md:h-full md:z-50",
           isCollapsed ? "md:w-[70px]" : "md:w-[260px]",
           // Mobile styles  
-          isMobileMenuOpen ? "translate-x-0 top-16 w-[280px] h-[93vh]" : "-translate-x-full top-16 w-[280px] h-[93vh]",
-          "md:top-0 md:h-full"
+          isMobileMenuOpen ? "translate-x-0 top-16 w-[280px] h-[93vh] z-50" : "-translate-x-full top-16 w-[280px] h-[93vh] z-50"
         )}
-        style={{ 
-          zIndex: isMobile ? 0 : 50 
-        }}
       >
         <NavigationHeader 
           isCollapsed={isCollapsed}

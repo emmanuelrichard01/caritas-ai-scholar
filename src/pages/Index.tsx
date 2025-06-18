@@ -7,6 +7,8 @@ import { HeroSection } from '@/components/landing/HeroSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
 import { StatsSection } from '@/components/landing/StatsSection';
 import { CTASection } from '@/components/landing/CTASection';
+import { NavbarProfile } from '@/components/ui/NavbarProfile';
+import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +16,7 @@ const Index = () => {
   const isMobile = useIsMobile();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const { user } = useAuth();
   
   // Initialize sidebar state based on screen size
   useEffect(() => {
@@ -61,9 +64,14 @@ const Index = () => {
               <a href="/dashboard" className="text-muted-foreground hover:text-caritas transition-colors">
                 Dashboard
               </a>
-              <a href="/auth" className="text-muted-foreground hover:text-caritas transition-colors">
-                Sign In
-              </a>
+              
+              {user ? (
+                <NavbarProfile isCollapsed={false} />
+              ) : (
+                <a href="/auth" className="text-muted-foreground hover:text-caritas transition-colors">
+                  Sign In
+                </a>
+              )}
             </div>
           </div>
         </div>

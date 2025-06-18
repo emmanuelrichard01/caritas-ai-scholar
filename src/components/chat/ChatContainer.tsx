@@ -78,10 +78,7 @@ export const ChatContainer = () => {
   };
 
   return (
-    <div className={cn(
-      "flex flex-col h-screen transition-all duration-300",
-      isMobile ? 'pt-16' : 'pl-[70px] md:pl-[260px]'
-    )}>
+    <div className="flex flex-col h-screen">
       {showApiInfo && <APIInfoDisplay onClose={() => setShowApiInfo(false)} />}
       
       {/* Chat messages area */}

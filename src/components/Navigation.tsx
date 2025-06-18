@@ -9,7 +9,11 @@ import { NavigationMenu } from "@/components/navigation/NavigationMenu";
 import { NavigationControls } from "@/components/navigation/NavigationControls";
 import { MobileHeader } from "@/components/navigation/MobileHeader";
 
-const Navigation = () => {
+interface NavigationProps {
+  onCollapseChange?: (isCollapsed: boolean) => void;
+}
+
+const Navigation = ({ onCollapseChange }: NavigationProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -19,9 +23,11 @@ const Navigation = () => {
   
   // Initialize sidebar state based on screen size
   useEffect(() => {
-    setIsCollapsed(isMobile);
+    const collapsed = isMobile;
+    setIsCollapsed(collapsed);
     setIsMobileMenuOpen(false);
-  }, [isMobile]);
+    onCollapseChange?.(collapsed);
+  }, [isMobile, onCollapseChange]);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -50,7 +56,9 @@ const Navigation = () => {
   };
 
   const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
+    const newCollapsed = !isCollapsed;
+    setIsCollapsed(newCollapsed);
+    onCollapseChange?.(newCollapsed);
   };
 
   const toggleMobileMenu = () => {
@@ -66,21 +74,24 @@ const Navigation = () => {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={toggleMobileMenu} />
+        <div className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm" style={{ zIndex: 40 }} onClick={toggleMobileMenu} />
       )}
 
       {/* Sidebar */}
       <div 
         className={cn(
-          "fixed left-0 z-50 flex h-full flex-col border-r bg-background/95 backdrop-blur-lg transition-all duration-300 ease-in-out",
+          "fixed left-0 flex flex-col border-r bg-background/95 backdrop-blur-lg transition-all duration-300 ease-in-out",
           "dark:bg-slate-900/95 dark:border-slate-800",
           // Desktop styles
-          "md:translate-x-0 md:top-0",
+          "md:translate-x-0 md:top-0 md:h-full",
           isCollapsed ? "md:w-[70px]" : "md:w-[260px]",
           // Mobile styles  
-          isMobileMenuOpen ? "translate-x-0 top-16 w-[280px]" : "-translate-x-full top-16 w-[280px]",
-          "md:top-0"
+          isMobileMenuOpen ? "translate-x-0 top-16 w-[280px] h-[93vh]" : "-translate-x-full top-16 w-[280px] h-[93vh]",
+          "md:top-0 md:h-full"
         )}
+        style={{ 
+          zIndex: isMobile ? 0 : 50 
+        }}
       >
         <NavigationHeader 
           isCollapsed={isCollapsed}

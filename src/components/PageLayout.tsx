@@ -1,7 +1,8 @@
 
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface PageLayoutProps {
   title: string;
@@ -12,14 +13,20 @@ interface PageLayoutProps {
 
 export const PageLayout = ({ title, subtitle, icon, children }: PageLayoutProps) => {
   const isMobile = useIsMobile();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  // Initialize sidebar state based on screen size
+  useEffect(() => {
+    setIsCollapsed(isMobile);
+  }, [isMobile]);
   
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-      <Navigation />
+      <Navigation onCollapseChange={setIsCollapsed} />
       
       <div className={cn(
-        "flex-1 transition-all duration-300",
-        isMobile ? 'pt-16' : 'pl-[70px] md:pl-[260px]'
+        "flex-1 transition-all duration-300 ease-in-out",
+        isMobile ? 'pt-16' : isCollapsed ? 'pl-[70px]' : 'pl-[260px]'
       )}>
         <div className="p-4 md:p-6 max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center mb-6 gap-3 sm:gap-4">
@@ -44,6 +51,3 @@ export const PageLayout = ({ title, subtitle, icon, children }: PageLayoutProps)
     </div>
   );
 };
-
-// Add missing import
-import { cn } from "@/lib/utils";

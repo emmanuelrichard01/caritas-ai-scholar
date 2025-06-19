@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import Chat from "./pages/Chat";
 import GPACalculator from "./pages/GPACalculator";
 import StudyPlanner from "./pages/StudyPlanner";
 import CourseAssistant from "./pages/CourseAssistant";
@@ -27,6 +28,7 @@ function App() {
               <Route path="/" element={<Index />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/chat" element={<Chat />} />
               <Route path="/gpa-calculator" element={<GPACalculator />} />
               <Route path="/study-planner" element={<StudyPlanner />} />
               <Route path="/course-assistant" element={<CourseAssistant />} />

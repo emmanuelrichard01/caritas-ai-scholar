@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Send, Bot, User, Info, AlertTriangle, Loader2 } from "lucide-react";
 import { useAIProcessor } from "@/hooks/useAIProcessor";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { FormattedContent } from "@/components/FormattedContent";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -109,7 +110,11 @@ export const ChatbotComponent = ({ materialContext }: ChatbotComponentProps) => 
                   {message.role === 'assistant' ? 'Study Assistant' : 'You'}
                 </span>
               </div>
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              {message.role === 'assistant' ? (
+                <FormattedContent content={message.content} variant="chat" />
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              )}
             </div>
           </div>
         ))}

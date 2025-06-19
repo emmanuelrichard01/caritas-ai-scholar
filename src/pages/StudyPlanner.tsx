@@ -7,25 +7,34 @@ import { useStudyPlan } from "@/hooks/useStudyPlan";
 
 const StudyPlanner = () => {
   const {
-    planData,
+    subjects,
+    preferences,
     generatedPlan,
     isGenerating,
-    updatePlanData,
-    generateStudyPlan,
+    analytics,
+    addSubject,
+    updateSubject,
+    removeSubject,
+    updatePreferences,
+    generateOptimalPlan,
     toggleTaskCompletion
   } = useStudyPlan();
 
   return (
     <PageLayout
       title="AI Study Planner"
-      subtitle="Create a personalized study schedule that adapts to your learning style and goals"
+      subtitle="Create intelligent, personalized study schedules that adapt to your learning patterns and goals"
       icon={<Calendar className="h-6 w-6" />}
     >
-      <div className="space-y-8">
+      <div className="space-y-12">
         <StudyPlanSetup
-          planData={planData}
-          onUpdatePlanData={updatePlanData}
-          onGenerate={generateStudyPlan}
+          subjects={subjects}
+          preferences={preferences}
+          onAddSubject={addSubject}
+          onUpdateSubject={updateSubject}
+          onRemoveSubject={removeSubject}
+          onUpdatePreferences={updatePreferences}
+          onGenerate={generateOptimalPlan}
           isGenerating={isGenerating}
         />
         
@@ -33,6 +42,7 @@ const StudyPlanner = () => {
           <StudyPlanDisplay
             sessions={generatedPlan}
             onToggleTask={toggleTaskCompletion}
+            analytics={analytics}
           />
         )}
       </div>

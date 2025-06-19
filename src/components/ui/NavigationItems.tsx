@@ -40,7 +40,7 @@ export const navigationItems: NavigationItem[] = [
     href: "/study-planner",
     icon: Calendar, 
     label: "Study Planner",
-    description: "Plan and organize your study sessions"
+    description: "AI-powered personalized study scheduling"
   },
   {
     href: "/course-assistant",

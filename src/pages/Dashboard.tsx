@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { CircleCheck } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { PageLayout } from "@/components/PageLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,7 +50,7 @@ const Dashboard = () => {
           .select('id, title, created_at, category')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(5);
+          .limit(8);
           
         if (recentError) throw recentError;
         
@@ -61,16 +61,17 @@ const Dashboard = () => {
         });
         
         const chartColors: Record<string, string> = {
-          'course-tutor': '#4f46e5',
-          'research': '#16a34a',
-          'study-planner': '#ea580c',
-          'default': '#8b5cf6',
+          'course-tutor': '#3B82F6',
+          'research': '#10B981',
+          'study-planner': '#F59E0B',
+          'google-ai': '#8B5CF6',
+          'default': '#6B7280',
         };
         
         const processedData = Object.entries(activityCounts).map(([category, count]) => ({
           category: formatCategory(category),
           count,
-          color: chartColors[category] || '#6b7280'
+          color: chartColors[category] || chartColors.default
         }));
         
         setActivityData(processedData);
@@ -88,10 +89,11 @@ const Dashboard = () => {
   
   const formatCategory = (category: string): string => {
     switch (category) {
-      case 'course-tutor': return 'Course Tutor';
+      case 'course-tutor': return 'Course Assistant';
       case 'research': return 'Research';
       case 'study-planner': return 'Study Planner';
-      case 'default': return 'Chat';
+      case 'google-ai': return 'AI Chat';
+      case 'default': return 'General';
       default: return category;
     }
   };
@@ -99,19 +101,24 @@ const Dashboard = () => {
   return (
     <PageLayout
       title="Dashboard"
-      subtitle="Track your learning progress and activities"
-      icon={<CircleCheck className="h-6 w-6" />}
+      subtitle="Your personalized learning hub with insights, progress tracking, and quick access to all features"
+      icon={<Sparkles className="h-6 w-6" />}
     >
-      <div className="space-y-6">
-        {/* Welcome Card */}
+      <div className="space-y-8">
+        {/* Welcome Section */}
         <WelcomeCard profile={profile} userEmail={user?.email} />
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Activity Stats */}
-          <ActivityChart activityData={activityData} loading={loading} />
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Activity Chart */}
+          <div className="lg:col-span-1">
+            <ActivityChart activityData={activityData} loading={loading} />
+          </div>
           
           {/* Quick Actions */}
-          <QuickActions />
+          <div className="lg:col-span-2">
+            <QuickActions />
+          </div>
         </div>
         
         {/* Recent Activity */}

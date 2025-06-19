@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { BookOpen, Search, Calendar, MessageSquare, Sparkles } from "lucide-react";
+import { MessageSquare, Sparkles } from "lucide-react";
 
 interface WelcomeScreenProps {
   onStartChat: () => void;
@@ -8,74 +8,38 @@ interface WelcomeScreenProps {
 }
 
 const WelcomeScreen = ({ onStartChat, onSelectSuggestion }: WelcomeScreenProps) => {
-  const suggestions = [
-    {
-      icon: <BookOpen className="h-4 w-4" />,
-      text: "Available courses",
-      query: "What are the available courses at Caritas University?"
-    },
-    {
-      icon: <Search className="h-4 w-4" />,
-      text: "Study techniques",
-      query: "How can I improve my study habits?"
-    },
-    {
-      icon: <Calendar className="h-4 w-4" />,
-      text: "Academic calendar",
-      query: "What's the current academic calendar?"
-    },
-    {
-      icon: <MessageSquare className="h-4 w-4" />,
-      text: "Assignment help",
-      query: "Help me break down this research assignment"
-    }
-  ];
-
   return (
-    <div className="flex flex-col items-center justify-center text-center max-w-4xl mx-auto mt-16 animate-fade-in">
-      <div className="relative h-16 w-16 rounded-full bg-gradient-to-br from-caritas to-caritas-light flex items-center justify-center text-white mb-6 shadow-lg shadow-caritas/20">
-        <MessageSquare className="h-8 w-8" />
-        <Sparkles className="h-3 w-3 absolute -top-1 -right-1 text-blue-400 animate-pulse" />
+    <div className="flex flex-col items-center justify-center text-center max-w-3xl mx-auto animate-fade-in">
+      <div className="relative h-20 w-20 rounded-3xl bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 flex items-center justify-center text-white mb-8 shadow-2xl shadow-blue-500/25">
+        <MessageSquare className="h-10 w-10" />
+        <Sparkles className="h-4 w-4 absolute -top-2 -right-2 text-yellow-400 animate-pulse" />
       </div>
       
-      <h1 className="text-2xl md:text-3xl font-bold mb-3 bg-gradient-to-r from-caritas to-caritas-light bg-clip-text text-transparent">
+      <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
         Welcome to CARITAS AI
-      </h1>
-      <p className="text-muted-foreground mb-8 max-w-xl text-sm md:text-base leading-relaxed">
-        Your intelligent academic assistant for personalized learning support, research guidance, and study optimization.
+      </h2>
+      <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-2xl text-lg leading-relaxed">
+        Your intelligent academic assistant for personalized learning support, research guidance, and study optimization. 
+        Ask me anything about your studies!
       </p>
       
       <Button 
         onClick={onStartChat} 
         size="lg"
-        className="mb-12 bg-caritas hover:bg-caritas-light transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 px-6 py-2"
+        className="mb-8 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 px-8 py-3 text-lg font-semibold rounded-xl"
       >
+        <MessageSquare className="mr-2 h-5 w-5" />
         Start Conversation
       </Button>
 
-      <div className="w-full max-w-2xl">
-        <p className="text-sm font-medium mb-4 text-muted-foreground">
-          Try asking about:
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {suggestions.map((suggestion, index) => (
-            <Button
-              key={index}
-              variant="outline"
-              className="flex items-start gap-3 h-auto p-4 text-left hover:bg-caritas/5 dark:hover:bg-caritas/10 transition-all duration-200 group border hover:border-caritas/30 rounded-lg"
-              onClick={() => onSelectSuggestion(suggestion.query)}
-            >
-              <div className="text-caritas group-hover:text-caritas-light transition-colors p-1.5 bg-caritas/10 rounded-md flex-shrink-0">
-                {suggestion.icon}
-              </div>
-              <div className="flex flex-col items-start min-w-0 flex-1">
-                <span className="font-medium text-foreground text-sm truncate w-full">{suggestion.text}</span>
-                <span className="text-xs text-muted-foreground mt-0.5 line-clamp-2 text-left">
-                  {suggestion.query}
-                </span>
-              </div>
-            </Button>
-          ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
+        <div className="p-6 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200 dark:border-blue-800">
+          <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Academic Support</h3>
+          <p className="text-sm text-blue-700 dark:text-blue-300">Get help with coursework, assignments, and study strategies</p>
+        </div>
+        <div className="p-6 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border border-purple-200 dark:border-purple-800">
+          <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">Research Assistance</h3>
+          <p className="text-sm text-purple-700 dark:text-purple-300">Find resources and guidance for your research projects</p>
         </div>
       </div>
     </div>

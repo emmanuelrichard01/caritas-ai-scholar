@@ -6,7 +6,8 @@ import {
   Calendar, 
   Search, 
   History,
-  User
+  User,
+  MessageSquare
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -22,6 +23,12 @@ export const navigationItems: NavigationItem[] = [
     icon: Home,
     label: "Dashboard",
     description: "Overview and quick actions"
+  },
+  {
+    href: "/chat",
+    icon: MessageSquare,
+    label: "CARITAS AI Chat",
+    description: "Your intelligent study companion"
   },
   {
     href: "/gpa-calculator", 

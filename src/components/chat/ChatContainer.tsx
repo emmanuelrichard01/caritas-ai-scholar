@@ -4,14 +4,13 @@ import { useAuth } from '@/hooks/useAuth';
 import ChatInput from '@/components/ChatInput';
 import ChatMessage from '@/components/ChatMessage';
 import WelcomeScreen from '@/components/WelcomeScreen';
+import { SuggestionCarousel } from '@/components/chat/SuggestionCarousel';
 import { APIInfoDisplay } from '@/components/APIInfoDisplay';
 import { Button } from '@/components/ui/button';
-import { Trash2, Settings, Info, Sparkles } from 'lucide-react';
+import { Trash2, Info, Sparkles } from 'lucide-react';
 import { useAIProcessor } from '@/hooks/useAIProcessor';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 
 export interface Message {
@@ -25,7 +24,6 @@ export const ChatContainer = () => {
   const { user } = useAuth();
   const { processQuery, isProcessing } = useAIProcessor();
   const [showApiInfo, setShowApiInfo] = useState(false);
-  const isMobile = useIsMobile();
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim()) return;
@@ -82,55 +80,63 @@ export const ChatContainer = () => {
     <div className="flex flex-col h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {showApiInfo && <APIInfoDisplay onClose={() => setShowApiInfo(false)} />}
       
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                <Sparkles className="h-5 w-5 text-white" />
+      {/* Main content area - scrollable */}
+      <div className="flex-grow overflow-auto">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header - now scrollable */}
+          <div className="mb-8 animate-fade-in">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="relative h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 flex items-center justify-center shadow-lg">
+                  <Sparkles className="h-6 w-6 text-white" />
+                  <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-green-400 animate-pulse"></div>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    CARITAS AI Chat
+                  </h1>
+                  <p className="text-slate-600 dark:text-slate-400">Your intelligent study companion</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-lg font-semibold text-slate-900 dark:text-white">CARITAS AI Chat</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Your intelligent study companion</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowApiInfo(true)}
-                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-              >
-                <Info className="h-4 w-4" />
-              </Button>
               
-              {messages.length > 0 && (
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={clearHistory}
-                  className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/20"
+                  onClick={() => setShowApiInfo(true)}
+                  className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Clear
+                  <Info className="h-4 w-4" />
                 </Button>
-              )}
+                
+                {messages.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearHistory}
+                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/20"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Clear
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Chat messages area */}
-      <div className="flex-grow overflow-auto">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Chat content */}
           {isFirstMessage && messages.length === 0 ? (
-            <div className="animate-fade-in">
+            <div className="space-y-12 animate-fade-in">
               <WelcomeScreen 
                 onStartChat={() => setIsFirstMessage(false)}
                 onSelectSuggestion={(suggestion) => handleSendMessage(suggestion)}
               />
+              
+              <div className="border-t pt-12">
+                <SuggestionCarousel 
+                  onSelectSuggestion={(suggestion) => handleSendMessage(suggestion)}
+                />
+              </div>
             </div>
           ) : (
             <div className="space-y-6">
@@ -145,14 +151,14 @@ export const ChatContainer = () => {
               ))}
               
               {isProcessing && (
-                <Card className="p-4 border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20 animate-fade-in">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                <Card className="p-6 border-blue-200 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:border-blue-800 dark:from-blue-950/20 dark:to-purple-950/20 animate-fade-in">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                     </div>
                     <div>
-                      <p className="font-medium text-blue-900 dark:text-blue-100">AI is thinking...</p>
-                      <p className="text-sm text-blue-700 dark:text-blue-300">Processing your request</p>
+                      <p className="font-semibold text-blue-900 dark:text-blue-100">AI is thinking...</p>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">Processing your request with care</p>
                     </div>
                   </div>
                 </Card>
@@ -162,13 +168,13 @@ export const ChatContainer = () => {
         </div>
       </div>
       
-      {/* Chat input area - Fixed at bottom with glass effect */}
-      <div className="sticky bottom-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50">
+      {/* Chat input area - Fixed at bottom */}
+      <div className="sticky bottom-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <ChatInput 
             onSendMessage={handleSendMessage} 
             disabled={isProcessing} 
-            showPromptSuggestions={isFirstMessage}
+            showPromptSuggestions={false}
           />
           
           {isFirstMessage && (

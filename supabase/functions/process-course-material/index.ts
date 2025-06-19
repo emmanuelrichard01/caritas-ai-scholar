@@ -31,15 +31,29 @@ serve(async (req) => {
 
     console.log(`Processing course material: ${title} for user ${userId}, material ${materialId}`);
 
-    // Download file from storage
-    const { data: fileData, error: fileError } = await supabaseClient
-      .storage
-      .from("course-materials")
-      .download(filePath);
+    // Download file from storage with retry logic
+    let fileData;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        const { data, error } = await supabaseClient
+          .storage
+          .from("course-materials")
+          .download(filePath);
 
-    if (fileError || !fileData) {
-      console.error("Error downloading file:", fileError);
-      throw new Error(`Failed to download file: ${fileError?.message || "No data returned"}`);
+        if (error) throw error;
+        fileData = data;
+        break;
+      } catch (error) {
+        retryCount++;
+        if (retryCount === maxRetries) {
+          console.error("Error downloading file after retries:", error);
+          throw new Error(`Failed to download file: ${error?.message || "No data returned"}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+      }
     }
 
     console.log("File downloaded successfully, converting to text");
@@ -47,6 +61,9 @@ serve(async (req) => {
     let text: string;
     try {
       text = await fileData.text();
+      if (!text || text.trim().length === 0) {
+        throw new Error("File appears to be empty or unreadable");
+      }
     } catch (textError) {
       console.error("Error converting file to text:", textError);
       text = "Content could not be extracted properly. Please try a different file format.";
@@ -54,26 +71,34 @@ serve(async (req) => {
 
     console.log(`Extracted ${text.length} characters from file`);
     
-    // Save upload record
-    const { error: uploadError } = await supabaseClient
-      .from("uploads")
-      .insert({
-        user_id: userId,
-        file_path: filePath,
-        filename: title,
-        content_type: fileData.type
-      });
-      
-    if (uploadError) {
-      console.error("Error saving upload record:", uploadError);
+    // Save upload record with better error handling
+    try {
+      const { error: uploadError } = await supabaseClient
+        .from("uploads")
+        .insert({
+          user_id: userId,
+          file_path: filePath,
+          filename: title,
+          content_type: fileData.type || 'application/octet-stream'
+        });
+        
+      if (uploadError) {
+        console.warn("Error saving upload record:", uploadError);
+      }
+    } catch (uploadRecordError) {
+      console.warn("Failed to save upload record:", uploadRecordError);
     }
     
-    // Enhanced text processing with better segmentation and sanitization
+    // Enhanced text processing with improved segmentation
     const segments = processTextIntoSegments(text, materialId);
 
     console.log(`Created ${segments.length} segments from the document`);
 
-    // Insert segments with better error handling
+    if (segments.length === 0) {
+      throw new Error("No valid segments could be created from the document");
+    }
+
+    // Insert segments with batch processing for better performance
     const { data: segmentsData, error: segmentsError } = await supabaseClient
       .from("segments")
       .insert(segments)
@@ -120,39 +145,58 @@ serve(async (req) => {
 });
 
 function sanitizeText(text: string): string {
-  // Remove null bytes and other problematic Unicode characters
+  if (!text) return "";
+  
   return text
     .replace(/\0/g, '') // Remove null bytes
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '') // Remove control characters
     .replace(/\uFFFD/g, '') // Remove replacement characters
     .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width characters
+    .replace(/[\r\n]+/g, '\n') // Normalize line breaks
+    .replace(/\s+/g, ' ') // Normalize spaces
     .trim();
 }
 
 function processTextIntoSegments(text: string, materialId: string) {
-  // First sanitize the text
   const sanitizedText = sanitizeText(text);
+  
+  if (!sanitizedText || sanitizedText.length < 10) {
+    return [{
+      material_id: materialId,
+      title: "Content",
+      text: "No readable content could be extracted from this file."
+    }];
+  }
+
   const lines = sanitizedText.split("\n").filter(line => line.trim().length > 0);
   const segments: { material_id: string, title: string, text: string }[] = [];
   
   let currentSegmentTitle = "Introduction";
   let currentSegmentText = "";
   let segmentCount = 0;
+  const minSegmentLength = 100; // Minimum characters per segment
+  const maxSegmentLength = 5000; // Maximum characters per segment
   
   for (const line of lines) {
     const trimmedLine = line.trim();
     
-    // Enhanced heading detection
+    // Enhanced heading detection with better patterns
     const isHeading = (
-      trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 5 && trimmedLine.length < 100
+      // All caps heading (but not too long)
+      (trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 5 && trimmedLine.length < 100 && /[A-Z]/.test(trimmedLine))
+      // Numbered sections
       || /^(chapter|section|part|unit|lesson|module)\s+\d+/i.test(trimmedLine)
+      // Roman numerals
       || /^[IVXivx]+\.\s+/i.test(trimmedLine)
-      || /^\d+\.\d+\s+/i.test(trimmedLine)
-      || /^#{1,6}\s+/.test(trimmedLine) // Markdown headers
-      || trimmedLine.endsWith(':') && trimmedLine.length < 50
+      // Decimal numbering
+      || /^\d+(\.\d+)*\s+/.test(trimmedLine)
+      // Markdown headers
+      || /^#{1,6}\s+/.test(trimmedLine)
+      // Lines ending with colon (but not too long)
+      || (trimmedLine.endsWith(':') && trimmedLine.length < 80 && trimmedLine.length > 5)
     );
     
-    if (isHeading && currentSegmentText.trim().length > 50) {
+    if (isHeading && currentSegmentText.trim().length >= minSegmentLength) {
       // Save current segment if it has substantial content
       segments.push({
         material_id: materialId,
@@ -161,20 +205,33 @@ function processTextIntoSegments(text: string, materialId: string) {
       });
       
       // Start new segment
-      currentSegmentTitle = trimmedLine.replace(/^#+\s*/, '').replace(/:$/, '');
+      currentSegmentTitle = trimmedLine.replace(/^#+\s*/, '').replace(/:$/, '').trim();
       currentSegmentText = "";
       segmentCount++;
-    } else if (isHeading && currentSegmentText.trim().length <= 50) {
+    } else if (isHeading && currentSegmentText.trim().length < minSegmentLength) {
       // Update title if we haven't collected much content yet
-      currentSegmentTitle = trimmedLine.replace(/^#+\s*/, '').replace(/:$/, '');
+      currentSegmentTitle = trimmedLine.replace(/^#+\s*/, '').replace(/:$/, '').trim();
     } else {
-      // Add to current segment
-      currentSegmentText += trimmedLine + "\n";
+      // Add to current segment, but check for length limits
+      if (currentSegmentText.length + trimmedLine.length + 1 <= maxSegmentLength) {
+        currentSegmentText += trimmedLine + "\n";
+      } else if (currentSegmentText.trim().length >= minSegmentLength) {
+        // Save current segment and start new one
+        segments.push({
+          material_id: materialId,
+          title: sanitizeText(currentSegmentTitle),
+          text: sanitizeText(currentSegmentText.trim())
+        });
+        
+        currentSegmentTitle = `${currentSegmentTitle} (continued)`;
+        currentSegmentText = trimmedLine + "\n";
+        segmentCount++;
+      }
     }
   }
   
   // Add the last segment if it has content
-  if (currentSegmentText.trim().length > 0) {
+  if (currentSegmentText.trim().length >= minSegmentLength) {
     segments.push({
       material_id: materialId,
       title: sanitizeText(currentSegmentTitle),
@@ -182,14 +239,21 @@ function processTextIntoSegments(text: string, materialId: string) {
     });
   }
   
-  // If no segments were created, create at least one with the entire content
-  if (segments.length === 0) {
-    segments.push({
+  // If no segments were created or only very small ones, create a single segment
+  if (segments.length === 0 || segments.every(s => s.text.length < minSegmentLength)) {
+    return [{
       material_id: materialId,
       title: "Content",
-      text: sanitizeText(sanitizedText) || "No readable content could be extracted from this file."
-    });
+      text: sanitizeText(sanitizedText)
+    }];
   }
 
-  return segments;
+  // Filter out segments that are too small
+  const validSegments = segments.filter(s => s.text.length >= minSegmentLength);
+  
+  return validSegments.length > 0 ? validSegments : [{
+    material_id: materialId,
+    title: "Content",
+    text: sanitizeText(sanitizedText)
+  }];
 }

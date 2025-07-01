@@ -218,25 +218,29 @@ const Dashboard = () => {
       subtitle="Your personalized learning hub with insights and progress tracking"
       icon={<Sparkles className="h-6 w-6" />}
     >
-      <div className="space-y-6">
-        {/* Welcome Section */}
-        <WelcomeCard profile={profile} userEmail={user?.email} stats={stats} />
+      <div className="space-y-4 sm:space-y-6">
+        {/* Welcome Section - Full width on mobile */}
+        <div className="w-full">
+          <WelcomeCard profile={profile} userEmail={user?.email} stats={stats} />
+        </div>
         
-        {/* Main Content Grid - Mobile First */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Quick Actions - Full width on mobile */}
-          <div className="xl:col-span-2 order-1">
+        {/* Main Content Grid - Mobile First Responsive */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+          {/* Quick Actions - Full width on mobile, spans 8 cols on desktop */}
+          <div className="lg:col-span-8 order-1">
             <QuickActions />
           </div>
           
-          {/* Activity Chart - Stacked on mobile */}
-          <div className="xl:col-span-1 order-2">
+          {/* Activity Chart - Full width on mobile, spans 4 cols on desktop */}
+          <div className="lg:col-span-4 order-2">
             <ActivityChart activityData={activityData} loading={loading} />
           </div>
         </div>
         
-        {/* Recent Activity */}
-        <RecentActivityList recentActivities={recentActivities} loading={loading} />
+        {/* Recent Activity - Full width */}
+        <div className="w-full order-3">
+          <RecentActivityList recentActivities={recentActivities} loading={loading} />
+        </div>
       </div>
     </PageLayout>
   );

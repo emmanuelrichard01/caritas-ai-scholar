@@ -73,53 +73,60 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   
   html {
     scroll-behavior: smooth;
   }
+  
+  /* Prevent horizontal scroll on mobile */
+  html, body {
+    overflow-x: hidden;
+  }
 }
 
-/* Enhanced typography for better readability */
+/* Enhanced mobile-first typography */
 @layer components {
   .prose-enhanced {
     @apply leading-relaxed text-foreground;
   }
   
   .prose-enhanced h1 {
-    @apply text-2xl md:text-3xl font-bold text-foreground mb-4 leading-tight;
+    @apply text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-3 sm:mb-4 leading-tight;
   }
   
   .prose-enhanced h2 {
-    @apply text-xl md:text-2xl font-semibold text-foreground mb-3 mt-6 leading-tight;
+    @apply text-lg sm:text-xl md:text-2xl font-semibold text-foreground mb-2 sm:mb-3 mt-4 sm:mt-6 leading-tight;
   }
   
   .prose-enhanced h3 {
-    @apply text-lg md:text-xl font-medium text-foreground mb-2 mt-4 leading-tight;
+    @apply text-base sm:text-lg md:text-xl font-medium text-foreground mb-2 mt-3 sm:mt-4 leading-tight;
   }
   
   .prose-enhanced p {
-    @apply mb-4 text-foreground/90 leading-relaxed;
+    @apply mb-3 sm:mb-4 text-foreground/90 leading-relaxed text-sm sm:text-base;
   }
   
   .prose-enhanced ul, .prose-enhanced ol {
-    @apply mb-4 pl-6 space-y-2;
+    @apply mb-3 sm:mb-4 pl-4 sm:pl-6 space-y-1 sm:space-y-2;
   }
   
   .prose-enhanced li {
-    @apply text-foreground/90 leading-relaxed;
+    @apply text-foreground/90 leading-relaxed text-sm sm:text-base;
   }
   
   .prose-enhanced blockquote {
-    @apply border-l-4 border-primary/20 pl-4 py-2 italic text-foreground/80 bg-muted/30 rounded-r;
+    @apply border-l-4 border-primary/20 pl-3 sm:pl-4 py-2 italic text-foreground/80 bg-muted/30 rounded-r text-sm sm:text-base;
   }
   
   .prose-enhanced code {
-    @apply bg-muted px-2 py-1 rounded text-sm font-mono text-primary;
+    @apply bg-muted px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm font-mono text-primary;
   }
   
   .prose-enhanced pre {
-    @apply bg-muted p-4 rounded-lg overflow-x-auto text-sm;
+    @apply bg-muted p-3 sm:p-4 rounded-lg overflow-x-auto text-xs sm:text-sm;
   }
   
   .prose-enhanced strong {
@@ -131,11 +138,11 @@
   }
 }
 
-/* Improved animations */
+/* Mobile-optimized animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(15px);
   }
   to {
     opacity: 1;
@@ -161,27 +168,14 @@
   }
 }
 
-@keyframes typing-dots {
-  0%, 20% {
-    color: rgba(0,0,0,0.4);
-    text-shadow: 0.25em 0 0 rgba(0,0,0,0.2), 0.5em 0 0 rgba(0,0,0,0.2);
-  }
-  40% {
-    color: rgba(0,0,0,1);
-    text-shadow: 0.25em 0 0 rgba(0,0,0,0.4), 0.5em 0 0 rgba(0,0,0,0.2);
-  }
-  60% {
-    text-shadow: 0.25em 0 0 rgba(0,0,0,1), 0.5em 0 0 rgba(0,0,0,0.4);
-  }
-  80%, 100% {
-    text-shadow: 0.25em 0 0 rgba(0,0,0,1), 0.5em 0 0 rgba(0,0,0,1);
-  }
+.animate-fade-in {
+  animation: fadeInUp 0.4s ease-out;
 }
 
-/* Enhanced scrollbars */
+/* Enhanced mobile scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -189,38 +183,77 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-border rounded-full;
+  @apply bg-border/60 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-border/80;
 }
 
-/* Mobile optimizations */
+/* Mobile-first responsive utilities */
 @media (max-width: 640px) {
   .container {
-    @apply px-4;
+    @apply px-3;
   }
   
-  .prose-enhanced h1 {
-    @apply text-xl;
+  /* Ensure cards don't break on small screens */
+  .card-responsive {
+    @apply p-3 rounded-lg;
   }
   
-  .prose-enhanced h2 {
-    @apply text-lg;
+  /* Better button sizing on mobile */
+  .btn-mobile {
+    @apply px-4 py-2.5 text-sm;
   }
   
-  .prose-enhanced h3 {
-    @apply text-base;
+  /* Optimized spacing for mobile */
+  .space-mobile > * + * {
+    @apply mt-3;
   }
 }
 
-/* Loading states */
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .card-responsive {
+    @apply p-4 rounded-xl;
+  }
+  
+  .btn-mobile {
+    @apply px-6 py-3 text-base;
+  }
+}
+
+/* Desktop optimizations */
+@media (min-width: 1025px) {
+  .card-responsive {
+    @apply p-6 rounded-xl;
+  }
+  
+  .btn-mobile {
+    @apply px-8 py-3 text-base;
+  }
+}
+
+/* Loading states - mobile optimized */
 .loading-skeleton {
   @apply animate-pulse bg-muted rounded;
 }
 
-.typing-indicator::after {
-  content: '...';
-  animation: typing-dots 1.4s infinite;
+/* Improved focus states for accessibility */
+.focus-visible:focus-visible {
+  @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+}
+
+/* Mobile-safe hover states */
+@media (hover: hover) and (pointer: fine) {
+  .hover-lift:hover {
+    @apply transform -translate-y-1 shadow-lg transition-all duration-200;
+  }
+}
+
+/* Touch-friendly interactive elements */
+@media (pointer: coarse) {
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
 }

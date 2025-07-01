@@ -28,22 +28,24 @@ export const PageLayout = ({ title, subtitle, icon, children }: PageLayoutProps)
         "flex-1 transition-all duration-300 ease-in-out",
         isMobile ? 'pt-16' : isCollapsed ? 'pl-[70px]' : 'pl-[260px]'
       )}>
-        <div className="p-4 md:p-6 max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center mb-6 gap-3 sm:gap-4">
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-caritas to-caritas-light flex items-center justify-center text-white shadow-lg">
+        <div className="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto">
+          {/* Page Header - Mobile Optimized */}
+          <div className="flex flex-col sm:flex-row sm:items-start mb-4 sm:mb-6 gap-3 sm:gap-4">
+            <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-gradient-to-br from-caritas to-caritas-light flex items-center justify-center text-white shadow-lg flex-shrink-0">
               {icon}
             </div>
-            <div className="min-w-0">
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground truncate">{title}</h1>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground leading-tight">{title}</h1>
               {subtitle && (
-                <p className="text-sm md:text-base text-muted-foreground mt-1 leading-relaxed">
+                <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2 leading-relaxed">
                   {subtitle}
                 </p>
               )}
             </div>
           </div>
           
-          <div className="space-y-6">
+          {/* Page Content */}
+          <div className="space-y-4 sm:space-y-6">
             {children}
           </div>
         </div>

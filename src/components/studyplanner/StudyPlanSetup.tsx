@@ -60,12 +60,25 @@ export const StudyPlanSetup = ({
     }
   };
 
+  // Safe date formatting function
+  const formatDate = (date: Date | undefined): string => {
+    if (!date) return '';
+    try {
+      if (date instanceof Date && !isNaN(date.getTime())) {
+        return date.toLocaleDateString();
+      }
+    } catch (error) {
+      console.error('Error formatting date:', error);
+    }
+    return '';
+  };
+
   return (
     <div className="space-y-6">
       {/* Add Subject - Mobile Optimized */}
-      <Card className="p-4 border-dashed">
+      <Card className="p-4 border-dashed border-caritas/30">
         <div className="flex items-center gap-2 mb-4">
-          <Plus className="h-4 w-4 text-purple-600" />
+          <Plus className="h-4 w-4 text-caritas" />
           <h3 className="font-semibold dark:text-white">Add Subject</h3>
         </div>
         
@@ -108,7 +121,7 @@ export const StudyPlanSetup = ({
           </div>
         </div>
         
-        <Button onClick={addSubject} className="w-full mt-4 bg-purple-600 hover:bg-purple-700">
+        <Button onClick={addSubject} className="w-full mt-4 bg-caritas hover:bg-caritas-dark">
           <Plus className="h-4 w-4 mr-2" />
           Add Subject
         </Button>
@@ -118,7 +131,7 @@ export const StudyPlanSetup = ({
       {subjects.length > 0 && (
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-4">
-            <Target className="h-4 w-4 text-green-600" />
+            <Target className="h-4 w-4 text-caritas" />
             <h3 className="font-semibold dark:text-white">Subjects ({subjects.length})</h3>
           </div>
           
@@ -136,7 +149,7 @@ export const StudyPlanSetup = ({
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
                     {subject.estimatedHours}h
-                    {subject.deadline && ` • Due ${subject.deadline.toLocaleDateString()}`}
+                    {subject.deadline && ` • Due ${formatDate(subject.deadline)}`}
                   </div>
                 </div>
                 
@@ -222,7 +235,11 @@ export const StudyPlanSetup = ({
                   variant={preferences.studyDays.includes(fullDayNames[index].toLowerCase()) ? "default" : "outline"}
                   size="sm"
                   onClick={() => toggleStudyDay(fullDayNames[index])}
-                  className="text-xs px-3"
+                  className={`text-xs px-3 ${
+                    preferences.studyDays.includes(fullDayNames[index].toLowerCase()) 
+                      ? "bg-caritas hover:bg-caritas-dark" 
+                      : "hover:bg-caritas/10"
+                  }`}
                 >
                   {day}
                 </Button>
@@ -239,7 +256,11 @@ export const StudyPlanSetup = ({
                   variant={preferences.focusMode === mode ? "default" : "outline"}
                   size="sm"
                   onClick={() => onUpdatePreferences({ focusMode: mode as any })}
-                  className="capitalize text-xs"
+                  className={`capitalize text-xs ${
+                    preferences.focusMode === mode 
+                      ? "bg-caritas hover:bg-caritas-dark" 
+                      : "hover:bg-caritas/10"
+                  }`}
                 >
                   {mode}
                 </Button>
@@ -251,7 +272,7 @@ export const StudyPlanSetup = ({
 
       <Button 
         onClick={onGenerate} 
-        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-3 font-semibold rounded-lg"
+        className="w-full bg-gradient-to-r from-caritas to-caritas-light hover:from-caritas-dark hover:to-caritas text-white py-3 font-semibold rounded-lg"
         disabled={isGenerating || subjects.length === 0}
         size="lg"
       >

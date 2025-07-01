@@ -74,28 +74,9 @@ const defaultPreferences: StudyPreferences = {
 };
 
 const subjectColors = [
-  "#8b0000", "#c41230", "#dc2626", "#b91c1c", 
-  "#991b1b", "#7f1d1d", "#ef4444", "#f87171"
+  "#3B82F6", "#8B5CF6", "#10B981", "#F59E0B", 
+  "#EF4444", "#06B6D4", "#84CC16", "#F97316"
 ];
-
-// Helper function to safely convert date strings to Date objects
-const safeParseDate = (dateValue: any): Date | undefined => {
-  if (!dateValue) return undefined;
-  if (dateValue instanceof Date) return dateValue;
-  if (typeof dateValue === 'string') {
-    const parsed = new Date(dateValue);
-    return isNaN(parsed.getTime()) ? undefined : parsed;
-  }
-  return undefined;
-};
-
-// Helper function to convert database subjects to proper format
-const convertDatabaseSubjects = (subjects: any[]): StudySubject[] => {
-  return subjects.map(subject => ({
-    ...subject,
-    deadline: safeParseDate(subject.deadline)
-  }));
-};
 
 export const useStudyPlan = () => {
   const { user } = useAuth();
@@ -128,10 +109,10 @@ export const useStudyPlan = () => {
         id: plan.id,
         title: plan.title,
         description: plan.description,
-        subjects: convertDatabaseSubjects((plan.subjects as any) || []),
-        preferences: (plan.preferences as any) || defaultPreferences,
-        sessions: (plan.sessions as any) || [],
-        analytics: (plan.analytics as any) || { totalHours: 0, completedTasks: 0, streak: 0, efficiency: 0 },
+        subjects: (plan.subjects as unknown) as StudySubject[],
+        preferences: (plan.preferences as unknown) as StudyPreferences,
+        sessions: (plan.sessions as unknown) as StudySession[],
+        analytics: (plan.analytics as unknown) as any,
         isActive: plan.is_active,
         createdAt: plan.created_at,
         updatedAt: plan.updated_at
@@ -161,10 +142,10 @@ export const useStudyPlan = () => {
           id: data.id,
           title: data.title,
           description: data.description,
-          subjects: convertDatabaseSubjects((data.subjects as any) || []),
-          preferences: (data.preferences as any) || defaultPreferences,
-          sessions: (data.sessions as any) || [],
-          analytics: (data.analytics as any) || { totalHours: 0, completedTasks: 0, streak: 0, efficiency: 0 },
+          subjects: (data.subjects as unknown) as StudySubject[],
+          preferences: (data.preferences as unknown) as StudyPreferences,
+          sessions: (data.sessions as unknown) as StudySession[],
+          analytics: (data.analytics as unknown) as any,
           isActive: data.is_active,
           createdAt: data.created_at,
           updatedAt: data.updated_at
@@ -205,20 +186,14 @@ export const useStudyPlan = () => {
           .eq('user_id', user.id);
       }
 
-      // Convert dates to strings for database storage
-      const subjectsForDB = plan.subjects.map(subject => ({
-        ...subject,
-        deadline: subject.deadline ? subject.deadline.toISOString() : null
-      }));
-
       const planData = {
         user_id: user.id,
         title: plan.title,
         description: plan.description,
-        subjects: subjectsForDB as any,
-        preferences: plan.preferences as any,
-        sessions: plan.sessions as any,
-        analytics: plan.analytics as any,
+        subjects: plan.subjects as unknown as any,
+        preferences: plan.preferences as unknown as any,
+        sessions: plan.sessions as unknown as any,
+        analytics: plan.analytics as unknown as any,
         is_active: makeActive
       };
 

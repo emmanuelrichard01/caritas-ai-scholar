@@ -34,5 +34,11 @@
   "env": {
     "VITE_SUPABASE_URL": "https://yvlrspteukuooobkvzdz.supabase.co",
     "VITE_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bHJzcHRldWt1b29vYmt2emR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1NjQyNDAsImV4cCI6MjA2MTE0MDI0MH0.EdFXxTk2mOOJwxWugX_nj4wsxffy1lK_l1jljUk2-T0"
+  },
+
+  "functions": {
+  "functions/**/*.ts": {
+    "runtime": "vercel-node@4.0.0"
   }
+ }
 }

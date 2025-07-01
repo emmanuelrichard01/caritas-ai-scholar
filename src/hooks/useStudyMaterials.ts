@@ -85,17 +85,8 @@ export const useStudyMaterials = () => {
       if (quizResponse.status === 'fulfilled' && quizResponse.value) {
         setQuizQuestions(quizResponse.value);
       } else {
-        setQuizQuestions([{
-          question: `What is the best way to study the material "${materialWithSegments.title}"?`,
-          options: [
-            "Review the generated notes thoroughly",
-            "Skip the reading completely",
-            "Only memorize the first paragraph",
-            "Ignore all the details"
-          ],
-          correctAnswer: 0,
-          explanation: "The generated notes provide a comprehensive overview of all important concepts."
-        }]);
+        // Generate default 10 questions if AI generation fails
+        setQuizQuestions(generateDefaultQuiz(materialWithSegments.title));
       }
       
       toast.success("Study materials generated successfully!");
@@ -123,7 +114,7 @@ Format the response with clear headings and bullet points for easy studying.`;
   };
   
   const generateFlashcards = async (title: string, content: string) => {
-    const prompt = `Based on the study material "${title}", create exactly 10 flashcards for key concepts.
+    const prompt = `Based on the study material "${title}", create exactly 15 flashcards for key concepts.
 
 Material Content:
 ${content}
@@ -132,7 +123,9 @@ Create flashcards that test understanding of important concepts. Format as JSON:
 [
   {"question": "What is...", "answer": "..."},
   {"question": "Define...", "answer": "..."}
-]`;
+]
+
+Make sure to create exactly 15 flashcards covering different aspects of the material.`;
     
     const response = await processQuery(prompt, 'course-tutor');
     if (!response) return null;
@@ -146,10 +139,12 @@ Create flashcards that test understanding of important concepts. Format as JSON:
   };
   
   const generateQuiz = async (title: string, content: string) => {
-    const prompt = `Based on the study material "${title}", create exactly 5 multiple-choice quiz questions.
+    const prompt = `Based on the study material "${title}", create exactly 10 multiple-choice quiz questions that thoroughly test understanding of the material.
 
 Material Content:
 ${content}
+
+Create 10 comprehensive quiz questions that cover different aspects of the material. Each question should have 4 options with only one correct answer.
 
 Format as JSON:
 [
@@ -157,18 +152,25 @@ Format as JSON:
     "question": "What is...?",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctAnswer": 0,
-    "explanation": "Explanation..."
+    "explanation": "Detailed explanation of why this answer is correct..."
   }
-]`;
+]
+
+Make sure to:
+1. Create exactly 10 questions
+2. Cover different topics from the material
+3. Include variety in question difficulty
+4. Provide clear explanations for each answer
+5. Ensure all questions are answerable from the provided content`;
     
     const response = await processQuery(prompt, 'course-tutor');
-    if (!response) return null;
+    if (!response) return generateDefaultQuiz(title);
     
     try {
       const jsonMatch = response.match(/\[[\s\S]*?\]/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        return parsed.map((q: any, index: number) => ({
+        const questions = parsed.map((q: any, index: number) => ({
           question: q.question || `Question ${index + 1} about ${title}`,
           options: Array.isArray(q.options) && q.options.length === 4 
             ? q.options 
@@ -178,12 +180,86 @@ Format as JSON:
             : 0,
           explanation: q.explanation || "Review the material for more details."
         }));
+        
+        // Ensure we have at least 10 questions
+        if (questions.length >= 10) {
+          return questions.slice(0, 10); // Take first 10 if more than 10
+        } else {
+          // Pad with default questions if less than 10
+          const defaultQuestions = generateDefaultQuiz(title);
+          return [...questions, ...defaultQuestions.slice(questions.length)];
+        }
       }
     } catch {
-      return null;
+      return generateDefaultQuiz(title);
     }
     
-    return null;
+    return generateDefaultQuiz(title);
+  };
+
+  const generateDefaultQuiz = (title: string): QuizQuestion[] => {
+    return [
+      {
+        question: `What is the primary focus of the material "${title}"?`,
+        options: ["Core concepts and fundamentals", "Advanced applications only", "Historical background only", "Practical exercises only"],
+        correctAnswer: 0,
+        explanation: "Educational materials typically focus on core concepts and fundamentals as the foundation for learning."
+      },
+      {
+        question: `How should you approach studying "${title}"?`,
+        options: ["Skip to the end", "Read thoroughly and take notes", "Memorize without understanding", "Only read the summary"],
+        correctAnswer: 1,
+        explanation: "Effective studying involves reading thoroughly and taking notes to ensure comprehension."
+      },
+      {
+        question: `What is the best way to retain information from "${title}"?`,
+        options: ["Read once quickly", "Active learning and practice", "Passive reading only", "Ignore difficult sections"],
+        correctAnswer: 1,
+        explanation: "Active learning and practice are proven methods for better information retention."
+      },
+      {
+        question: `When reviewing "${title}", you should:`,
+        options: ["Focus only on easy topics", "Review all sections systematically", "Skip the introduction", "Only read conclusions"],
+        correctAnswer: 1,
+        explanation: "Systematic review of all sections ensures comprehensive understanding of the material."
+      },
+      {
+        question: `What makes "${title}" valuable for learning?`,
+        options: ["It's short", "It provides structured knowledge", "It has pictures", "It's entertaining"],
+        correctAnswer: 1,
+        explanation: "Educational materials are valuable because they provide structured, organized knowledge."
+      },
+      {
+        question: `To master the concepts in "${title}", you should:`,
+        options: ["Read it once", "Practice and apply concepts", "Memorize definitions only", "Skip difficult parts"],
+        correctAnswer: 1,
+        explanation: "Mastery comes from practicing and applying concepts, not just reading or memorizing."
+      },
+      {
+        question: `The key to understanding "${title}" is:`,
+        options: ["Speed reading", "Careful analysis and reflection", "Skipping details", "Reading summaries only"],
+        correctAnswer: 1,
+        explanation: "Deep understanding requires careful analysis and reflection on the material."
+      },
+      {
+        question: `When studying "${title}", it's important to:`,
+        options: ["Rush through it", "Take breaks and pace yourself", "Study only at night", "Avoid taking notes"],
+        correctAnswer: 1,
+        explanation: "Effective studying requires pacing yourself and taking breaks to maintain focus and retention."
+      },
+      {
+        question: `The best learning outcome from "${title}" comes from:`,
+        options: ["Passive consumption", "Active engagement and questioning", "Quick scanning", "Memorizing headings"],
+        correctAnswer: 1,
+        explanation: "Active engagement and questioning lead to deeper understanding and better learning outcomes."
+      },
+      {
+        question: `To get the most from "${title}", you should:`,
+        options: ["Read in poor lighting", "Create a distraction-free environment", "Multitask while reading", "Skip preparation"],
+        correctAnswer: 1,
+        explanation: "A distraction-free environment optimizes focus and comprehension while studying."
+      }
+    ];
   };
   
   return {

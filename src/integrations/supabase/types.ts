@@ -192,6 +192,48 @@ export type Database = {
           },
         ]
       }
+      study_plans: {
+        Row: {
+          analytics: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          preferences: Json
+          sessions: Json
+          subjects: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analytics?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          preferences?: Json
+          sessions?: Json
+          subjects?: Json
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analytics?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          preferences?: Json
+          sessions?: Json
+          subjects?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       summaries: {
         Row: {
           bullets: string[]

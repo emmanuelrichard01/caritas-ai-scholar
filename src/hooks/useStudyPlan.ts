@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,6 +45,24 @@ export interface StudyPreferences {
   difficultyDistribution: "balanced" | "hard-first" | "easy-first";
 }
 
+export interface StudyPlan {
+  id?: string;
+  title: string;
+  description?: string;
+  subjects: StudySubject[];
+  preferences: StudyPreferences;
+  sessions: StudySession[];
+  analytics: {
+    totalHours: number;
+    completedTasks: number;
+    streak: number;
+    efficiency: number;
+  };
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 const defaultPreferences: StudyPreferences = {
   dailyStudyHours: 4,
   preferredTimeSlots: ["morning"],
@@ -62,45 +80,239 @@ const subjectColors = [
 
 export const useStudyPlan = () => {
   const { user } = useAuth();
-  const [subjects, setSubjects] = useState<StudySubject[]>([]);
-  const [preferences, setPreferences] = useState<StudyPreferences>(defaultPreferences);
-  const [generatedPlan, setGeneratedPlan] = useState<StudySession[]>([]);
+  const [currentPlan, setCurrentPlan] = useState<StudyPlan | null>(null);
+  const [savedPlans, setSavedPlans] = useState<StudyPlan[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [analytics, setAnalytics] = useState({
-    totalHours: 0,
-    completedTasks: 0,
-    streak: 0,
-    efficiency: 0
-  });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const addSubject = useCallback((name: string, estimatedHours: number, deadline?: Date) => {
+  // Load saved study plans
+  useEffect(() => {
+    if (user) {
+      loadSavedPlans();
+      loadActivePlan();
+    }
+  }, [user]);
+
+  const loadSavedPlans = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('study_plans')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+
+      const plans = data?.map(plan => ({
+        id: plan.id,
+        title: plan.title,
+        description: plan.description,
+        subjects: plan.subjects as StudySubject[],
+        preferences: plan.preferences as StudyPreferences,
+        sessions: plan.sessions as StudySession[],
+        analytics: plan.analytics as any,
+        isActive: plan.is_active,
+        createdAt: plan.created_at,
+        updatedAt: plan.updated_at
+      })) || [];
+
+      setSavedPlans(plans);
+    } catch (error) {
+      console.error('Error loading saved plans:', error);
+    }
+  };
+
+  const loadActivePlan = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('study_plans')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data) {
+        const plan: StudyPlan = {
+          id: data.id,
+          title: data.title,
+          description: data.description,
+          subjects: data.subjects as StudySubject[],
+          preferences: data.preferences as StudyPreferences,
+          sessions: data.sessions as StudySession[],
+          analytics: data.analytics as any,
+          isActive: data.is_active,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at
+        };
+        setCurrentPlan(plan);
+      }
+    } catch (error) {
+      console.error('Error loading active plan:', error);
+    }
+  };
+
+  const createNewPlan = useCallback(() => {
+    const newPlan: StudyPlan = {
+      title: "New Study Plan",
+      subjects: [],
+      preferences: defaultPreferences,
+      sessions: [],
+      analytics: { totalHours: 0, completedTasks: 0, streak: 0, efficiency: 0 },
+      isActive: false
+    };
+    setCurrentPlan(newPlan);
+  }, []);
+
+  const savePlan = async (plan: StudyPlan, makeActive = false) => {
+    if (!user) {
+      toast.error("Please sign in to save your study plan");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      if (makeActive) {
+        // Deactivate all other plans first
+        await supabase
+          .from('study_plans')
+          .update({ is_active: false })
+          .eq('user_id', user.id);
+      }
+
+      const planData = {
+        user_id: user.id,
+        title: plan.title,
+        description: plan.description,
+        subjects: plan.subjects,
+        preferences: plan.preferences,
+        sessions: plan.sessions,
+        analytics: plan.analytics,
+        is_active: makeActive
+      };
+
+      let result;
+      if (plan.id) {
+        result = await supabase
+          .from('study_plans')
+          .update(planData)
+          .eq('id', plan.id)
+          .select()
+          .single();
+      } else {
+        result = await supabase
+          .from('study_plans')
+          .insert(planData)
+          .select()
+          .single();
+      }
+
+      if (result.error) throw result.error;
+
+      const updatedPlan = {
+        ...plan,
+        id: result.data.id,
+        isActive: result.data.is_active,
+        createdAt: result.data.created_at,
+        updatedAt: result.data.updated_at
+      };
+
+      setCurrentPlan(updatedPlan);
+      await loadSavedPlans();
+      
+      toast.success(plan.id ? "Study plan updated!" : "Study plan saved!");
+    } catch (error) {
+      console.error('Error saving plan:', error);
+      toast.error("Failed to save study plan");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadPlan = (plan: StudyPlan) => {
+    setCurrentPlan(plan);
+  };
+
+  const deletePlan = async (planId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('study_plans')
+        .delete()
+        .eq('id', planId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      await loadSavedPlans();
+      if (currentPlan?.id === planId) {
+        setCurrentPlan(null);
+      }
+      
+      toast.success("Study plan deleted");
+    } catch (error) {
+      console.error('Error deleting plan:', error);
+      toast.error("Failed to delete study plan");
+    }
+  };
+
+  // Helper functions for current plan manipulation
+  const addSubject = (name: string, estimatedHours: number, deadline?: Date) => {
+    if (!currentPlan) return;
+
     const newSubject: StudySubject = {
       id: `subject-${Date.now()}`,
       name,
       priority: "medium",
       deadline,
       estimatedHours,
-      color: subjectColors[subjects.length % subjectColors.length]
+      color: subjectColors[currentPlan.subjects.length % subjectColors.length]
     };
-    setSubjects(prev => [...prev, newSubject]);
-  }, [subjects.length]);
 
-  const updateSubject = useCallback((id: string, updates: Partial<StudySubject>) => {
-    setSubjects(prev => prev.map(subject => 
-      subject.id === id ? { ...subject, ...updates } : subject
-    ));
-  }, []);
+    setCurrentPlan({
+      ...currentPlan,
+      subjects: [...currentPlan.subjects, newSubject]
+    });
+  };
 
-  const removeSubject = useCallback((id: string) => {
-    setSubjects(prev => prev.filter(subject => subject.id !== id));
-  }, []);
+  const updateSubject = (id: string, updates: Partial<StudySubject>) => {
+    if (!currentPlan) return;
 
-  const updatePreferences = useCallback((updates: Partial<StudyPreferences>) => {
-    setPreferences(prev => ({ ...prev, ...updates }));
-  }, []);
+    setCurrentPlan({
+      ...currentPlan,
+      subjects: currentPlan.subjects.map(subject => 
+        subject.id === id ? { ...subject, ...updates } : subject
+      )
+    });
+  };
 
-  const generateOptimalPlan = useCallback(async () => {
-    if (subjects.length === 0) {
+  const removeSubject = (id: string) => {
+    if (!currentPlan) return;
+
+    setCurrentPlan({
+      ...currentPlan,
+      subjects: currentPlan.subjects.filter(subject => subject.id !== id)
+    });
+  };
+
+  const updatePreferences = (updates: Partial<StudyPreferences>) => {
+    if (!currentPlan) return;
+
+    setCurrentPlan({
+      ...currentPlan,
+      preferences: { ...currentPlan.preferences, ...updates }
+    });
+  };
+
+  const generateOptimalPlan = async () => {
+    if (!currentPlan || currentPlan.subjects.length === 0) {
       toast.error("Please add at least one subject to study");
       return;
     }
@@ -108,19 +320,15 @@ export const useStudyPlan = () => {
     setIsGenerating(true);
     
     try {
-      // Calculate optimal distribution
-      const totalEstimatedHours = subjects.reduce((sum, subject) => sum + subject.estimatedHours, 0);
-      const dailyCapacity = preferences.dailyStudyHours;
-      const planDuration = Math.ceil(totalEstimatedHours / dailyCapacity);
+      const sessions = generateSmartSessions(currentPlan.subjects, currentPlan.preferences, 14);
       
-      const sessions = generateSmartSessions(subjects, preferences, planDuration);
-      setGeneratedPlan(sessions);
-      
-      // Save to database if user is authenticated
-      if (user) {
-        await saveStudyPlan(sessions);
-      }
-      
+      const updatedPlan = {
+        ...currentPlan,
+        sessions,
+        analytics: calculateAnalytics(sessions)
+      };
+
+      setCurrentPlan(updatedPlan);
       toast.success("Study plan generated successfully!");
     } catch (error) {
       console.error("Error generating study plan:", error);
@@ -128,66 +336,59 @@ export const useStudyPlan = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [subjects, preferences, user]);
+  };
 
-  const toggleTaskCompletion = useCallback((sessionId: string, taskId: string) => {
-    setGeneratedPlan(prev => 
-      prev.map(session => 
-        session.id === sessionId
-          ? {
-              ...session,
-              tasks: session.tasks.map(task =>
-                task.id === taskId ? { ...task, completed: !task.completed } : task
-              )
-            }
-          : session
-      )
+  const toggleTaskCompletion = async (sessionId: string, taskId: string) => {
+    if (!currentPlan) return;
+
+    const updatedSessions = currentPlan.sessions.map(session => 
+      session.id === sessionId
+        ? {
+            ...session,
+            tasks: session.tasks.map(task =>
+              task.id === taskId ? { ...task, completed: !task.completed } : task
+            )
+          }
+        : session
     );
-    
-    // Update analytics
-    updateAnalytics();
-  }, []);
 
-  const updateAnalytics = useCallback(() => {
-    const allTasks = generatedPlan.flatMap(session => session.tasks);
+    const updatedPlan = {
+      ...currentPlan,
+      sessions: updatedSessions,
+      analytics: calculateAnalytics(updatedSessions)
+    };
+
+    setCurrentPlan(updatedPlan);
+
+    // Auto-save if plan is already saved
+    if (updatedPlan.id) {
+      await savePlan(updatedPlan);
+    }
+  };
+
+  const calculateAnalytics = (sessions: StudySession[]) => {
+    const allTasks = sessions.flatMap(session => session.tasks);
     const completedTasks = allTasks.filter(task => task.completed);
     const totalHours = allTasks.reduce((sum, task) => sum + task.duration, 0) / 60;
     const efficiency = allTasks.length > 0 ? (completedTasks.length / allTasks.length) * 100 : 0;
     
-    setAnalytics({
+    return {
       totalHours,
       completedTasks: completedTasks.length,
-      streak: calculateStreak(),
+      streak: 0, // Could be enhanced with date-based calculation
       efficiency
-    });
-  }, [generatedPlan]);
-
-  const calculateStreak = () => {
-    // Simple streak calculation - can be enhanced
-    return 0;
-  };
-
-  const saveStudyPlan = async (sessions: StudySession[]) => {
-    try {
-      await supabase
-        .from('chat_history')
-        .insert({
-          user_id: user!.id,
-          title: 'Study Plan Generated',
-          category: 'study-planner',
-          content: JSON.stringify({ sessions, subjects, preferences })
-        });
-    } catch (error) {
-      console.error('Error saving study plan:', error);
-    }
+    };
   };
 
   return {
-    subjects,
-    preferences,
-    generatedPlan,
+    currentPlan,
+    savedPlans,
     isGenerating,
-    analytics,
+    isLoading,
+    createNewPlan,
+    savePlan,
+    loadPlan,
+    deletePlan,
     addSubject,
     updateSubject,
     removeSubject,

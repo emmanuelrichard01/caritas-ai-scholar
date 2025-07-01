@@ -63,9 +63,17 @@ const Dashboard = () => {
           .select('id, title, created_at, category')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(8);
+          .limit(6);
           
         if (recentError) throw recentError;
+        
+        // Fetch study plans data
+        const { data: plansData, error: plansError } = await supabase
+          .from('study_plans')
+          .select('sessions, analytics')
+          .eq('user_id', user.id);
+          
+        if (plansError && plansError.code !== 'PGRST116') throw plansError;
         
         // Process activity data for chart
         const activityCounts: Record<string, number> = {};
@@ -87,10 +95,23 @@ const Dashboard = () => {
           color: chartColors[category] || chartColors.default
         }));
         
-        // Calculate stats
+        // Calculate enhanced stats
         const totalInteractions = historyData?.length || 0;
-        const studyHours = Math.floor(totalInteractions * 0.5); // Estimate
-        const completedTasks = Math.floor(totalInteractions * 0.3); // Estimate
+        let studyHours = Math.floor(totalInteractions * 0.5);
+        let completedTasks = Math.floor(totalInteractions * 0.3);
+        
+        // Add study plan statistics
+        if (plansData?.length > 0) {
+          const planTasks = plansData.flatMap(plan => 
+            (plan.sessions as any[])?.flatMap(session => session.tasks || []) || []
+          );
+          const planCompletedTasks = planTasks.filter(task => task.completed).length;
+          const planHours = planTasks.reduce((sum, task) => sum + (task.duration || 0), 0) / 60;
+          
+          studyHours += Math.floor(planHours);
+          completedTasks += planCompletedTasks;
+        }
+        
         const streak = calculateStreak(historyData || []);
         
         setActivityData(processedData);
@@ -116,6 +137,12 @@ const Dashboard = () => {
       .channel('dashboard-updates')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'chat_history' },
+        () => {
+          fetchUserData();
+        }
+      )
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'study_plans' },
         () => {
           fetchUserData();
         }
@@ -155,29 +182,56 @@ const Dashboard = () => {
       return activityDate.toDateString() === yesterday.toDateString();
     });
     
-    return hasActivityToday || hasActivityYesterday ? 1 : 0;
+    // Calculate actual streak
+    let streak = 0;
+    const sortedActivities = activities
+      .map(a => new Date(a.created_at))
+      .sort((a, b) => b.getTime() - a.getTime());
+    
+    if (sortedActivities.length === 0) return 0;
+    
+    let currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    
+    for (let i = 0; i < 30; i++) { // Check last 30 days
+      const hasActivity = sortedActivities.some(date => {
+        const activityDate = new Date(date);
+        activityDate.setHours(0, 0, 0, 0);
+        return activityDate.getTime() === currentDate.getTime();
+      });
+      
+      if (hasActivity) {
+        streak++;
+      } else if (i > 0) { // Allow for today to not have activity yet
+        break;
+      }
+      
+      currentDate.setDate(currentDate.getDate() - 1);
+    }
+    
+    return hasActivityToday || hasActivityYesterday ? Math.max(streak, 1) : 0;
   };
   
   return (
     <PageLayout
       title="Dashboard"
-      subtitle="Your personalized learning hub with insights, progress tracking, and quick access to all features"
+      subtitle="Your personalized learning hub with insights and progress tracking"
       icon={<Sparkles className="h-6 w-6" />}
     >
-      <div className="space-y-6 sm:space-y-8">
+      <div className="space-y-6">
         {/* Welcome Section */}
         <WelcomeCard profile={profile} userEmail={user?.email} stats={stats} />
         
-        {/* Main Content Grid - Mobile responsive */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-          {/* Activity Chart */}
-          <div className="lg:col-span-1 order-2 lg:order-1">
-            <ActivityChart activityData={activityData} loading={loading} />
+        {/* Main Content Grid - Mobile First */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Quick Actions - Full width on mobile */}
+          <div className="xl:col-span-2 order-1">
+            <QuickActions />
           </div>
           
-          {/* Quick Actions */}
-          <div className="lg:col-span-2 order-1 lg:order-2">
-            <QuickActions />
+          {/* Activity Chart - Stacked on mobile */}
+          <div className="xl:col-span-1 order-2">
+            <ActivityChart activityData={activityData} loading={loading} />
           </div>
         </div>
         

@@ -4,9 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus, Calendar, Clock, Target, Sparkles, Zap, BookOpen } from "lucide-react";
+import { X, Plus, Target, Sparkles, Zap, BookOpen } from "lucide-react";
 import { StudySubject, StudyPreferences } from "@/hooks/useStudyPlan";
 
 interface StudyPlanSetupProps {
@@ -49,7 +48,8 @@ export const StudyPlanSetup = ({
     onUpdatePreferences({ studyDays: newDays });
   };
 
-  const studyDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const studyDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const fullDayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
@@ -61,95 +61,82 @@ export const StudyPlanSetup = ({
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-full">
-          <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-          <span className="text-sm font-medium text-purple-700 dark:text-purple-300">AI-Powered Study Planning</span>
-        </div>
-        <h2 className="text-2xl font-bold dark:text-white">Create Your Personalized Study Plan</h2>
-        <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-          Our intelligent algorithm will analyze your subjects, preferences, and deadlines to create an optimal study schedule.
-        </p>
-      </div>
-
-      {/* Add Subject */}
-      <Card className="p-6 dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-600 transition-colors">
+    <div className="space-y-6">
+      {/* Add Subject - Mobile Optimized */}
+      <Card className="p-4 border-dashed">
         <div className="flex items-center gap-2 mb-4">
-          <Plus className="h-5 w-5 text-purple-600" />
-          <h3 className="text-lg font-semibold dark:text-white">Add Study Subject</h3>
+          <Plus className="h-4 w-4 text-purple-600" />
+          <h3 className="font-semibold dark:text-white">Add Subject</h3>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="md:col-span-2">
-            <Label htmlFor="subject-name" className="dark:text-slate-300">Subject Name</Label>
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="subject-name" className="text-sm">Subject Name</Label>
             <Input
               id="subject-name"
               value={newSubject.name}
               onChange={(e) => setNewSubject(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="e.g., Calculus, Physics, Literature"
-              className="dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              placeholder="e.g., Mathematics, Physics"
+              className="mt-1"
               onKeyPress={(e) => e.key === 'Enter' && addSubject()}
             />
           </div>
-          <div>
-            <Label htmlFor="estimated-hours" className="dark:text-slate-300">Estimated Hours</Label>
-            <Input
-              id="estimated-hours"
-              type="number"
-              min="1"
-              max="100"
-              value={newSubject.hours}
-              onChange={(e) => setNewSubject(prev => ({ ...prev, hours: parseInt(e.target.value) || 10 }))}
-              className="dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-            />
-          </div>
-          <div>
-            <Label htmlFor="deadline" className="dark:text-slate-300">Deadline (Optional)</Label>
-            <Input
-              id="deadline"
-              type="date"
-              value={newSubject.deadline}
-              onChange={(e) => setNewSubject(prev => ({ ...prev, deadline: e.target.value }))}
-              className="dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-            />
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="estimated-hours" className="text-sm">Hours</Label>
+              <Input
+                id="estimated-hours"
+                type="number"
+                min="1"
+                max="100"
+                value={newSubject.hours}
+                onChange={(e) => setNewSubject(prev => ({ ...prev, hours: parseInt(e.target.value) || 10 }))}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="deadline" className="text-sm">Deadline</Label>
+              <Input
+                id="deadline"
+                type="date"
+                value={newSubject.deadline}
+                onChange={(e) => setNewSubject(prev => ({ ...prev, deadline: e.target.value }))}
+                className="mt-1"
+              />
+            </div>
           </div>
         </div>
         
-        <Button onClick={addSubject} className="mt-4 bg-purple-600 hover:bg-purple-700">
+        <Button onClick={addSubject} className="w-full mt-4 bg-purple-600 hover:bg-purple-700">
           <Plus className="h-4 w-4 mr-2" />
           Add Subject
         </Button>
       </Card>
 
-      {/* Subjects List */}
+      {/* Subjects List - Mobile Optimized */}
       {subjects.length > 0 && (
-        <Card className="p-6 dark:bg-slate-900">
+        <Card className="p-4">
           <div className="flex items-center gap-2 mb-4">
-            <Target className="h-5 w-5 text-green-600" />
-            <h3 className="text-lg font-semibold dark:text-white">Your Study Subjects</h3>
+            <Target className="h-4 w-4 text-green-600" />
+            <h3 className="font-semibold dark:text-white">Subjects ({subjects.length})</h3>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-3">
             {subjects.map((subject) => (
-              <div key={subject.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-3 flex-1">
-                  <div 
-                    className="w-4 h-4 rounded-full flex-shrink-0" 
-                    style={{ backgroundColor: subject.color }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium dark:text-white truncate">{subject.name}</span>
-                      {getPriorityIcon(subject.priority)}
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                      <span>{subject.estimatedHours}h total</span>
-                      {subject.deadline && (
-                        <span>Due: {subject.deadline.toLocaleDateString()}</span>
-                      )}
-                    </div>
+              <div key={subject.id} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <div 
+                  className="w-3 h-3 rounded-full flex-shrink-0" 
+                  style={{ backgroundColor: subject.color }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium text-sm truncate dark:text-white">{subject.name}</span>
+                    {getPriorityIcon(subject.priority)}
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {subject.estimatedHours}h
+                    {subject.deadline && ` • Due ${subject.deadline.toLocaleDateString()}`}
                   </div>
                 </div>
                 
@@ -158,12 +145,12 @@ export const StudyPlanSetup = ({
                     value={subject.priority}
                     onValueChange={(value) => onUpdateSubject(subject.id, { priority: value as any })}
                   >
-                    <SelectTrigger className="w-24 h-8 text-xs">
+                    <SelectTrigger className="w-20 h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="medium">Med</SelectItem>
                       <SelectItem value="low">Low</SelectItem>
                     </SelectContent>
                   </Select>
@@ -172,7 +159,7 @@ export const StudyPlanSetup = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => onRemoveSubject(subject.id)}
-                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                    className="h-8 w-8 p-0 text-red-500"
                   >
                     <X className="h-3 w-3" />
                   </Button>
@@ -183,104 +170,100 @@ export const StudyPlanSetup = ({
         </Card>
       )}
 
-      {/* Study Preferences */}
-      <Card className="p-6 dark:bg-slate-900">
-        <div className="flex items-center gap-2 mb-6">
-          <Clock className="h-5 w-5 text-blue-600" />
-          <h3 className="text-lg font-semibold dark:text-white">Study Preferences</h3>
-        </div>
+      {/* Study Preferences - Mobile Optimized */}
+      <Card className="p-4">
+        <h3 className="font-semibold mb-4 dark:text-white">Preferences</h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div>
-            <Label htmlFor="daily-hours" className="dark:text-slate-300">Daily Study Hours</Label>
-            <Input
-              id="daily-hours"
-              type="number"
-              min="1"
-              max="12"
-              value={preferences.dailyStudyHours}
-              onChange={(e) => onUpdatePreferences({ dailyStudyHours: parseInt(e.target.value) || 4 })}
-              className="dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-            />
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-sm">Daily Hours</Label>
+              <Input
+                type="number"
+                min="1"
+                max="12"
+                value={preferences.dailyStudyHours}
+                onChange={(e) => onUpdatePreferences({ dailyStudyHours: parseInt(e.target.value) || 4 })}
+                className="mt-1"
+              />
+            </div>
+            
+            <div>
+              <Label className="text-sm">Session (min)</Label>
+              <Input
+                type="number"
+                min="15"
+                max="120"
+                value={preferences.sessionDuration}
+                onChange={(e) => onUpdatePreferences({ sessionDuration: parseInt(e.target.value) || 45 })}
+                className="mt-1"
+              />
+            </div>
+            
+            <div>
+              <Label className="text-sm">Break (min)</Label>
+              <Input
+                type="number"
+                min="5"
+                max="30"
+                value={preferences.breakDuration}
+                onChange={(e) => onUpdatePreferences({ breakDuration: parseInt(e.target.value) || 15 })}
+                className="mt-1"
+              />
+            </div>
           </div>
-          
-          <div>
-            <Label htmlFor="session-duration" className="dark:text-slate-300">Session Duration (min)</Label>
-            <Input
-              id="session-duration"
-              type="number"
-              min="15"
-              max="120"
-              value={preferences.sessionDuration}
-              onChange={(e) => onUpdatePreferences({ sessionDuration: parseInt(e.target.value) || 45 })}
-              className="dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="break-duration" className="dark:text-slate-300">Break Duration (min)</Label>
-            <Input
-              id="break-duration"
-              type="number"
-              min="5"
-              max="30"
-              value={preferences.breakDuration}
-              onChange={(e) => onUpdatePreferences({ breakDuration: parseInt(e.target.value) || 15 })}
-              className="dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-            />
-          </div>
-        </div>
 
-        <div className="mt-6">
-          <Label className="dark:text-slate-300 mb-3 block">Study Days</Label>
-          <div className="flex flex-wrap gap-2">
-            {studyDays.map(day => (
-              <Button
-                key={day}
-                variant={preferences.studyDays.includes(day.toLowerCase()) ? "default" : "outline"}
-                size="sm"
-                onClick={() => toggleStudyDay(day)}
-                className="text-xs"
-              >
-                {day.slice(0, 3)}
-              </Button>
-            ))}
+          <div>
+            <Label className="text-sm mb-2 block">Study Days</Label>
+            <div className="flex flex-wrap gap-2">
+              {studyDays.map((day, index) => (
+                <Button
+                  key={day}
+                  variant={preferences.studyDays.includes(fullDayNames[index].toLowerCase()) ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => toggleStudyDay(fullDayNames[index])}
+                  className="text-xs px-3"
+                >
+                  {day}
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="mt-6">
-          <Label className="dark:text-slate-300 mb-3 block">Focus Mode</Label>
-          <div className="flex gap-2">
-            {["pomodoro", "timeboxing", "flexible"].map(mode => (
-              <Button
-                key={mode}
-                variant={preferences.focusMode === mode ? "default" : "outline"}
-                size="sm"
-                onClick={() => onUpdatePreferences({ focusMode: mode as any })}
-                className="capitalize"
-              >
-                {mode}
-              </Button>
-            ))}
+          <div>
+            <Label className="text-sm mb-2 block">Focus Mode</Label>
+            <div className="flex flex-wrap gap-2">
+              {["pomodoro", "timeboxing", "flexible"].map(mode => (
+                <Button
+                  key={mode}
+                  variant={preferences.focusMode === mode ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => onUpdatePreferences({ focusMode: mode as any })}
+                  className="capitalize text-xs"
+                >
+                  {mode}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
       </Card>
 
       <Button 
         onClick={onGenerate} 
-        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-3 font-semibold rounded-lg"
         disabled={isGenerating || subjects.length === 0}
         size="lg"
       >
         {isGenerating ? (
           <>
-            <div className="mr-3 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-            Generating Your Optimal Study Plan...
+            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+            Generating Plan...
           </>
         ) : (
           <>
-            <Sparkles className="mr-3 h-5 w-5" />
-            Generate AI-Powered Study Plan
+            <Sparkles className="mr-2 h-4 w-4" />
+            Generate Smart Plan
           </>
         )}
       </Button>

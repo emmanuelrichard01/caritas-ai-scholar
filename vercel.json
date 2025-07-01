@@ -6,6 +6,10 @@
 
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "/supabase/functions/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
@@ -37,8 +41,8 @@
   },
 
   "functions": {
-  "functions/**/*.ts": {
-    "runtime": "vercel-node@4.0.0"
+    "supabase/functions/**/*.ts": {
+      "runtime": "vercel-node@4.0.0"
+    }
   }
- }
 }

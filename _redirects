@@ -1,0 +1,4 @@
+
+# Netlify redirects (if deploying to Netlify as fallback)
+/api/* https://yvlrspteukuooobkvzdz.supabase.co/functions/v1/:splat 200
+/* /index.html 200

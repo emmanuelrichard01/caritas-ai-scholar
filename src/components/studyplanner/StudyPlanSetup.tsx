@@ -74,7 +74,7 @@ export const StudyPlanSetup = ({
       {/* Add Subject - Mobile Optimized */}
       <Card className="p-4 border-dashed">
         <div className="flex items-center gap-2 mb-4">
-          <Plus className="h-4 w-4 text-red-600" />
+          <Plus className="h-4 w-4 text-blue-600" />
           <h3 className="font-semibold dark:text-white">Add Subject</h3>
         </div>
         
@@ -117,7 +117,7 @@ export const StudyPlanSetup = ({
           </div>
         </div>
         
-        <Button onClick={addSubject} className="w-full mt-4 bg-red-600 hover:bg-red-700">
+        <Button onClick={addSubject} className="w-full mt-4 bg-blue-600 hover:bg-blue-700">
           <Plus className="h-4 w-4 mr-2" />
           Add Subject
         </Button>
@@ -127,7 +127,7 @@ export const StudyPlanSetup = ({
       {subjects.length > 0 && (
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-4">
-            <Target className="h-4 w-4 text-red-600" />
+            <Target className="h-4 w-4 text-blue-600" />
             <h3 className="font-semibold dark:text-white">Subjects ({subjects.length})</h3>
           </div>
           
@@ -260,7 +260,7 @@ export const StudyPlanSetup = ({
 
       <Button 
         onClick={onGenerate} 
-        className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 font-semibold rounded-lg"
+        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 font-semibold rounded-lg"
         disabled={isGenerating || subjects.length === 0}
         size="lg"
       >

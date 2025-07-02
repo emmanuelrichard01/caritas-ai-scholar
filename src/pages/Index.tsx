@@ -53,11 +53,11 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg">
                 <MessageSquare className="h-5 w-5 text-white" />
               </div>
               <div>
-                <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <span className="font-bold text-lg bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">
                   CARITAS AI
                 </span>
                 <div className="text-xs text-slate-500 dark:text-slate-400 -mt-1">Academic Assistant</div>
@@ -65,17 +65,17 @@ const Index = () => {
             </div>
             
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-slate-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 transition-colors font-medium">
+              <a href="#features" className="text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 transition-colors font-medium">
                 Features
               </a>
-              <a href="/dashboard" className="text-slate-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 transition-colors font-medium">
+              <a href="/dashboard" className="text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 transition-colors font-medium">
                 Dashboard
               </a>
               
               {user ? (
                 <NavbarProfile isCollapsed={false} />
               ) : (
-                <a href="/auth" className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-xl font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl">
+                <a href="/auth" className="bg-gradient-to-r from-red-500 to-red-700 text-white px-6 py-2 rounded-xl font-medium hover:from-red-600 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl">
                   Get Started
                 </a>
               )}
@@ -86,7 +86,7 @@ const Index = () => {
               {user ? (
                 <NavbarProfile isCollapsed={false} />
               ) : (
-                <a href="/auth" className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                <a href="/auth" className="bg-gradient-to-r from-red-500 to-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
                   Sign In
                 </a>
               )}
@@ -109,7 +109,7 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="lg:col-span-2">
               <div className="flex items-center gap-3 mb-6">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg">
                   <MessageSquare className="h-5 w-5 text-white" />
                 </div>
                 <div>

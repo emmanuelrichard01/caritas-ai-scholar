@@ -9,24 +9,26 @@ export const useApiConfig = () => {
 
   const getAiResponse = async (message: string) => {
     try {
-      // Improved real AI response using the edge function
+      // Use the Vercel proxy for Supabase edge functions
       const response = await fetch('/api/process-chat', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bHJzcHRldWt1b29vYmt2emR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1NjQyNDAsImV4cCI6MjA2MTE0MDI0MH0.EdFXxTk2mOOJwxWugX_nj4wsxffy1lK_l1jljUk2-T0'
         },
         body: JSON.stringify({ query: message })
       });
       
       if (!response.ok) {
-        throw new Error("Failed to get AI response");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
       return data.answer || 'Sorry, I could not process your request at this time.';
     } catch (error) {
-      toast.error("Failed to get AI response");
       console.error("Error in getAiResponse:", error);
+      toast.error("Failed to get AI response");
       throw error;
     }
   };
@@ -52,7 +54,7 @@ export const useApiConfig = () => {
         return null;
       }
       
-      // Improved document processing through edge function
+      // Use the Vercel proxy for document analysis
       const formData = new FormData();
       files.forEach(file => {
         formData.append('files', file);
@@ -61,18 +63,22 @@ export const useApiConfig = () => {
       
       const response = await fetch('/api/analyze-documents', {
         method: 'POST',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bHJzcHRldWt1b29vYmt2emR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1NjQyNDAsImV4cCI6MjA2MTE0MDI0MH0.EdFXxTk2mOOJwxWugX_nj4wsxffy1lK_l1jljUk2-T0'
+        },
         body: formData
       });
       
       if (!response.ok) {
-        throw new Error("Failed to analyze documents");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to analyze documents");
       }
       
       const data = await response.json();
       return data.answer || 'Could not analyze the documents. Please try again.';
     } catch (error) {
-      toast.error("Failed to analyze documents");
       console.error("Error in analyzeDocuments:", error);
+      toast.error("Failed to analyze documents");
       throw error;
     }
   };

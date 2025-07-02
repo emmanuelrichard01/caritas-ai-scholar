@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,9 +73,33 @@ const defaultPreferences: StudyPreferences = {
 };
 
 const subjectColors = [
-  "#3B82F6", "#8B5CF6", "#10B981", "#F59E0B", 
-  "#EF4444", "#06B6D4", "#84CC16", "#F97316"
+  "#DC2626", "#EF4444", "#F97316", "#F59E0B", 
+  "#EAB308", "#84CC16", "#22C55E", "#10B981"
 ];
+
+// Helper function to ensure date conversion
+const ensureDate = (date: any): Date | undefined => {
+  if (!date) return undefined;
+  if (date instanceof Date) return date;
+  if (typeof date === 'string') return new Date(date);
+  return undefined;
+};
+
+// Helper function to serialize dates for storage
+const serializeSubjects = (subjects: StudySubject[]) => {
+  return subjects.map(subject => ({
+    ...subject,
+    deadline: subject.deadline ? subject.deadline.toISOString() : undefined
+  }));
+};
+
+// Helper function to deserialize dates from storage
+const deserializeSubjects = (subjects: any[]): StudySubject[] => {
+  return subjects.map(subject => ({
+    ...subject,
+    deadline: subject.deadline ? new Date(subject.deadline) : undefined
+  }));
+};
 
 export const useStudyPlan = () => {
   const { user } = useAuth();
@@ -109,7 +132,7 @@ export const useStudyPlan = () => {
         id: plan.id,
         title: plan.title,
         description: plan.description,
-        subjects: (plan.subjects as unknown) as StudySubject[],
+        subjects: deserializeSubjects((plan.subjects as unknown) as any[]),
         preferences: (plan.preferences as unknown) as StudyPreferences,
         sessions: (plan.sessions as unknown) as StudySession[],
         analytics: (plan.analytics as unknown) as any,
@@ -142,7 +165,7 @@ export const useStudyPlan = () => {
           id: data.id,
           title: data.title,
           description: data.description,
-          subjects: (data.subjects as unknown) as StudySubject[],
+          subjects: deserializeSubjects((data.subjects as unknown) as any[]),
           preferences: (data.preferences as unknown) as StudyPreferences,
           sessions: (data.sessions as unknown) as StudySession[],
           analytics: (data.analytics as unknown) as any,
@@ -190,7 +213,7 @@ export const useStudyPlan = () => {
         user_id: user.id,
         title: plan.title,
         description: plan.description,
-        subjects: plan.subjects as unknown as any,
+        subjects: serializeSubjects(plan.subjects) as unknown as any,
         preferences: plan.preferences as unknown as any,
         sessions: plan.sessions as unknown as any,
         analytics: plan.analytics as unknown as any,
@@ -271,7 +294,7 @@ export const useStudyPlan = () => {
       id: `subject-${Date.now()}`,
       name,
       priority: "medium",
-      deadline,
+      deadline: deadline ? ensureDate(deadline) : undefined,
       estimatedHours,
       color: subjectColors[currentPlan.subjects.length % subjectColors.length]
     };
@@ -288,7 +311,11 @@ export const useStudyPlan = () => {
     setCurrentPlan({
       ...currentPlan,
       subjects: currentPlan.subjects.map(subject => 
-        subject.id === id ? { ...subject, ...updates } : subject
+        subject.id === id ? { 
+          ...subject, 
+          ...updates,
+          deadline: updates.deadline ? ensureDate(updates.deadline) : subject.deadline
+        } : subject
       )
     });
   };

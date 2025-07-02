@@ -54,10 +54,19 @@ export const StudyPlanSetup = ({
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
       case "high": return <Zap className="h-3 w-3 text-red-500" />;
-      case "medium": return <Target className="h-3 w-3 text-yellow-500" />;
+      case "medium": return <Target className="h-3 w-3 text-orange-500" />;
       case "low": return <BookOpen className="h-3 w-3 text-green-500" />;
       default: return null;
     }
+  };
+
+  const formatDate = (date: Date | undefined): string => {
+    if (!date) return '';
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   return (
@@ -65,7 +74,7 @@ export const StudyPlanSetup = ({
       {/* Add Subject - Mobile Optimized */}
       <Card className="p-4 border-dashed">
         <div className="flex items-center gap-2 mb-4">
-          <Plus className="h-4 w-4 text-purple-600" />
+          <Plus className="h-4 w-4 text-red-600" />
           <h3 className="font-semibold dark:text-white">Add Subject</h3>
         </div>
         
@@ -108,7 +117,7 @@ export const StudyPlanSetup = ({
           </div>
         </div>
         
-        <Button onClick={addSubject} className="w-full mt-4 bg-purple-600 hover:bg-purple-700">
+        <Button onClick={addSubject} className="w-full mt-4 bg-red-600 hover:bg-red-700">
           <Plus className="h-4 w-4 mr-2" />
           Add Subject
         </Button>
@@ -118,7 +127,7 @@ export const StudyPlanSetup = ({
       {subjects.length > 0 && (
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-4">
-            <Target className="h-4 w-4 text-green-600" />
+            <Target className="h-4 w-4 text-red-600" />
             <h3 className="font-semibold dark:text-white">Subjects ({subjects.length})</h3>
           </div>
           
@@ -136,7 +145,7 @@ export const StudyPlanSetup = ({
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
                     {subject.estimatedHours}h
-                    {subject.deadline && ` • Due ${subject.deadline.toLocaleDateString()}`}
+                    {subject.deadline && ` • Due ${formatDate(subject.deadline)}`}
                   </div>
                 </div>
                 
@@ -251,7 +260,7 @@ export const StudyPlanSetup = ({
 
       <Button 
         onClick={onGenerate} 
-        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-3 font-semibold rounded-lg"
+        className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 font-semibold rounded-lg"
         disabled={isGenerating || subjects.length === 0}
         size="lg"
       >

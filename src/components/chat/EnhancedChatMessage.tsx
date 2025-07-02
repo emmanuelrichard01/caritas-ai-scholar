@@ -1,9 +1,8 @@
 
-import { Bot, User, Copy, ThumbsUp, ThumbsDown, Clock, CheckCircle } from 'lucide-react';
+import { Bot, User, Copy, ThumbsUp, ThumbsDown, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { FormattedContent } from '@/components/FormattedContent';
@@ -44,92 +43,78 @@ export const EnhancedChatMessage = ({ message, isUser }: EnhancedChatMessageProp
     }
   };
 
-  const formatTime = (timestamp?: Date) => {
-    if (!timestamp) return '';
-    return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
   return (
     <div className={cn(
-      "group flex gap-4 sm:gap-6 animate-fade-in",
-      isUser ? "flex-row-reverse" : "flex-row"
+      "group flex gap-3 animate-fade-in max-w-4xl",
+      isUser ? "flex-row-reverse ml-auto" : "flex-row"
     )}>
       {/* Avatar */}
       <div className={cn(
-        "flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shadow-lg",
+        "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
         isUser 
-          ? "bg-gradient-to-br from-slate-600 to-slate-700" 
-          : "bg-gradient-to-br from-blue-500 to-purple-600"
+          ? "bg-slate-600" 
+          : "bg-blue-600"
       )}>
         {isUser ? (
-          <User className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+          <User className="h-4 w-4 text-white" />
         ) : (
-          <Bot className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+          <Bot className="h-4 w-4 text-white" />
         )}
       </div>
 
       {/* Message Content */}
       <div className={cn(
-        "flex-1 min-w-0 max-w-[85%] sm:max-w-[80%]",
+        "flex-1 min-w-0",
         isUser ? "flex flex-col items-end" : "flex flex-col items-start"
       )}>
         {/* Header */}
         <div className={cn(
-          "flex items-center gap-2 mb-2",
+          "flex items-center gap-2 mb-1",
           isUser ? "flex-row-reverse" : "flex-row"
         )}>
-          <span className="font-semibold text-sm text-slate-900 dark:text-white">
+          <span className="font-medium text-sm text-slate-900 dark:text-white">
             {isUser ? "You" : "CARITAS AI"}
           </span>
           {message.timestamp && (
-            <>
-              <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {formatTime(message.timestamp)}
-              </span>
-            </>
-          )}
-          {!isUser && (
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
           )}
         </div>
 
         {/* Message Bubble */}
         <Card className={cn(
-          "p-4 sm:p-6 shadow-lg border-0 transition-all duration-300 hover:shadow-xl",
+          "p-3 max-w-[85%] border-0",
           isUser 
-            ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white" 
+            ? "bg-blue-600 text-white" 
             : message.role === 'error'
-            ? "bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 border border-red-200 dark:border-red-800"
-            : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+            ? "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800"
+            : "bg-slate-50 dark:bg-slate-800"
         )}>
-          <div className="space-y-3">
-            {isUser ? (
-              <p className="text-white leading-relaxed whitespace-pre-wrap">
-                {message.content}
-              </p>
-            ) : (
-              <FormattedContent 
-                content={message.content} 
-                variant="chat"
-                className={cn(
-                  "max-w-none",
-                  message.role === 'error' && "text-red-800 dark:text-red-200"
-                )}
-              />
-            )}
-          </div>
+          {isUser ? (
+            <p className="text-white leading-relaxed whitespace-pre-wrap text-sm">
+              {message.content}
+            </p>
+          ) : (
+            <FormattedContent 
+              content={message.content} 
+              variant="chat"
+              className={cn(
+                "max-w-none text-sm",
+                message.role === 'error' && "text-red-800 dark:text-red-200"
+              )}
+            />
+          )}
         </Card>
 
         {/* Action Buttons */}
         {!isUser && (
-          <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <Button
               variant="ghost"
               size="sm"
               onClick={handleCopy}
-              className="h-8 px-3 text-xs hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400"
+              className="h-7 px-2 text-xs hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400"
             >
               {copied ? (
                 <>
@@ -144,21 +129,18 @@ export const EnhancedChatMessage = ({ message, isUser }: EnhancedChatMessageProp
               )}
             </Button>
             
-            <Separator orientation="vertical" className="h-4" />
-            
             <Button
               variant="ghost"
               size="sm"
               onClick={() => handleFeedback('positive')}
               className={cn(
-                "h-8 px-3 text-xs hover:bg-slate-100 dark:hover:bg-slate-700",
+                "h-7 px-2 text-xs hover:bg-slate-100 dark:hover:bg-slate-700",
                 feedback === 'positive' 
                   ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400" 
                   : "text-slate-600 dark:text-slate-400"
               )}
             >
-              <ThumbsUp className="h-3 w-3 mr-1" />
-              Helpful
+              <ThumbsUp className="h-3 w-3" />
             </Button>
             
             <Button
@@ -166,14 +148,13 @@ export const EnhancedChatMessage = ({ message, isUser }: EnhancedChatMessageProp
               size="sm"
               onClick={() => handleFeedback('negative')}
               className={cn(
-                "h-8 px-3 text-xs hover:bg-slate-100 dark:hover:bg-slate-700",
+                "h-7 px-2 text-xs hover:bg-slate-100 dark:hover:bg-slate-700",
                 feedback === 'negative' 
                   ? "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400" 
                   : "text-slate-600 dark:text-slate-400"
               )}
             >
-              <ThumbsDown className="h-3 w-3 mr-1" />
-              Not helpful
+              <ThumbsDown className="h-3 w-3" />
             </Button>
           </div>
         )}

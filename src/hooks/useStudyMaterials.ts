@@ -52,10 +52,20 @@ export const useStudyMaterials = () => {
         }
       }
       
-      // Combine segments efficiently
+      // Combine segments efficiently with better structure
       const fullContent = materialWithSegments.segments
-        .map(segment => `## ${segment.title}\n${segment.text}`)
+        .map(segment => {
+          // Clean and structure the content better
+          const cleanTitle = segment.title?.trim() || "Section";
+          const cleanText = segment.text?.trim() || "";
+          return `## ${cleanTitle}\n${cleanText}`;
+        })
+        .filter(segment => segment.length > 10) // Remove empty segments
         .join('\n\n');
+      
+      if (!fullContent || fullContent.length < 50) {
+        throw new Error("Insufficient content found in the material. The document may not have been processed correctly or may be empty.");
+      }
       
       setMaterialContext(fullContent);
       
@@ -114,18 +124,30 @@ Format the response with clear headings and bullet points for easy studying.`;
   };
   
   const generateFlashcards = async (title: string, content: string) => {
-    const prompt = `Based on the study material "${title}", create exactly 15 flashcards for key concepts.
+    const prompt = `Create flashcards ONLY from the provided study material content. Do not use external knowledge.
 
-Material Content:
+Study Material: "${title}"
+
+MATERIAL CONTENT (Use ONLY this):
 ${content}
 
-Create flashcards that test understanding of important concepts. Format as JSON:
+INSTRUCTIONS:
+- Analyze the material content above carefully
+- Create exactly 15 flashcards that test key concepts, definitions, facts, and important details found in this specific material
+- Questions should be direct and answerable from the material
+- Answers should be concise but informative, based on the material content
+
+FORMAT (JSON only):
 [
-  {"question": "What is...", "answer": "..."},
-  {"question": "Define...", "answer": "..."}
+  {"question": "What is [concept from material]?", "answer": "According to the material: [specific answer]"},
+  {"question": "Define [term from material]", "answer": "[definition from material]"}
 ]
 
-Make sure to create exactly 15 flashcards covering different aspects of the material.`;
+REQUIREMENTS:
+- Exactly 15 flashcards
+- Questions and answers must come from the provided material only
+- Cover different topics/sections from the material
+- Include key concepts, definitions, facts, and important details`;
     
     const response = await processQuery(prompt, 'course-tutor');
     if (!response) return null;
@@ -139,29 +161,39 @@ Make sure to create exactly 15 flashcards covering different aspects of the mate
   };
   
   const generateQuiz = async (title: string, content: string) => {
-    const prompt = `Based on the study material "${title}", create exactly 10 multiple-choice quiz questions that thoroughly test understanding of the material.
+    // Enhanced prompt with better content analysis
+    const prompt = `IMPORTANT: You are generating quiz questions ONLY from the provided study material content. Do not use external knowledge.
 
-Material Content:
+Study Material Title: "${title}"
+
+ACTUAL MATERIAL CONTENT (Use ONLY this content):
 ${content}
 
-Create 10 comprehensive quiz questions that cover different aspects of the material. Each question should have 4 options with only one correct answer.
+INSTRUCTIONS:
+- Read and analyze the material content above carefully
+- Create exactly 10 multiple-choice quiz questions that test understanding of concepts, facts, and details found SPECIFICALLY in this material
+- Each question must be directly answerable from the provided content
+- Questions should cover different sections/topics from the material
+- Include a mix of factual recall, comprehension, and application questions
+- Provide 4 realistic options with only one correct answer
+- Write detailed explanations that reference the material content
 
-Format as JSON:
+OUTPUT FORMAT (JSON only):
 [
   {
-    "question": "What is...?",
+    "question": "Based on the material, what is...?",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctAnswer": 0,
-    "explanation": "Detailed explanation of why this answer is correct..."
+    "explanation": "According to the material content: [specific reference to the text]..."
   }
 ]
 
-Make sure to:
-1. Create exactly 10 questions
-2. Cover different topics from the material
-3. Include variety in question difficulty
-4. Provide clear explanations for each answer
-5. Ensure all questions are answerable from the provided content`;
+REQUIREMENTS:
+1. Exactly 10 questions
+2. Questions must be answerable ONLY from the provided material
+3. Reference specific parts of the material in explanations
+4. Vary question difficulty and type
+5. Ensure all 4 options are plausible but only one is correct from the material`;
     
     const response = await processQuery(prompt, 'course-tutor');
     if (!response) return generateDefaultQuiz(title);

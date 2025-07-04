@@ -28,7 +28,7 @@ export const PageLayout = ({ title, subtitle, icon, children }: PageLayoutProps)
         "flex-1 transition-all duration-300 ease-in-out",
         isMobile ? 'pt-16' : isCollapsed ? 'pl-[70px]' : 'pl-[260px]'
       )}>
-        <div className="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto">
+        <div className="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto w-full overflow-x-hidden">
           {/* Page Header - Mobile Optimized */}
           <div className="flex flex-col sm:flex-row sm:items-start mb-4 sm:mb-6 gap-3 sm:gap-4">
             <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-gradient-to-br from-caritas to-caritas-light flex items-center justify-center text-white shadow-lg flex-shrink-0">

@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const googleAIKey = Deno.env.get('GOOGLE_AI_KEY') || 'AIzaSyDHnnACtYYBHf3Y1FMVv2jp-8l12MK7RUw';
-const openRouterKey = Deno.env.get('OPENROUTER_KEY') || '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';
+const openRouterKey = Deno.env.get('OPENROUTER_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 

@@ -218,27 +218,27 @@ const Dashboard = () => {
       subtitle="Your personalized learning hub with insights and progress tracking"
       icon={<Sparkles className="h-6 w-6" />}
     >
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
         {/* Welcome Section - Full width on mobile */}
-        <div className="w-full">
+        <div className="w-full max-w-full">
           <WelcomeCard profile={profile} userEmail={user?.email} stats={stats} />
         </div>
         
         {/* Main Content Grid - Mobile First Responsive */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6 w-full max-w-full">
           {/* Quick Actions - Full width on mobile, spans 8 cols on desktop */}
-          <div className="xl:col-span-8 order-1">
+          <div className="xl:col-span-8 order-1 w-full max-w-full min-w-0">
             <QuickActions />
           </div>
           
           {/* Activity Chart - Full width on mobile, spans 4 cols on desktop */}
-          <div className="xl:col-span-4 order-2">
+          <div className="xl:col-span-4 order-2 w-full max-w-full min-w-0">
             <ActivityChart activityData={activityData} loading={loading} />
           </div>
         </div>
         
         {/* Recent Activity - Full width */}
-        <div className="w-full order-3">
+        <div className="w-full max-w-full order-3">
           <RecentActivityList recentActivities={recentActivities} loading={loading} />
         </div>
       </div>

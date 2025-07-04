@@ -225,14 +225,14 @@ const Dashboard = () => {
         </div>
         
         {/* Main Content Grid - Mobile First Responsive */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6">
           {/* Quick Actions - Full width on mobile, spans 8 cols on desktop */}
-          <div className="lg:col-span-8 order-1">
+          <div className="xl:col-span-8 order-1">
             <QuickActions />
           </div>
           
           {/* Activity Chart - Full width on mobile, spans 4 cols on desktop */}
-          <div className="lg:col-span-4 order-2">
+          <div className="xl:col-span-4 order-2">
             <ActivityChart activityData={activityData} loading={loading} />
           </div>
         </div>

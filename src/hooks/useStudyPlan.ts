@@ -425,7 +425,7 @@ export const useStudyPlan = () => {
   };
 };
 
-// Smart session generation algorithm
+// Smart session generation algorithm with deadline-aware scheduling
 function generateSmartSessions(
   subjects: StudySubject[], 
   preferences: StudyPreferences, 
@@ -434,18 +434,16 @@ function generateSmartSessions(
   const sessions: StudySession[] = [];
   const workingDays = getWorkingDays(preferences.studyDays, planDuration);
   
-  // Sort subjects by priority and deadline urgency
-  const prioritizedSubjects = [...subjects].sort((a, b) => {
-    const priorityWeight = { high: 3, medium: 2, low: 1 };
-    const urgencyA = a.deadline ? Math.max(0, 7 - Math.ceil((a.deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
-    const urgencyB = b.deadline ? Math.max(0, 7 - Math.ceil((b.deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
-    
-    return (priorityWeight[b.priority] + urgencyB) - (priorityWeight[a.priority] + urgencyA);
-  });
+  // Calculate total available hours and hours needed per subject
+  const totalAvailableHours = workingDays.length * preferences.dailyStudyHours;
+  const totalNeededHours = subjects.reduce((sum, subject) => sum + subject.estimatedHours, 0);
+  
+  // Create a schedule that respects deadlines
+  const subjectSchedule = createDeadlineAwareSchedule(subjects, workingDays, totalAvailableHours);
 
   workingDays.forEach((date, index) => {
     const timeSlots = generateTimeSlots(preferences);
-    const dayTasks = distributeDailyTasks(prioritizedSubjects, preferences, index);
+    const dayTasks = distributeDailyTasksWithDeadlines(subjectSchedule, preferences, index, date);
     
     const session: StudySession = {
       id: `session-${index}`,
@@ -461,6 +459,62 @@ function generateSmartSessions(
   });
   
   return sessions;
+}
+
+// Create a deadline-aware schedule that ensures all tasks are completed before their deadlines
+function createDeadlineAwareSchedule(
+  subjects: StudySubject[], 
+  workingDays: Date[], 
+  totalAvailableHours: number
+): Map<number, StudySubject[]> {
+  const schedule = new Map<number, StudySubject[]>();
+  
+  // Initialize each day with an empty array
+  workingDays.forEach((_, index) => {
+    schedule.set(index, []);
+  });
+  
+  // Sort subjects by deadline urgency and priority
+  const sortedSubjects = [...subjects].sort((a, b) => {
+    const priorityWeight = { high: 3, medium: 2, low: 1 };
+    
+    // Calculate days until deadline
+    const now = new Date();
+    const daysUntilA = a.deadline ? Math.ceil((a.deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 365;
+    const daysUntilB = b.deadline ? Math.ceil((b.deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 365;
+    
+    // Prioritize by deadline first, then by priority
+    if (daysUntilA !== daysUntilB) {
+      return daysUntilA - daysUntilB;
+    }
+    
+    return priorityWeight[b.priority] - priorityWeight[a.priority];
+  });
+  
+  // Distribute subjects across days, respecting deadlines
+  sortedSubjects.forEach(subject => {
+    const maxDayIndex = subject.deadline 
+      ? Math.min(
+          workingDays.findIndex(day => day >= subject.deadline!) - 1,
+          workingDays.length - 1
+        )
+      : workingDays.length - 1;
+    
+    // Ensure we don't schedule beyond the deadline
+    const validMaxDay = Math.max(0, maxDayIndex);
+    
+    // Distribute the subject's hours across available days before deadline
+    const hoursPerDay = subject.estimatedHours / Math.max(1, validMaxDay + 1);
+    const sessionsPerDay = Math.ceil(hoursPerDay);
+    
+    for (let dayIndex = 0; dayIndex <= validMaxDay; dayIndex++) {
+      const currentDaySubjects = schedule.get(dayIndex) || [];
+      currentDaySubjects.push(subject);
+      schedule.set(dayIndex, currentDaySubjects);
+    }
+  });
+  
+  return schedule;
 }
 
 function getWorkingDays(studyDays: string[], duration: number): Date[] {
@@ -490,10 +544,11 @@ function generateTimeSlots(preferences: StudyPreferences) {
   return timeSlotMap[primarySlot] || timeSlotMap.morning;
 }
 
-function distributeDailyTasks(
-  subjects: StudySubject[], 
+function distributeDailyTasksWithDeadlines(
+  subjectSchedule: Map<number, StudySubject[]>,
   preferences: StudyPreferences, 
-  dayIndex: number
+  dayIndex: number,
+  currentDate: Date
 ): StudyTask[] {
   const tasks: StudyTask[] = [];
   const totalMinutes = preferences.dailyStudyHours * 60;
@@ -503,39 +558,80 @@ function distributeDailyTasks(
   let remainingTime = totalMinutes;
   let taskId = 0;
   
-  // Cycle through subjects
-  subjects.forEach((subject, subjectIndex) => {
+  // Get subjects scheduled for this day
+  const daySubjects = subjectSchedule.get(dayIndex) || [];
+  const uniqueSubjects = Array.from(new Set(daySubjects));
+  
+  if (uniqueSubjects.length === 0) return tasks;
+  
+  // Distribute time among subjects based on priority and deadline urgency
+  uniqueSubjects.forEach((subject, subjectIndex) => {
     if (remainingTime <= 0) return;
     
-    const studyTime = Math.min(sessionDuration, remainingTime);
-    const taskTypes = ["study", "review", "practice"];
-    const taskType = taskTypes[dayIndex % taskTypes.length];
+    // Calculate time allocation based on deadline urgency
+    const daysUntilDeadline = subject.deadline 
+      ? Math.ceil((subject.deadline.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
+      : 365;
+    
+    // More time for subjects with closer deadlines
+    const urgencyMultiplier = subject.deadline 
+      ? Math.max(0.5, Math.min(2, 8 / Math.max(1, daysUntilDeadline)))
+      : 1;
+    
+    const priorityMultiplier = { high: 1.5, medium: 1, low: 0.7 }[subject.priority];
+    const timeAllocation = Math.min(
+      sessionDuration * urgencyMultiplier * priorityMultiplier,
+      remainingTime
+    );
+    
+    const studyTime = Math.max(30, Math.min(sessionDuration, timeAllocation));
+    
+    // Determine task type based on deadline proximity and day pattern
+    let taskType: string;
+    if (daysUntilDeadline <= 3) {
+      taskType = "review"; // Focus on review when deadline is close
+    } else if (daysUntilDeadline <= 7) {
+      taskType = "practice"; // Practice when deadline is approaching
+    } else {
+      const taskTypes = ["study", "review", "practice"];
+      taskType = taskTypes[dayIndex % taskTypes.length];
+    }
+    
+    // Determine difficulty based on deadline and priority
+    let difficulty: "easy" | "medium" | "hard";
+    if (subject.priority === "high" && daysUntilDeadline <= 7) {
+      difficulty = "hard";
+    } else if (subject.priority === "medium" || daysUntilDeadline <= 14) {
+      difficulty = "medium";
+    } else {
+      difficulty = "easy";
+    }
     
     tasks.push({
       id: `task-${dayIndex}-${taskId++}`,
       subjectId: subject.id,
       title: `${taskType.charAt(0).toUpperCase() + taskType.slice(1)} ${subject.name}`,
-      description: generateTaskDescription(subject.name, taskType),
-      duration: studyTime,
+      description: generateTaskDescription(subject.name, taskType, subject.deadline),
+      duration: Math.round(studyTime),
       type: taskType as any,
       completed: false,
-      scheduledAt: new Date(),
-      difficulty: "medium"
+      scheduledAt: currentDate,
+      difficulty
     });
     
     remainingTime -= studyTime;
     
     // Add break if there's more time and it's not the last subject
-    if (remainingTime > breakDuration && subjectIndex < subjects.length - 1) {
+    if (remainingTime > breakDuration && subjectIndex < uniqueSubjects.length - 1) {
       tasks.push({
         id: `break-${dayIndex}-${taskId++}`,
         subjectId: "break",
         title: "Break Time",
-        description: "Rest and recharge",
+        description: "Rest and recharge for better focus",
         duration: breakDuration,
         type: "break",
         completed: false,
-        scheduledAt: new Date(),
+        scheduledAt: currentDate,
         difficulty: "easy"
       });
       remainingTime -= breakDuration;
@@ -545,19 +641,33 @@ function distributeDailyTasks(
   return tasks;
 }
 
-function generateTaskDescription(subjectName: string, taskType: string): string {
+function generateTaskDescription(subjectName: string, taskType: string, deadline?: Date): string {
+  const isUrgent = deadline && deadline.getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000; // 7 days
+  
   const descriptions = {
-    study: [
+    study: isUrgent ? [
+      `Intensive study of ${subjectName} key concepts`,
+      `Focus on essential ${subjectName} topics`,
+      `Master critical ${subjectName} fundamentals`
+    ] : [
       `Learn new concepts in ${subjectName}`,
       `Read and understand ${subjectName} materials`,
       `Explore advanced topics in ${subjectName}`
     ],
-    review: [
+    review: isUrgent ? [
+      `Final review of ${subjectName} for upcoming deadline`,
+      `Quick recap of all ${subjectName} topics`,
+      `Last-minute ${subjectName} knowledge consolidation`
+    ] : [
       `Review previous ${subjectName} lessons`,
       `Consolidate ${subjectName} knowledge`,
       `Go over ${subjectName} notes and examples`
     ],
-    practice: [
+    practice: isUrgent ? [
+      `Intensive ${subjectName} practice session`,
+      `Focus on challenging ${subjectName} problems`,
+      `Final ${subjectName} skill reinforcement`
+    ] : [
       `Solve ${subjectName} practice problems`,
       `Work on ${subjectName} exercises`,
       `Apply ${subjectName} concepts through practice`

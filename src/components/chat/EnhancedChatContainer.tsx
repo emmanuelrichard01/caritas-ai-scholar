@@ -128,15 +128,13 @@ export const EnhancedChatContainer = () => {
   return (
     <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
       {/* Simple Header */}
-      <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-700 p-4">
+      <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-700 p-3 sm:p-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <MessageSquare className="h-6 w-6 text-blue-600" />
-            <div>
-              <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
-                CARITAS AI Chat
-              </h1>
-            </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+            <h1 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+              CARITAS AI Chat
+            </h1>
           </div>
           
           {messages.length > 0 && (
@@ -144,9 +142,9 @@ export const EnhancedChatContainer = () => {
               variant="outline"
               size="sm"
               onClick={clearHistory}
-              className="text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400"
+              className="text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-3"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           )}
         </div>
@@ -156,7 +154,7 @@ export const EnhancedChatContainer = () => {
       <div className="flex-1 overflow-hidden">
         <div 
           ref={chatContainerRef}
-          className="h-full overflow-y-auto p-4"
+          className="h-full overflow-y-auto p-3 sm:p-4"
         >
           {isFirstMessage && messages.length === 0 ? (
             // Welcome Screen
@@ -176,22 +174,22 @@ export const EnhancedChatContainer = () => {
               </div>
               
               {/* Quick Suggestions */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 w-full max-w-2xl">
                 {quickSuggestions.map((suggestion, index) => (
                   <Card
                     key={index}
-                    className="p-4 hover:shadow-md transition-all duration-200 cursor-pointer group border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600"
+                    className="p-3 sm:p-4 hover:shadow-md transition-all duration-200 cursor-pointer group border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600"
                     onClick={() => handleSendMessage(suggestion.prompt)}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
-                        <suggestion.icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
+                        <suggestion.icon className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-slate-900 dark:text-white text-sm mb-1">
+                        <h3 className="font-medium text-slate-900 dark:text-white text-xs sm:text-sm mb-1">
                           {suggestion.title}
                         </h3>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
+                        <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 hidden sm:block">
                           {suggestion.prompt}
                         </p>
                       </div>
@@ -231,7 +229,7 @@ export const EnhancedChatContainer = () => {
       </div>
 
       {/* Input Area */}
-      <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 p-4">
+      <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 p-3 sm:p-4">
         <EnhancedChatInput 
           onSendMessage={handleSendMessage} 
           disabled={isProcessing}

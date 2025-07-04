@@ -45,20 +45,20 @@ export const EnhancedChatMessage = ({ message, isUser }: EnhancedChatMessageProp
 
   return (
     <div className={cn(
-      "group flex gap-3 animate-fade-in max-w-4xl",
+      "group flex gap-2 sm:gap-3 animate-fade-in max-w-4xl",
       isUser ? "flex-row-reverse ml-auto" : "flex-row"
     )}>
       {/* Avatar */}
       <div className={cn(
-        "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
+        "flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center",
         isUser 
           ? "bg-slate-600" 
           : "bg-blue-600"
       )}>
         {isUser ? (
-          <User className="h-4 w-4 text-white" />
+          <User className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
         ) : (
-          <Bot className="h-4 w-4 text-white" />
+          <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
         )}
       </div>
 
@@ -84,7 +84,7 @@ export const EnhancedChatMessage = ({ message, isUser }: EnhancedChatMessageProp
 
         {/* Message Bubble */}
         <Card className={cn(
-          "p-3 max-w-[85%] border-0",
+          "p-2 sm:p-3 max-w-[90%] sm:max-w-[85%] border-0",
           isUser 
             ? "bg-blue-600 text-white" 
             : message.role === 'error'

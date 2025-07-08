@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const googleAIKey = Deno.env.get('GOOGLE_AI_KEY') || 'AIzaSyDHnnACtYYBHf3Y1FMVv2jp-8l12MK7RUw';
+const googleAIKey = Deno.env.get('GOOGLE_AI_KEY');
 const openRouterKey = Deno.env.get('OPENROUTER_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -51,6 +51,10 @@ async function processGoogleAIQuery(query: string, category?: string) {
   try {
     console.log('Processing with Google AI for category:', category);
     
+    if (!googleAIKey) {
+      throw new Error('Google AI API key not configured');
+    }
+    
     let systemPrompt = getSystemPromptForCategory(category);
     let enhancedQuery = `${systemPrompt}\n\nUser Query: ${query}`;
     
@@ -84,6 +88,11 @@ async function processGoogleAIQuery(query: string, category?: string) {
     }
 
     const data = await response.json();
+    
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+      throw new Error('Invalid response from Google AI API');
+    }
+    
     const text = data.candidates[0].content.parts[0].text;
     
     return new Response(
@@ -105,6 +114,10 @@ async function processGoogleAIQuery(query: string, category?: string) {
 async function processOpenRouterQuery(query: string, category?: string) {
   try {
     console.log('Processing with OpenRouter for category:', category);
+    
+    if (!openRouterKey) {
+      throw new Error('OpenRouter API key not configured');
+    }
     
     let systemPrompt = getSystemPromptForCategory(category);
     
@@ -137,6 +150,11 @@ async function processOpenRouterQuery(query: string, category?: string) {
     }
 
     const data = await response.json();
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response from OpenRouter API');
+    }
+    
     const text = data.choices[0].message.content;
     
     return new Response(

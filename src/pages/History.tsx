@@ -155,24 +155,26 @@ const History = () => {
       subtitle="Review your past conversations with Caritas AI"
       icon={<Clock className="h-6 w-6" />}
     >
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-2">
+      {/* Enhanced Controls Section - Mobile First */}
+      <div className="mb-6 space-y-4">
+        {/* Top Row - Sort and Filter */}
+        <div className="flex flex-col xs:flex-row gap-3">
           <Button
             variant="outline"
             size="sm"
             onClick={toggleSortOrder}
-            className="flex items-center gap-1"
+            className="flex items-center justify-center gap-2 min-w-0 flex-shrink-0"
           >
             {sortOrder === "desc" ? (
-              <><SortDesc className="h-4 w-4" /> Newest</>
+              <><SortDesc className="h-4 w-4" /> <span className="hidden xs:inline">Newest First</span><span className="xs:hidden">Newest</span></>
             ) : (
-              <><SortAsc className="h-4 w-4" /> Oldest</>
+              <><SortAsc className="h-4 w-4" /> <span className="hidden xs:inline">Oldest First</span><span className="xs:hidden">Oldest</span></>
             )}
           </Button>
           
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-36 sm:w-40">
-              <SelectValue placeholder="Filter by type" />
+            <SelectTrigger className="min-w-0 flex-1 xs:w-48 xs:flex-initial">
+              <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
@@ -185,37 +187,53 @@ const History = () => {
             </SelectContent>
           </Select>
         </div>
-        
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button 
-              variant="destructive" 
-              size="sm"
-              disabled={!history || history.length === 0 || clearHistoryMutation.isPending}
-              className="flex items-center gap-1"
-            >
-              {clearHistoryMutation.isPending ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Clearing...</>
-              ) : (
-                <><Trash2 className="h-4 w-4" /> Clear History</>
-              )}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
-              <AlertDialogDescription>
-                {categoryFilter === "all" 
-                  ? "This will delete all of your chat history. This action cannot be undone."
-                  : `This will delete all of your ${getCategoryLabel(categoryFilter)} chat history. This action cannot be undone.`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleClearHistory}>Continue</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+
+        {/* Bottom Row - Clear Action */}
+        <div className="flex justify-between items-center">
+          <div className="text-sm text-muted-foreground">
+            {history ? (
+              <span>
+                Showing {history.length} {history.length === 1 ? 'conversation' : 'conversations'}
+                {categoryFilter !== "all" && ` in ${getCategoryLabel(categoryFilter)}`}
+              </span>
+            ) : (
+              <span>Loading...</span>
+            )}
+          </div>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                size="sm"
+                disabled={!history || history.length === 0 || clearHistoryMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                {clearHistoryMutation.isPending ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> <span className="hidden xs:inline">Clearing...</span></>
+                ) : (
+                  <><Trash2 className="h-4 w-4" /> <span className="hidden xs:inline">Clear History</span><span className="xs:hidden">Clear</span></>
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="mx-4 max-w-md">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
+                <AlertDialogDescription className="text-sm leading-relaxed">
+                  {categoryFilter === "all" 
+                    ? "This will permanently delete all of your chat history. This action cannot be undone."
+                    : `This will permanently delete all of your ${getCategoryLabel(categoryFilter)} chat history. This action cannot be undone.`}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-col xs:flex-row gap-2">
+                <AlertDialogCancel className="w-full xs:w-auto">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleClearHistory} className="w-full xs:w-auto">
+                  Continue
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {isLoading ? (
@@ -223,46 +241,65 @@ const History = () => {
           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
         </div>
       ) : !history || history.length === 0 ? (
-        <div className="text-center py-12 bg-slate-50 rounded-lg border dark:bg-slate-900 dark:border-slate-800">
-          <p className="text-slate-600 dark:text-slate-400">No chat history yet</p>
-        </div>
+        <Card className="text-center py-12 sm:py-16 bg-muted/30 border-dashed">
+          <div className="mx-auto max-w-md px-4">
+            <div className="mb-4">
+              <Clock className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-muted-foreground/50" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
+              No conversations yet
+            </h3>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+              {categoryFilter === "all" 
+                ? "Start chatting with CARITAS AI to see your conversation history here."
+                : `No ${getCategoryLabel(categoryFilter)} conversations found. Try a different filter or start a new conversation.`}
+            </p>
+          </div>
+        </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {history.map((item) => (
-            <Card key={item.id} className="p-4 relative">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-2">
-                <h3 className="font-medium text-lg mb-1 pr-8">{item.title}</h3>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {format(new Date(item.created_at), "MMM d, yyyy h:mm a")}
-                  </span>
-                  <span className={`text-xs px-2 py-1 rounded-full ${getCategoryColor(item.category)}`}>
+            <Card key={item.id} className="group relative overflow-hidden transition-all duration-200 hover:shadow-md">
+              <div className="p-4 sm:p-5">
+                {/* Header with title and delete button */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <h3 className="font-semibold text-base sm:text-lg text-foreground leading-tight line-clamp-2 min-w-0 flex-1">
+                    {item.title}
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+                    onClick={() => handleDeleteItem(item.id)}
+                    disabled={deleteItemMutation.isPending}
+                  >
+                    {deleteItemMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+
+                {/* Meta information */}
+                <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 mb-4">
+                  <time className="text-xs sm:text-sm text-muted-foreground font-medium">
+                    {format(new Date(item.created_at), "MMM d, yyyy · h:mm a")}
+                  </time>
+                  <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium w-fit ${getCategoryColor(item.category)}`}>
                     {getCategoryLabel(item.category)}
                   </span>
                 </div>
+                
+                {/* Content */}
+                <div className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                  <FormattedContent 
+                    content={item.content} 
+                    variant="default"
+                    className="max-w-none prose-sm sm:prose-base"
+                  />
+                </div>
               </div>
-              
-              <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                <FormattedContent 
-                  content={item.content} 
-                  variant="default"
-                  className="max-w-none"
-                />
-              </div>
-              
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-3 right-3 h-8 w-8"
-                onClick={() => handleDeleteItem(item.id)}
-                disabled={deleteItemMutation.isPending}
-              >
-                {deleteItemMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-              </Button>
             </Card>
           ))}
         </div>

@@ -28,12 +28,20 @@ serve(async (req) => {
       );
     }
     
-    // Always use alternative providers instead of OpenAI
+    // Try Google AI first, fallback to OpenRouter if overloaded
     if (provider === 'openrouter' || category === 'openrouter') {
       return await processOpenRouterQuery(query, category);
     } else {
-      // Default to Google AI for all requests
-      return await processGoogleAIQuery(query, category);
+      // Try Google AI first
+      const googleResult = await processGoogleAIQuery(query, category);
+      
+      // If Google AI is overloaded (503), automatically fallback to OpenRouter
+      if (googleResult.status === 503) {
+        console.log('Google AI overloaded, falling back to OpenRouter...');
+        return await processOpenRouterQuery(query, category);
+      }
+      
+      return googleResult;
     }
   } catch (error) {
     console.error('Error processing query:', error);
@@ -84,6 +92,18 @@ async function processGoogleAIQuery(query: string, category?: string) {
     if (!response.ok) {
       const errorData = await response.text();
       console.error('Google AI API error:', errorData);
+      
+      // Return a special response for 503 errors that can be caught by the main handler
+      if (response.status === 503) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Service overloaded',
+            status: 503
+          }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       throw new Error(`Google AI API error: ${response.status}`);
     }
 

@@ -39,7 +39,7 @@ serve(async (req) => {
             {
               parts: [
                 {
-                  text: `You are an educational AI assistant that helps students with their academic needs. Provide helpful, accurate, and concise answers to their questions.\n\nUser query: ${query}`
+                  text: `You are an educational AI assistant that helps students with their academic needs. Be naturally conversational and jump straight into helping with their specific question. Avoid generic greetings like "Hello there!" - instead, respond directly to what they're asking. Provide helpful, accurate, and personalized answers.\n\nUser query: ${query}`
                 }
               ]
             }
@@ -90,7 +90,7 @@ serve(async (req) => {
               messages: [
                 { 
                   role: 'system', 
-                  content: 'You are an educational AI assistant that helps students with their academic needs. Provide helpful, accurate, and concise answers to their questions.' 
+                  content: 'You are an educational AI assistant that helps students with their academic needs. Be naturally conversational and jump straight into helping with their specific question. Avoid generic greetings like "Hello there!" - instead, respond directly to what they\'re asking. Provide helpful, accurate, and personalized answers.' 
                 },
                 { role: 'user', content: query }
               ],

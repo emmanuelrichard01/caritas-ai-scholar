@@ -14,9 +14,10 @@ interface WelcomeCardProps {
   profile: any;
   userEmail?: string;
   stats: DashboardStats;
+  loading?: boolean;
 }
 
-export const WelcomeCard = ({ profile, userEmail, stats }: WelcomeCardProps) => {
+export const WelcomeCard = ({ profile, userEmail, stats, loading = false }: WelcomeCardProps) => {
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good Morning";
@@ -91,18 +92,24 @@ export const WelcomeCard = ({ profile, userEmail, stats }: WelcomeCardProps) => 
           </div>
         </div>
 
-        {/* Quick stats - Mobile responsive grid */}
+        {/* Quick stats - Enhanced responsive grid with loading states */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4">
-          <div className="text-center p-2 sm:p-3 bg-white/50 dark:bg-slate-800/50 rounded-lg backdrop-blur-sm">
-            <div className="text-base sm:text-lg font-bold text-blue-600 dark:text-blue-400">{stats.studyHours}</div>
+          <div className="text-center p-2 sm:p-3 bg-white/50 dark:bg-slate-800/50 rounded-lg backdrop-blur-sm transition-all duration-200 hover:bg-white/70 dark:hover:bg-slate-800/70">
+            <div className={`text-base sm:text-lg font-bold text-blue-600 dark:text-blue-400 ${loading ? 'animate-pulse' : ''}`}>
+              {loading ? '...' : stats.studyHours}
+            </div>
             <div className="text-xs text-slate-600 dark:text-slate-400">Hours Studied</div>
           </div>
-          <div className="text-center p-2 sm:p-3 bg-white/50 dark:bg-slate-800/50 rounded-lg backdrop-blur-sm">
-            <div className="text-base sm:text-lg font-bold text-green-600 dark:text-green-400">{stats.completedTasks}</div>
+          <div className="text-center p-2 sm:p-3 bg-white/50 dark:bg-slate-800/50 rounded-lg backdrop-blur-sm transition-all duration-200 hover:bg-white/70 dark:hover:bg-slate-800/70">
+            <div className={`text-base sm:text-lg font-bold text-green-600 dark:text-green-400 ${loading ? 'animate-pulse' : ''}`}>
+              {loading ? '...' : stats.completedTasks}
+            </div>
             <div className="text-xs text-slate-600 dark:text-slate-400">Tasks Completed</div>
           </div>
-          <div className="text-center p-2 sm:p-3 bg-white/50 dark:bg-slate-800/50 rounded-lg backdrop-blur-sm">
-            <div className="text-base sm:text-lg font-bold text-purple-600 dark:text-purple-400">{stats.totalInteractions}</div>
+          <div className="text-center p-2 sm:p-3 bg-white/50 dark:bg-slate-800/50 rounded-lg backdrop-blur-sm transition-all duration-200 hover:bg-white/70 dark:hover:bg-slate-800/70">
+            <div className={`text-base sm:text-lg font-bold text-purple-600 dark:text-purple-400 ${loading ? 'animate-pulse' : ''}`}>
+              {loading ? '...' : stats.totalInteractions}
+            </div>
             <div className="text-xs text-slate-600 dark:text-slate-400">AI Interactions</div>
           </div>
         </div>

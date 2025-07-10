@@ -12,9 +12,10 @@ interface RecentActivity {
 interface RecentActivityProps {
   recentActivities: RecentActivity[];
   loading: boolean;
+  onRefresh?: () => void;
 }
 
-export const RecentActivityList = ({ recentActivities, loading }: RecentActivityProps) => {
+export const RecentActivityList = ({ recentActivities, loading, onRefresh }: RecentActivityProps) => {
   const formatCategory = (category: string): string => {
     switch (category) {
       case 'course-tutor': return 'Course Tutor';
@@ -44,9 +45,20 @@ export const RecentActivityList = ({ recentActivities, loading }: RecentActivity
   };
 
   return (
-    <Card>
+    <Card className="relative">
       <div className="p-6">
-        <h3 className="text-lg font-medium mb-4">Recent Activity</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium">Recent Activity</h3>
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={loading}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            >
+              Refresh
+            </button>
+          )}
+        </div>
         
         {loading ? (
           <div className="h-20 flex items-center justify-center">

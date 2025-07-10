@@ -4,7 +4,11 @@ import { Button } from "@/components/ui/button";
 import { MessageSquare, Calendar, Calculator, GraduationCap, Search, Brain, Zap, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-export const QuickActions = () => {
+interface QuickActionsProps {
+  loading?: boolean;
+}
+
+export const QuickActions = ({ loading = false }: QuickActionsProps) => {
   const navigate = useNavigate();
 
   const actions = [

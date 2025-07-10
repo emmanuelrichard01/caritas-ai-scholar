@@ -12,9 +12,10 @@ interface ActivityData {
 interface ActivityChartProps {
   activityData: ActivityData[];
   loading: boolean;
+  refreshKey?: number;
 }
 
-export const ActivityChart = ({ activityData, loading }: ActivityChartProps) => {
+export const ActivityChart = ({ activityData, loading, refreshKey }: ActivityChartProps) => {
   return (
     <Card className="md:col-span-2">
       <div className="p-6">

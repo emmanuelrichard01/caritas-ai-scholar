@@ -1,23 +1,81 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Request validation schema
+const RequestSchema = z.object({
+  segmentId: z.string().uuid("Invalid segment ID format"),
+  type: z.enum(['summary', 'flashcards', 'quiz'], {
+    errorMap: () => ({ message: "Type must be 'summary', 'flashcards', or 'quiz'" })
+  })
+});
+
 serve(async (req) => {
+  const startTime = Date.now();
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const { segmentId, type } = await req.json();
+  // Method validation
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ 
+        error: 'Method not allowed',
+        expectedMethod: 'POST' 
+      }),
+      { 
+        status: 405, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
 
-    if (!segmentId || !type) {
-      throw new Error("Missing required parameters: segmentId, type");
+  try {
+    // Parse and validate request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      console.error('Invalid JSON in request body:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid JSON in request body',
+          details: parseError.message 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
+
+    // Validate using Zod schema
+    const validation = RequestSchema.safeParse(requestBody);
+    if (!validation.success) {
+      console.error('Request validation failed:', validation.error.issues);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request parameters',
+          details: validation.error.issues.map(issue => ({
+            field: issue.path.join('.'),
+            message: issue.message
+          }))
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const { segmentId, type } = validation.data;
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") || "",
@@ -52,10 +110,18 @@ serve(async (req) => {
         throw new Error(`Unknown study aid type: ${type}`);
     }
 
+    const responseTime = Date.now() - startTime;
+    
     return new Response(
       JSON.stringify({
         message: `${type} generated successfully`,
-        result
+        result,
+        metadata: {
+          segmentId,
+          type,
+          timestamp: new Date().toISOString(),
+          responseTime: `${responseTime}ms`
+        }
       }),
       {
         headers: { 
@@ -65,14 +131,23 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error(`Error generating study aids:`, error);
+    const responseTime = Date.now() - startTime;
+    console.error(`Error generating study aids (${responseTime}ms):`, error);
+    
+    const isClientError = error instanceof Error && (
+      error.message.includes('Missing required parameters') ||
+      error.message.includes('Invalid') ||
+      error.message.includes('not found')
+    );
     
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+        timestamp: new Date().toISOString(),
+        responseTime: `${responseTime}ms`
       }),
       {
-        status: 400,
+        status: isClientError ? 400 : 500,
         headers: { 
           ...corsHeaders, 
           "Content-Type": "application/json" 

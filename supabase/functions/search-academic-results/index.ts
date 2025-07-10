@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,22 +8,117 @@ const corsHeaders = {
   'Content-Type': 'application/json'
 };
 
+// Request validation schema
+const RequestSchema = z.object({
+  query: z.string()
+    .min(2, "Query must be at least 2 characters long")
+    .max(500, "Query must be less than 500 characters")
+    .regex(/^[a-zA-Z0-9\s\-_.,!?]+$/, "Query contains invalid characters")
+});
+
+// Rate limiting map (simple in-memory store)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 50; // requests per hour
+const RATE_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
+
+function getRateLimitKey(req: Request): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  const ip = forwarded ? forwarded.split(',')[0] : 'unknown';
+  return ip;
+}
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(key);
+  
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_WINDOW });
+    return false;
+  }
+  
+  if (record.count >= RATE_LIMIT) {
+    return true;
+  }
+  
+  record.count++;
+  return false;
+}
+
 serve(async (req) => {
+  const startTime = Date.now();
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Rate limiting
+  const rateLimitKey = getRateLimitKey(req);
+  if (isRateLimited(rateLimitKey)) {
+    console.warn(`Rate limit exceeded for ${rateLimitKey}`);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Rate limit exceeded',
+        retryAfter: '1 hour'
+      }),
+      { 
+        status: 429, 
+        headers: corsHeaders 
+      }
+    );
+  }
+
+  // Method validation
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ 
+        error: 'Method not allowed',
+        expectedMethod: 'POST' 
+      }),
+      { 
+        status: 405, 
+        headers: corsHeaders 
+      }
+    );
+  }
+
   try {
     console.log('Processing research search request');
-    const { query } = await req.json();
     
-    if (!query || typeof query !== 'string' || query.trim().length === 0) {
-      console.error('Invalid or missing search query');
+    // Parse and validate request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      console.error('Invalid JSON in request body:', parseError);
       return new Response(
-        JSON.stringify({ error: 'Invalid search query' }),
-        { headers: corsHeaders, status: 400 }
+        JSON.stringify({ 
+          error: 'Invalid JSON in request body',
+          details: parseError.message 
+        }),
+        { 
+          status: 400, 
+          headers: corsHeaders 
+        }
       );
     }
+
+    // Validate using Zod schema
+    const validation = RequestSchema.safeParse(requestBody);
+    if (!validation.success) {
+      console.error('Request validation failed:', validation.error.issues);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid search query',
+          details: validation.error.issues.map(issue => issue.message).join(', ')
+        }),
+        { 
+          status: 400, 
+          headers: corsHeaders 
+        }
+      );
+    }
+
+    const { query } = validation.data;
 
     const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
     
@@ -72,22 +168,35 @@ serve(async (req) => {
       relevance: Math.floor(Math.random() * 25) + 75
     }));
 
+    const responseTime = Date.now() - startTime;
+    
     return new Response(
       JSON.stringify({ 
         results: formattedResults,
         query,
-        total: formattedResults.length
+        total: formattedResults.length,
+        metadata: {
+          searchTime: `${responseTime}ms`,
+          timestamp: new Date().toISOString(),
+          provider: 'serper'
+        }
       }),
       { headers: corsHeaders }
     );
     
   } catch (error) {
-    console.error('Error in search function:', error);
+    const responseTime = Date.now() - startTime;
+    console.error(`Error in search function (${responseTime}ms):`, error);
     
     return new Response(
       JSON.stringify({ 
         error: 'Search temporarily unavailable',
-        results: generateFallbackResults(query || 'research')
+        results: generateFallbackResults(requestBody?.query || 'research'),
+        metadata: {
+          searchTime: `${responseTime}ms`,
+          timestamp: new Date().toISOString(),
+          provider: 'fallback'
+        }
       }),
       { headers: corsHeaders, status: 200 }
     );

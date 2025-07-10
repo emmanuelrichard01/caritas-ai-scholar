@@ -1,16 +1,87 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// File validation constants
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const ALLOWED_FILE_TYPES = [
+  'text/plain',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+];
+
+// Rate limiting map (simple in-memory store)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 20; // uploads per hour
+const RATE_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
+
+function getRateLimitKey(userId: string): string {
+  return `upload_${userId}`;
+}
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(key);
+  
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_WINDOW });
+    return false;
+  }
+  
+  if (record.count >= RATE_LIMIT) {
+    return true;
+  }
+  
+  record.count++;
+  return false;
+}
+
+function validateFile(file: File): { valid: boolean; error?: string } {
+  if (!file) {
+    return { valid: false, error: 'No file provided' };
+  }
+  
+  if (file.size > MAX_FILE_SIZE) {
+    return { valid: false, error: `File size (${Math.round(file.size / 1024 / 1024)}MB) exceeds maximum allowed size (50MB)` };
+  }
+  
+  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+    return { valid: false, error: `File type ${file.type} is not supported. Allowed types: ${ALLOWED_FILE_TYPES.join(', ')}` };
+  }
+  
+  return { valid: true };
+}
+
 serve(async (req) => {
+  const startTime = Date.now();
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Method validation
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ 
+        error: 'Method not allowed',
+        expectedMethod: 'POST',
+        success: false 
+      }),
+      { 
+        status: 405, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   }
 
   try {
@@ -64,8 +135,45 @@ serve(async (req) => {
 
     console.log("User authenticated:", user.id);
 
+    // Rate limiting
+    const rateLimitKey = getRateLimitKey(user.id);
+    if (isRateLimited(rateLimitKey)) {
+      console.warn(`Upload rate limit exceeded for user ${user.id}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Upload rate limit exceeded',
+          retryAfter: '1 hour',
+          success: false
+        }),
+        { 
+          status: 429, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     // Parse request body 
-    const formData = await req.formData();
+    let formData;
+    try {
+      formData = await req.formData();
+    } catch (parseError) {
+      console.error("Error parsing form data:", parseError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid form data",
+          details: parseError.message,
+          success: false
+        }),
+        {
+          status: 400,
+          headers: { 
+            ...corsHeaders,
+            "Content-Type": "application/json" 
+          },
+        }
+      );
+    }
+
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const file = formData.get("file") as File;
@@ -75,15 +183,35 @@ serve(async (req) => {
       description,
       hasFile: !!file, 
       fileName: file?.name,
-      fileSize: file?.size 
+      fileSize: file?.size,
+      fileType: file?.type
     });
     
     // Validate inputs
-    if (!title || !file) {
-      console.error("Missing required fields");
+    if (!title?.trim()) {
+      console.error("Missing or empty title");
       return new Response(
         JSON.stringify({ 
-          error: "Title and file are required",
+          error: "Title is required and cannot be empty",
+          success: false
+        }),
+        {
+          status: 400,
+          headers: { 
+            ...corsHeaders,
+            "Content-Type": "application/json" 
+          },
+        }
+      );
+    }
+
+    // Validate file
+    const fileValidation = validateFile(file);
+    if (!fileValidation.valid) {
+      console.error("File validation failed:", fileValidation.error);
+      return new Response(
+        JSON.stringify({ 
+          error: fileValidation.error,
           success: false
         }),
         {
@@ -201,11 +329,23 @@ serve(async (req) => {
       // Don't fail - material is uploaded even if processing fails
     }
 
+    const responseTime = Date.now() - startTime;
+    
     return new Response(
       JSON.stringify({
         message: "Material uploaded successfully",
         material,
-        success: true
+        success: true,
+        metadata: {
+          userId: user.id,
+          uploadTime: `${responseTime}ms`,
+          timestamp: new Date().toISOString(),
+          fileInfo: {
+            name: file.name,
+            size: file.size,
+            type: file.type
+          }
+        }
       }),
       {
         headers: { 
@@ -215,15 +355,25 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error uploading course material:", error);
+    const responseTime = Date.now() - startTime;
+    console.error(`Error uploading course material (${responseTime}ms):`, error);
+    
+    const isClientError = error instanceof Error && (
+      error.message.includes('Authentication') ||
+      error.message.includes('required') ||
+      error.message.includes('validation') ||
+      error.message.includes('Invalid')
+    );
     
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : "Unknown error occurred",
-        success: false
+        success: false,
+        timestamp: new Date().toISOString(),
+        responseTime: `${responseTime}ms`
       }),
       {
-        status: 500,
+        status: isClientError ? 400 : 500,
         headers: { 
           ...corsHeaders, 
           "Content-Type": "application/json" 

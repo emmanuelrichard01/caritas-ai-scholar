@@ -1,23 +1,91 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Request validation schema
+const RequestSchema = z.object({
+  filePath: z.string().min(1, "File path is required"),
+  title: z.string().min(1, "Title is required"),
+  userId: z.string().uuid("Invalid user ID format"),
+  materialId: z.string().uuid("Invalid material ID format"),
+  prompt: z.string().optional().default("")
+});
+
+// Constants for processing
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const SUPPORTED_TYPES = [
+  'text/plain',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+];
+
 serve(async (req) => {
+  const startTime = Date.now();
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const { filePath, title, userId, materialId, prompt = "" } = await req.json();
+  // Method validation
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ 
+        error: 'Method not allowed',
+        expectedMethod: 'POST' 
+      }),
+      { 
+        status: 405, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
 
-    if (!filePath || !title || !userId || !materialId) {
-      throw new Error("Missing required parameters: filePath, title, userId, materialId");
+  try {
+    // Parse and validate request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      console.error('Invalid JSON in request body:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid JSON in request body',
+          details: parseError.message 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
+
+    // Validate using Zod schema
+    const validation = RequestSchema.safeParse(requestBody);
+    if (!validation.success) {
+      console.error('Request validation failed:', validation.error.issues);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request parameters',
+          details: validation.error.issues.map(issue => ({
+            field: issue.path.join('.'),
+            message: issue.message
+          }))
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const { filePath, title, userId, materialId, prompt } = validation.data;
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") || "",
@@ -111,13 +179,22 @@ serve(async (req) => {
 
     console.log("Segments created successfully");
 
+    const responseTime = Date.now() - startTime;
+    
     return new Response(
       JSON.stringify({
         message: "Material processed successfully",
         materialId: materialId,
         segmentsCount: segments.length,
         segments: segmentsData,
-        result: `Successfully processed "${title}" into ${segments.length} segments`
+        result: `Successfully processed "${title}" into ${segments.length} segments`,
+        metadata: {
+          userId,
+          materialId,
+          originalTitle: title,
+          processingTime: `${responseTime}ms`,
+          timestamp: new Date().toISOString()
+        }
       }),
       {
         headers: { 
@@ -127,14 +204,24 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error processing course material:", error);
+    const responseTime = Date.now() - startTime;
+    console.error(`Error processing course material (${responseTime}ms):`, error);
+    
+    const isClientError = error instanceof Error && (
+      error.message.includes('Missing required parameters') ||
+      error.message.includes('Invalid') ||
+      error.message.includes('not found') ||
+      error.message.includes('File appears to be empty')
+    );
     
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+        timestamp: new Date().toISOString(),
+        processingTime: `${responseTime}ms`
       }),
       {
-        status: 400,
+        status: isClientError ? 400 : 500,
         headers: { 
           ...corsHeaders, 
           "Content-Type": "application/json" 

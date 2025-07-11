@@ -45,7 +45,7 @@ export const ChatbotComponent = ({ materialContext }: ChatbotComponentProps) => 
     // Process the query with the AI
     const response = await processQuery(
       `Context from learning materials: ${materialContext}\n\nQuestion: ${userInput}`, 
-      'course-tutor'
+      'material-tutor'
     );
     
     if (response) {

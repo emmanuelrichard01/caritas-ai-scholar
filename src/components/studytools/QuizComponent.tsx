@@ -154,6 +154,13 @@ export const QuizComponent = ({ questions }: QuizComponentProps) => {
           </Button>
         )}
       </div>
+      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-4">
+  <div
+    className="h-full bg-blue-600 transition-all duration-300"
+    style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
+  />
+</div>
+
     </Card>
   );
 };

@@ -96,38 +96,54 @@ export const QuizComponent = ({ questions }: QuizComponentProps) => {
       <div className="mb-6">
         <h4 className="text-md font-medium mb-4 dark:text-white">{currentQuestion.question}</h4>
         
-        <RadioGroup value={selectedOption?.toString()} className="space-y-3">
-          {currentQuestion.options.map((option, index) => (
-            <div key={index} className={`flex items-center space-x-2 rounded-lg p-2 ${
-              isAnswerSubmitted && index === currentQuestion.correctAnswer ? 'bg-green-50 dark:bg-green-900/20' :
-              isAnswerSubmitted && index === selectedOption ? 'bg-red-50 dark:bg-red-900/20' :
-              'hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}>
-              <RadioGroupItem 
-                value={index.toString()} 
-                id={`option-${index}`} 
-                onClick={() => handleOptionSelect(index)}
-                disabled={isAnswerSubmitted}
-              />
-              <Label 
-                htmlFor={`option-${index}`}
-                className={`flex-grow cursor-pointer ${
-                  isAnswerSubmitted && index === currentQuestion.correctAnswer ? 'text-green-700 dark:text-green-400' :
-                  isAnswerSubmitted && index === selectedOption ? 'text-red-700 dark:text-red-400' :
-                  'dark:text-slate-300'
-                }`}
-              >
-                {option}
-                {isAnswerSubmitted && index === currentQuestion.correctAnswer && (
-                  <CheckCircle className="inline-block ml-2 h-4 w-4 text-green-600 dark:text-green-400" />
-                )}
-                {isAnswerSubmitted && index === selectedOption && index !== currentQuestion.correctAnswer && (
-                  <XCircle className="inline-block ml-2 h-4 w-4 text-red-600 dark:text-red-400" />
-                )}
-              </Label>
-            </div>
-          ))}
-        </RadioGroup>
+        <RadioGroup
+  value={selectedOption !== null ? selectedOption.toString() : ""}
+  onValueChange={(val) => !isAnswerSubmitted && setSelectedOption(parseInt(val))}
+  className="space-y-3"
+>
+  {currentQuestion.options.map((option, index) => {
+    const isCorrect = index === currentQuestion.correctAnswer;
+    const isSelected = selectedOption === index;
+
+    return (
+      <div
+        key={index}
+        className={`flex items-center space-x-2 rounded-lg p-2 ${
+          isAnswerSubmitted && isCorrect
+            ? "bg-green-50 dark:bg-green-900/20"
+            : isAnswerSubmitted && isSelected
+            ? "bg-red-50 dark:bg-red-900/20"
+            : "hover:bg-slate-100 dark:hover:bg-slate-800"
+        }`}
+      >
+        <RadioGroupItem
+          value={index.toString()}
+          id={`option-${index}`}
+          disabled={isAnswerSubmitted}
+        />
+        <Label
+          htmlFor={`option-${index}`}
+          className={`flex-grow cursor-pointer ${
+            isAnswerSubmitted && isCorrect
+              ? "text-green-700 dark:text-green-400"
+              : isAnswerSubmitted && isSelected
+              ? "text-red-700 dark:text-red-400"
+              : "dark:text-slate-300"
+          }`}
+        >
+          {option}
+          {isAnswerSubmitted && isCorrect && (
+            <CheckCircle className="inline-block ml-2 h-4 w-4 text-green-600 dark:text-green-400" />
+          )}
+          {isAnswerSubmitted && isSelected && !isCorrect && (
+            <XCircle className="inline-block ml-2 h-4 w-4 text-red-600 dark:text-red-400" />
+          )}
+        </Label>
+      </div>
+    );
+  })}
+</RadioGroup>
+
       </div>
       
       {isAnswerSubmitted && currentQuestion.explanation && (

@@ -199,39 +199,37 @@ REQUIREMENTS:
     console.log("🧠 AI Response:", response);
     if (!response) return generateDefaultQuiz(title);
     
-    try {
-      const cleaned = response.replace(/```json|```/g, '').trim();
-      const jsonMatch = cleaned.match(/\[[\s\S]*?\]/);
-      if (!jsonMatch) { console.error("❌ No JSON array found in response.");
-          return generateDefaultQuiz(title);}
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        const questions = parsed.map((q: any, index: number) => ({
-          question: q.question || `Question ${index + 1} about ${title}`,
-          options: Array.isArray(q.options) && q.options.length === 4 
-            ? q.options 
-            : ["Option A", "Option B", "Option C", "Option D"],
-          correctAnswer: typeof q.correctAnswer === 'number' && q.correctAnswer >= 0 && q.correctAnswer < 4
-            ? q.correctAnswer 
-            : 0,
-          explanation: q.explanation || "Review the material for more details."
-        }));
-        
-        // Ensure we have at least 10 questions
-        if (questions.length >= 10) {
-          return questions.slice(0, 10); // Take first 10 if more than 10
-        } else {
-          console.log (questions);
-          // Pad with default questions if less than 10
-          const defaultQuestions = generateDefaultQuiz(title);
-          return [...questions, ...defaultQuestions.slice(questions.length)];
-        }
-      }
-    } catch {
-      return generateDefaultQuiz(title);
+   try {
+  const jsonMatch = response.match(/\[[\s\S]*?\]/);
+  if (jsonMatch) {
+    const parsed = JSON.parse(jsonMatch[0]);
+    const questions = parsed.map((q: any, index: number) => ({
+      question: q.question || `Question ${index + 1} about ${title}`,
+      options: Array.isArray(q.options) && q.options.length === 4 
+        ? q.options 
+        : ["Option A", "Option B", "Option C", "Option D"],
+      correctAnswer: typeof q.correctAnswer === 'number' && q.correctAnswer >= 0 && q.correctAnswer < 4
+        ? q.correctAnswer 
+        : 0,
+      explanation: q.explanation || "Review the material for more details."
+    }));
+
+    if (questions.length >= 10) {
+      console.log("✅ Parsed quiz questions:", questions);
+      return questions.slice(0, 10);
+    } else {
+      console.warn("⚠️ Parsed less than 10 questions:", questions);
+      const defaultQuestions = generateDefaultQuiz(title);
+      return [...questions, ...defaultQuestions.slice(questions.length)];
     }
-    
+  } else {
+    console.warn("⚠️ JSON match failed. Falling back to default quiz.");
     return generateDefaultQuiz(title);
+  }
+} catch (err) {
+  console.error("❌ Failed to parse or process AI response:", err);
+  return generateDefaultQuiz(title);
+}
   };
 
   const generateDefaultQuiz = (title: string): QuizQuestion[] => {

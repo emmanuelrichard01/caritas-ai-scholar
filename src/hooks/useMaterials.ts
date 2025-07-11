@@ -124,7 +124,7 @@ export function useMaterials() {
   // Generate summary for a segment
   const generateSummary = async (segmentId: string): Promise<Summary | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-documents', {
+      const { data, error } = await supabase.functions.invoke('generate-study-aids', {
         body: {
           segmentId,
           type: 'summary'
@@ -162,7 +162,7 @@ export function useMaterials() {
   // Generate quiz for a segment
   const generateQuiz = async (segmentId: string): Promise<Quiz[] | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke('generate-study-aids', {
+      const { data, error } = await supabase.functions.invoke('course-tutor', {
         body: {
           segmentId,
           type: 'quiz'

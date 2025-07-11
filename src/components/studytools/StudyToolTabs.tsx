@@ -5,6 +5,7 @@ import { NotesDisplay } from "./NotesDisplay";
 import { Flashcard, FlashcardItem } from "./Flashcard";
 import { QuizComponent, QuizQuestion } from "./QuizComponent";
 import { ChatbotComponent } from "./ChatbotComponent";
+import { QuizComponent } from "./QuizComponent";
 
 interface StudyToolTabsProps {
   notes: string | null;

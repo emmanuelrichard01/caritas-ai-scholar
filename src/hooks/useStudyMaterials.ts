@@ -181,10 +181,10 @@ INSTRUCTIONS:
 OUTPUT FORMAT (JSON only):
 [
   {
-    "question": "Based on the material, what is...?",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correctAnswer": 0,
-    "explanation": "According to the material content: [specific reference to the text]..."
+    question: \`Based on the material, what is...?\`,
+    options: ["Option A", "Option B", "Option C", "Option D"],
+    correctAnswer: 0,
+    explanation: "According to the material content: [specific reference to the text]..."
   }
 ]
 

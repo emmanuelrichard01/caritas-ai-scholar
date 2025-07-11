@@ -82,7 +82,7 @@ serve(async (req) => {
   }
 
   // Method validation
-  if (req.method !== 'GET') {
+  if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
       { 

@@ -7,7 +7,7 @@ export type AICategory =
   | 'material-tutor'
   | 'process-course-material'
   | 'study-planner' 
-  | 'assignment-helper' 
+  | 'generate-study-aids' 
   | 'research';
 
 export interface AIProcessorOptions {

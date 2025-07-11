@@ -5,6 +5,7 @@ import { FlashcardItem } from "@/components/studytools/Flashcard";
 import { QuizQuestion } from "@/components/studytools/QuizComponent";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { jsonrepair } from 'jsonrepair';
 
 export const useStudyMaterials = () => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -171,7 +172,7 @@ ${content}
 
 INSTRUCTIONS:
 - Read and analyze the material content above carefully
-- Create exactly 8 multiple-choice quiz questions that test understanding of concepts, facts, and details found SPECIFICALLY in this material
+- Create exactly 10 multiple-choice quiz questions that test understanding of concepts, facts, and details found SPECIFICALLY in this material
 - Each question must be directly answerable from the provided content
 - Questions should cover different sections/topics from the material
 - Include a mix of factual recall, comprehension, and application questions
@@ -189,7 +190,7 @@ OUTPUT FORMAT (JSON only):
 ]
 
 REQUIREMENTS:
-1. Exactly 8 questions
+1. Exactly 10 questions
 2. Questions must be answerable ONLY from the provided material
 3. Reference specific parts of the material in explanations
 4. Vary question difficulty and type
@@ -197,33 +198,35 @@ REQUIREMENTS:
     
     const response = await processQuery(prompt, 'course-tutor');
     console.log("🧠 AI Response:", response); 
-   try {
-  const jsonMatch = response.match(/```json([\s\S]*?)```/);
-  const rawJson = jsonMatch ? jsonMatch[1] : response;
+    const jsonBlock = response.match(/```json\s*([\s\S]*?)```/);
+    const rawJson = jsonBlock ? jsonBlock[1].trim() : response.trim();
+  let questions;
 
-  const parsed = JSON.parse(rawJson.trim());
-  const questions = parsed.map((q: any, index: number) => ({
+try {
+  const repaired = jsonrepair(rawJson);
+  const parsed = JSON.parse(repaired);
+
+  questions = parsed.map((q: any, index: number) => ({
     question: q.question || `Question ${index + 1} about ${title}`,
     options: Array.isArray(q.options) && q.options.length === 4 
       ? q.options 
       : ["Option A", "Option B", "Option C", "Option D"],
-    correctAnswer: typeof q.correctAnswer === 'number' && q.correctAnswer >= 0 && q.correctAnswer < 4
+    correctAnswer: typeof q.correctAnswer === 'number' && q.correctAnswer >= 0 && q.correctAnswer < 4 
       ? q.correctAnswer 
       : 0,
     explanation: q.explanation || "Review the material for more details."
   }));
 
-  if (questions.length >= 8) {
-    console.log("✅ Parsed quiz questions:", questions);
-    return questions.slice(0, 8);
-  } else {
-    console.warn("⚠️ Parsed less than 8 questions:", questions);
-    const defaultQuestions = generateDefaultQuiz(title);
-    return [...questions, ...defaultQuestions.slice(questions.length)];
+  if (questions.length < 10) {
+    const fallback = generateDefaultQuiz(title);
+    questions = [...questions, ...fallback.slice(questions.length)];
   }
+
+  console.log("✅ Final quiz questions:", questions);
+  return questions;
 } catch (err) {
   console.error("❌ Failed to parse or process AI response:", err);
-  console.log("📄 Raw AI response for debugging:\n", response);
+  console.log("📄 Raw AI response:\n", rawJson);
   return generateDefaultQuiz(title);
 }
   };

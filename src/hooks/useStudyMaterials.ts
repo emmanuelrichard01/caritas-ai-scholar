@@ -181,11 +181,11 @@ INSTRUCTIONS:
 OUTPUT FORMAT (JSON only):
 [
   {
-    question: \`Based on the material, what is...?\`,
-    options: ["Option A", "Option B", "Option C", "Option D"],
-    correctAnswer: 0,
-    explanation: "According to the material content: [specific reference to the text]..."
-  }
+        question: \`Based on the material, what is...?\`,
+        options: ["Option A", "Option B", "Option C", "Option D"],
+        correctAnswer: 0,
+        explanation: "According to the material content: [specific reference to the text]..."
+      }
 ]
 
 REQUIREMENTS:
@@ -200,9 +200,10 @@ REQUIREMENTS:
     if (!response) return generateDefaultQuiz(title);
     
    try {
-  const jsonMatch = response.match(/\[[\s\S]*?\]/);
+    const jsonMatch = response.match(/```json([\s\S]*?)```/);
+    const rawJson = jsonMatch ? jsonMatch[1] : response;
   if (jsonMatch) {
-    const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(rawJson.trim());
     const questions = parsed.map((q: any, index: number) => ({
       question: q.question || `Question ${index + 1} about ${title}`,
       options: Array.isArray(q.options) && q.options.length === 4 

@@ -3,7 +3,8 @@ export type AICategory =
   | 'default' 
   | 'google-ai' 
   | 'openrouter' 
-  | 'course-tutor' 
+  | 'course-tutor'
+  | 'material-tutor'
   | 'study-planner' 
   | 'assignment-helper' 
   | 'research';

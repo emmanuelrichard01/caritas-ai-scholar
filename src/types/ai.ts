@@ -4,6 +4,7 @@ export type AICategory =
   | 'google-ai' 
   | 'openrouter' 
   | 'course-tutor'
+  | 'material-tutor'
   | 'analyze-documents'
   | 'process-course-material'
   | 'study-planner' 

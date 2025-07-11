@@ -20,7 +20,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Request validation schema
 const RequestSchema = z.object({
-  query: z.string().min(1).max(5000),
+  query: z.string(),
   userId: z.string().optional(),
   category: z.string().optional(),
   additionalData: z.any().optional(),
@@ -29,14 +29,14 @@ const RequestSchema = z.object({
 
 // Rate limiting store (in-memory for simplicity)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_MAX = 10; // requests per window
-const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const RATE_LIMIT_MAX = 5; // requests per window
+const RATE_LIMIT_WINDOW = 30000; // 0.5 minute
 
 // Available Gemini models in priority order
 const GEMINI_MODELS = [
   'gemini-1.5-flash',
-  'gemini-2.0-flash-exp',
-  'gemini-1.5-pro',
+  'gemini-2.0-flash',
+  'gemini-2.5-flash',
 ];
 
 // System prompt templates

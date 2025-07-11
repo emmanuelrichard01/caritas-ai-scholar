@@ -120,7 +120,7 @@ ${query ? `Focus specifically on: ${query}` : 'Cover all important topics compre
 
 Format the response with clear headings and bullet points for easy studying.`;
     
-    return await processQuery(prompt, 'process-course-material');
+    return await processQuery(prompt, 'analyze-documents');
   };
   
   const generateFlashcards = async (title: string, content: string) => {
@@ -149,7 +149,7 @@ REQUIREMENTS:
 - Cover different topics/sections from the material
 - Include key concepts, definitions, facts, and important details`;
     
-    const response = await processQuery(prompt, 'generate-study-aids');
+    const response = await processQuery(prompt, 'flashcards');
     if (!response) return null;
     
     try {
@@ -195,7 +195,7 @@ REQUIREMENTS:
 4. Vary question difficulty and type
 5. Ensure all 4 options are plausible but only one is correct from the material`;
     
-    const response = await processQuery(prompt, 'generate-study-aids');
+    const response = await processQuery(prompt, 'course-tutor');
     if (!response) return generateDefaultQuiz(title);
     
     try {

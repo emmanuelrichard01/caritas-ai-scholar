@@ -51,14 +51,14 @@ export const StudyToolTabs = ({
         </TabsContent>
         
         <TabsContent value="quiz">
-          {quizQuestions && quizQuestions.length > 0 ? (
-            <QuizComponent questions={quizQuestions} />
-          ) : (
-            <div className="text-center py-10 text-slate-500 dark:text-slate-400">
-              No quiz questions available yet.
-            </div>
-          )}
-        </TabsContent>
+  {quizQuestions && quizQuestions.length > 0 ? (
+    <QuizComponent questions={quizQuestions} />
+  ) : (
+    <p className="text-sm text-slate-500 dark:text-slate-400">
+      No quiz available yet. Generate study tools to get questions.
+    </p>
+  )}
+</TabsContent>
         
         <TabsContent value="chat">
           <ChatbotComponent materialContext={materialContext} />

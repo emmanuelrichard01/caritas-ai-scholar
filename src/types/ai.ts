@@ -5,6 +5,7 @@ export type AICategory =
   | 'openrouter' 
   | 'course-tutor'
   | 'material-tutor'
+  | 'process-course-material'
   | 'study-planner' 
   | 'assignment-helper' 
   | 'research';

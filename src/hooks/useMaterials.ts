@@ -124,7 +124,7 @@ export function useMaterials() {
   // Generate summary for a segment
   const generateSummary = async (segmentId: string): Promise<Summary | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke('generate-study-aids', {
+      const { data, error } = await supabase.functions.invoke('analyze-documents', {
         body: {
           segmentId,
           type: 'summary'

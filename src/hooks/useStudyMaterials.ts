@@ -197,7 +197,6 @@ REQUIREMENTS:
 5. Ensure all 4 options are plausible but only one is correct from the material`;
     
     const response = await processQuery(prompt, 'course-tutor');
-    console.log("🧠 AI Response:", response); 
     const jsonBlock = response.match(/```json\s*([\s\S]*?)```/);
     const rawJson = jsonBlock ? jsonBlock[1].trim() : response.trim();
   let questions;

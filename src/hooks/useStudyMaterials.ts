@@ -92,12 +92,12 @@ export const useStudyMaterials = () => {
       }
       
       // Handle quiz with better error recovery
-      if (quizResponse.status === 'fulfilled' && quizResponse.value) {
-        setQuizQuestions(quizResponse.value);
-      } else {
-        // Generate default 10 questions if AI generation fails
-        setQuizQuestions(generateDefaultQuiz(materialWithSegments.title));
-      }
+if (quizResponse.status === 'fulfilled' && quizResponse.value) {
+  setQuizQuestions(quizResponse.value);
+} else {
+  toast.warning("AI-generated quiz failed. Showing default questions.");
+  setQuizQuestions(generateDefaultQuiz(materialWithSegments.title));
+}
       
       toast.success("Study materials generated successfully!");
       
@@ -196,10 +196,14 @@ REQUIREMENTS:
 5. Ensure all 4 options are plausible but only one is correct from the material`;
     
     const response = await processQuery(prompt, 'course-tutor');
+    console.log("🧠 AI Response:", response);
     if (!response) return generateDefaultQuiz(title);
     
     try {
-      const jsonMatch = response.match(/\[[\s\S]*?\]/);
+      const cleaned = response.replace(/```json|```/g, '').trim();
+      const jsonMatch = cleaned.match(/\[[\s\S]*?\]/);
+      if (!jsonMatch) { console.error("❌ No JSON array found in response.");
+          return generateDefaultQuiz(title);}
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         const questions = parsed.map((q: any, index: number) => ({

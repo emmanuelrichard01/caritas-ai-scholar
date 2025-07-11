@@ -171,7 +171,7 @@ ${content}
 
 INSTRUCTIONS:
 - Read and analyze the material content above carefully
-- Create exactly 10 multiple-choice quiz questions that test understanding of concepts, facts, and details found SPECIFICALLY in this material
+- Create exactly 8 multiple-choice quiz questions that test understanding of concepts, facts, and details found SPECIFICALLY in this material
 - Each question must be directly answerable from the provided content
 - Questions should cover different sections/topics from the material
 - Include a mix of factual recall, comprehension, and application questions
@@ -189,7 +189,7 @@ OUTPUT FORMAT (JSON only):
 ]
 
 REQUIREMENTS:
-1. Exactly 10 questions
+1. Exactly 8 questions
 2. Questions must be answerable ONLY from the provided material
 3. Reference specific parts of the material in explanations
 4. Vary question difficulty and type
@@ -213,11 +213,11 @@ REQUIREMENTS:
     explanation: q.explanation || "Review the material for more details."
   }));
 
-  if (questions.length >= 10) {
+  if (questions.length >= 8) {
     console.log("✅ Parsed quiz questions:", questions);
-    return questions.slice(0, 10);
+    return questions.slice(0, 8);
   } else {
-    console.warn("⚠️ Parsed less than 10 questions:", questions);
+    console.warn("⚠️ Parsed less than 8 questions:", questions);
     const defaultQuestions = generateDefaultQuiz(title);
     return [...questions, ...defaultQuestions.slice(questions.length)];
   }

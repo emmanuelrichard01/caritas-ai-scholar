@@ -399,11 +399,38 @@ export const useStudyPlan = () => {
     const totalHours = allTasks.reduce((sum, task) => sum + task.duration, 0) / 60;
     const efficiency = allTasks.length > 0 ? (completedTasks.length / allTasks.length) * 100 : 0;
     
+    // Enhanced streak calculation with performance optimization
+    const today = new Date();
+    let streak = 0;
+    const sessionsByDate = new Map<string, StudySession>();
+    
+    // Pre-index sessions by date for O(1) lookup
+    sessions.forEach(session => {
+      const dateStr = new Date(session.date).toDateString();
+      sessionsByDate.set(dateStr, session);
+    });
+    
+    // Calculate streak more efficiently
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(today.getDate() - i);
+      const dateStr = checkDate.toDateString();
+      
+      const daySession = sessionsByDate.get(dateStr);
+      if (daySession && daySession.tasks.some(task => task.completed)) {
+        streak++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+    
     return {
       totalHours,
       completedTasks: completedTasks.length,
-      streak: 0, // Could be enhanced with date-based calculation
-      efficiency
+      streak,
+      efficiency,
+      productivityScore: Math.round((efficiency + (streak * 5)) / 2),
+      averageSessionDuration: sessions.length > 0 ? totalHours / sessions.length : 0
     };
   };
 

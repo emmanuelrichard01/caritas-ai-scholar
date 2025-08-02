@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
+import { memo } from "react";
 
 const StudyPlanner = () => {
   const { user } = useAuth();
@@ -58,20 +60,34 @@ const StudyPlanner = () => {
       subtitle="Create intelligent, personalized study schedules that adapt to your learning patterns"
       icon={<Calendar className="h-6 w-6" />}
     >
-      <div className="space-y-8">
+      <div className="space-y-6 sm:space-y-8">
+        {/* Loading State */}
+        {isLoading && (
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-24" />
+            </div>
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+        )}
+
         {/* Saved Plans Manager */}
-        <SavedPlansManager
-          currentPlan={currentPlan}
-          savedPlans={savedPlans}
-          onCreateNew={createNewPlan}
-          onSavePlan={savePlan}
-          onLoadPlan={loadPlan}
-          onDeletePlan={deletePlan}
-          isLoading={isLoading}
-        />
+        {!isLoading && (
+          <SavedPlansManager
+            currentPlan={currentPlan}
+            savedPlans={savedPlans}
+            onCreateNew={createNewPlan}
+            onSavePlan={savePlan}
+            onLoadPlan={loadPlan}
+            onDeletePlan={deletePlan}
+            isLoading={isLoading}
+          />
+        )}
 
         {/* Study Plan Setup */}
-        {currentPlan && (
+        {!isLoading && currentPlan && (
           <StudyPlanSetup
             subjects={currentPlan.subjects}
             preferences={currentPlan.preferences}
@@ -85,7 +101,7 @@ const StudyPlanner = () => {
         )}
         
         {/* Study Plan Display */}
-        {currentPlan && currentPlan.sessions.length > 0 && (
+        {!isLoading && currentPlan && currentPlan.sessions.length > 0 && (
           <StudyPlanDisplay
             sessions={currentPlan.sessions}
             onToggleTask={toggleTaskCompletion}

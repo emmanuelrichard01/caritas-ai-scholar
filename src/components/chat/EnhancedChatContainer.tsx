@@ -254,7 +254,7 @@ export const EnhancedChatContainer = () => {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+    <div className="flex flex-col h-full max-h-full bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
       {/* Simple Header */}
       <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-700 p-3 sm:p-4">
         <div className="flex items-center justify-between">
@@ -307,10 +307,10 @@ export const EnhancedChatContainer = () => {
       </div>
 
       {/* Chat Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden min-h-0">
         <div 
           ref={chatContainerRef}
-          className="h-full overflow-y-auto p-3 sm:p-4"
+          className="h-full overflow-y-auto p-3 sm:p-4 scroll-smooth"
         >
           {isLoadingHistory ? (
             // Loading skeleton

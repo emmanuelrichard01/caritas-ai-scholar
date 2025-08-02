@@ -133,10 +133,10 @@ export const MaterialUploadForm = ({ onUploadSuccess }: MaterialUploadFormProps)
           <FileUploader 
             files={files} 
             onFilesChange={setFiles}
-            maxFiles={5}
-            maxSizeMB={50}
-            supportedFormats="PDF, DOC, DOCX, PPT, PPTX, TXT"
-            acceptTypes=".pdf,.doc,.docx,.ppt,.pptx,.txt"
+            maxFiles={10}
+            maxSizeMB={100}
+            supportedFormats="PDF, DOC, DOCX, PPT, PPTX, TXT, RTF, ODT"
+            acceptTypes=".pdf,.doc,.docx,.ppt,.pptx,.txt,.rtf,.odt"
           />
         </div>
         

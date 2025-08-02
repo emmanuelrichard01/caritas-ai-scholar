@@ -1,5 +1,5 @@
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,18 +10,24 @@ import {
   BookOpen, 
   Calculator,
   Users,
-  Lightbulb
+  Lightbulb,
+  Bot,
+  RefreshCw
 } from 'lucide-react';
 import { useAIProcessor } from '@/hooks/useAIProcessor';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { EnhancedChatInput } from './EnhancedChatInput';
 import { EnhancedChatMessage } from './EnhancedChatMessage';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export interface Message {
   role: 'user' | 'assistant' | 'system' | 'error';
   content: string;
   timestamp?: Date;
+  id?: string;
+  tokens?: number;
+  responseTime?: number;
 }
 
 const quickSuggestions = [
@@ -55,58 +61,137 @@ const quickSuggestions = [
 export const EnhancedChatContainer = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isFirstMessage, setIsFirstMessage] = useState(true);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [lastActivity, setLastActivity] = useState<Date>(new Date());
+  const [retryCount, setRetryCount] = useState(0);
   const { user } = useAuth();
   const { processQuery, isProcessing } = useAIProcessor();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
+
+  // Load chat history on mount
+  useEffect(() => {
+    if (user && isFirstMessage) {
+      loadChatHistory();
+    }
+  }, [user, isFirstMessage]);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
-  const handleSendMessage = async (message: string) => {
-    if (!message.trim()) return;
+  // Auto-refresh activity timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLastActivity(new Date());
+    }, 30000); // Update every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadChatHistory = useCallback(async () => {
+    if (!user) return;
+    
+    setIsLoadingHistory(true);
+    try {
+      const { data: history, error } = await supabase
+        .from('chat_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('category', 'google-ai')
+        .order('created_at', { ascending: true })
+        .limit(50); // Load last 50 messages
+
+      if (error) throw error;
+
+      if (history && history.length > 0) {
+        const loadedMessages: Message[] = history.flatMap(record => [
+          {
+            role: 'user' as const,
+            content: record.title, // Using title field which contains the query
+            timestamp: new Date(record.created_at),
+            id: `${record.id}-query`
+          },
+          {
+            role: 'assistant' as const,
+            content: record.content, // Using content field which contains the response
+            timestamp: new Date(record.created_at),
+            id: `${record.id}-response`
+          }
+        ]);
+        
+        setMessages(loadedMessages);
+        setIsFirstMessage(false);
+      }
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+      toast.error('Failed to load chat history');
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, [user]);
+
+  const handleSendMessage = useCallback(async (message: string) => {
+    if (!message.trim() || isProcessing) return;
+
+    const startTime = Date.now();
+    const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
 
     const userMessage: Message = { 
       role: 'user', 
       content: message, 
-      timestamp: new Date() 
+      timestamp: new Date(),
+      id: `${messageId}-user`
     };
+    
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setIsFirstMessage(false);
+    setRetryCount(0);
 
     try {
-      const response = await processQuery(message);
+      const response = await processQuery(message, 'google-ai');
+      const responseTime = Date.now() - startTime;
       
       if (response) {
-        setMessages([...newMessages, { 
+        const assistantMessage: Message = { 
           role: 'assistant', 
           content: response,
-          timestamp: new Date()
-        }]);
+          timestamp: new Date(),
+          id: `${messageId}-assistant`,
+          responseTime
+        };
+        setMessages([...newMessages, assistantMessage]);
+        setLastActivity(new Date());
       } else {
-        setMessages([...newMessages, { 
-          role: 'error', 
-          content: 'I encountered an error processing your message. Please try again.',
-          timestamp: new Date()
-        }]);
+        throw new Error('Empty response received');
       }
     } catch (error) {
       console.error('Error processing message:', error);
-      setMessages([...newMessages, { 
-        role: 'error', 
-        content: 'An unexpected error occurred. Please try again later.',
-        timestamp: new Date()
-      }]);
+      const errorMessage: Message = {
+        role: 'error',
+        content: 'I encountered an error processing your message. Please try again.',
+        timestamp: new Date(),
+        id: `${messageId}-error`
+      };
+      setMessages([...newMessages, errorMessage]);
     }
-  };
+  }, [messages, isProcessing, processQuery]);
 
-  const clearHistory = async () => {
+  const clearHistory = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -118,12 +203,55 @@ export const EnhancedChatContainer = () => {
       
       setMessages([]);
       setIsFirstMessage(true);
+      setLastActivity(new Date());
       toast.success('Chat history cleared');
     } catch (error) {
       console.error('Error clearing history:', error);
       toast.error('Failed to clear chat history');
     }
-  };
+  }, [user]);
+
+  const refreshChat = useCallback(async () => {
+    if (isProcessing) return;
+    
+    setMessages([]);
+    setIsFirstMessage(true);
+    await loadChatHistory();
+    toast.success('Chat refreshed');
+  }, [isProcessing, loadChatHistory]);
+
+  const retryLastMessage = useCallback(async () => {
+    if (messages.length === 0 || isProcessing) return;
+    
+    const lastUserMessage = [...messages].reverse().find(msg => msg.role === 'user');
+    if (!lastUserMessage) return;
+
+    setRetryCount(prev => prev + 1);
+    if (retryCount >= 3) {
+      toast.error('Maximum retry attempts reached');
+      return;
+    }
+
+    // Remove last assistant/error message if exists
+    const filteredMessages = messages.filter(msg => 
+      !(msg.role === 'assistant' || msg.role === 'error') || 
+      msg.timestamp! < lastUserMessage.timestamp!
+    );
+    
+    setMessages(filteredMessages);
+    await handleSendMessage(lastUserMessage.content);
+  }, [messages, isProcessing, retryCount, handleSendMessage]);
+
+  // Memoized values for performance
+  const chatStats = useMemo(() => {
+    const userMessages = messages.filter(m => m.role === 'user').length;
+    const assistantMessages = messages.filter(m => m.role === 'assistant').length;
+    const avgResponseTime = messages
+      .filter(m => m.role === 'assistant' && m.responseTime)
+      .reduce((acc, m) => acc + (m.responseTime || 0), 0) / assistantMessages || 0;
+    
+    return { userMessages, assistantMessages, avgResponseTime };
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -131,22 +259,50 @@ export const EnhancedChatContainer = () => {
       <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-700 p-3 sm:p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
-            <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
-            <h1 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
-              CARITAS AI Chat
-            </h1>
+            <div className="relative">
+              <Bot className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+              {isProcessing && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+              )}
+            </div>
+            <div>
+              <h1 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+                CARITAS AI Chat
+              </h1>
+              {chatStats.assistantMessages > 0 && (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {chatStats.userMessages} messages • Avg {chatStats.avgResponseTime.toFixed(0)}ms
+                </p>
+              )}
+            </div>
           </div>
           
-          {messages.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearHistory}
-              className="text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-3"
-            >
-              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-            </Button>
-          )}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {messages.length > 0 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={refreshChat}
+                  disabled={isProcessing}
+                  className="text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-3"
+                  title="Refresh chat"
+                >
+                  <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 ${isProcessing ? 'animate-spin' : ''}`} />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearHistory}
+                  disabled={isProcessing}
+                  className="text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-3"
+                  title="Clear history"
+                >
+                  <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -156,7 +312,25 @@ export const EnhancedChatContainer = () => {
           ref={chatContainerRef}
           className="h-full overflow-y-auto p-3 sm:p-4"
         >
-          {isFirstMessage && messages.length === 0 ? (
+          {isLoadingHistory ? (
+            // Loading skeleton
+            <div className="space-y-4 p-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-1/4" />
+                  <Skeleton className="h-16 w-3/4" />
+                </div>
+              </div>
+              <div className="flex items-center gap-3 justify-end">
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-1/4 ml-auto" />
+                  <Skeleton className="h-12 w-2/3 ml-auto" />
+                </div>
+                <Skeleton className="h-8 w-8 rounded-full" />
+              </div>
+            </div>
+          ) : isFirstMessage && messages.length === 0 ? (
             // Welcome Screen
             <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
               <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center">
@@ -210,15 +384,37 @@ export const EnhancedChatContainer = () => {
               ))}
               
               {isProcessing && (
-                <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="relative w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white flex items-center gap-2">
                       AI is thinking...
+                      {retryCount > 0 && (
+                        <span className="text-xs text-amber-600 dark:text-amber-400">
+                          (Retry {retryCount}/3)
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      Processing your request...
                     </p>
                   </div>
+                  {retryCount > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (abortControllerRef.current) {
+                          abortControllerRef.current.abort();
+                        }
+                      }}
+                      className="h-7 px-2 text-xs"
+                    >
+                      Cancel
+                    </Button>
+                  )}
                 </div>
               )}
               
@@ -232,7 +428,9 @@ export const EnhancedChatContainer = () => {
       <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 p-3 sm:p-4">
         <EnhancedChatInput 
           onSendMessage={handleSendMessage} 
-          disabled={isProcessing}
+          disabled={isProcessing || isLoadingHistory}
+          onRetry={retryLastMessage}
+          showRetry={messages.length > 0 && messages[messages.length - 1]?.role === 'error'}
         />
       </div>
     </div>

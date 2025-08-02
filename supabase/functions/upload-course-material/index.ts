@@ -8,20 +8,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// File validation constants
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+// File validation constants  
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const ALLOWED_FILE_TYPES = [
   'text/plain',
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/rtf',
+  'application/vnd.oasis.opendocument.text',
+  'text/rtf'
 ];
 
 // Rate limiting map (simple in-memory store)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT = 20; // uploads per hour
+const RATE_LIMIT = 50; // uploads per hour
 const RATE_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
 
 function getRateLimitKey(userId: string): string {

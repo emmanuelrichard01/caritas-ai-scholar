@@ -8,9 +8,16 @@ import { cn } from '@/lib/utils';
 interface EnhancedChatInputProps {
   onSendMessage: (message: string) => void;
   disabled?: boolean;
+  onRetry?: () => void;
+  showRetry?: boolean;
 }
 
-export const EnhancedChatInput = ({ onSendMessage, disabled = false }: EnhancedChatInputProps) => {
+export const EnhancedChatInput = ({ 
+  onSendMessage, 
+  disabled = false, 
+  onRetry, 
+  showRetry = false 
+}: EnhancedChatInputProps) => {
   const [message, setMessage] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -63,20 +70,37 @@ export const EnhancedChatInput = ({ onSendMessage, disabled = false }: EnhancedC
           rows={1}
         />
 
-        {/* Send Button */}
-        <Button
-          type="submit"
-          disabled={disabled || !message.trim()}
-          size="sm"
-          className={cn(
-            "flex-shrink-0 transition-all duration-200",
-            message.trim() && !disabled
-              ? "bg-blue-600 hover:bg-blue-700 text-white"
-              : "bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {showRetry && onRetry && (
+            <Button
+              type="button"
+              onClick={onRetry}
+              variant="outline"
+              size="sm"
+              disabled={disabled}
+              className="flex-shrink-0 text-amber-600 border-amber-300 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-950/20"
+              title="Retry last message"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
           )}
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+          
+          <Button
+            type="submit"
+            disabled={disabled || !message.trim()}
+            size="sm"
+            className={cn(
+              "flex-shrink-0 transition-all duration-200",
+              message.trim() && !disabled
+                ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
+                : "bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
+            )}
+            title="Send message"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Helper Text */}

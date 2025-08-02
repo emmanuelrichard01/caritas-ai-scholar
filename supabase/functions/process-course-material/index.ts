@@ -2,6 +2,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+// Import file processing libraries
+import * as pdfjsLib from "https://cdn.skypack.dev/pdfjs-dist@3.11.174";
+import mammoth from "https://cdn.skypack.dev/mammoth@1.6.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -124,17 +127,23 @@ serve(async (req) => {
       }
     }
 
-    console.log("File downloaded successfully, converting to text");
+    console.log("File downloaded successfully, extracting text based on file type");
+
+    // Get file type from path or headers
+    const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
+    const contentType = fileData.type || '';
+    
+    console.log(`Processing file with extension: ${fileExtension}, content type: ${contentType}`);
 
     let text: string;
     try {
-      text = await fileData.text();
+      text = await extractTextFromFile(fileData, fileExtension, contentType);
       if (!text || text.trim().length === 0) {
         throw new Error("File appears to be empty or unreadable");
       }
     } catch (textError) {
-      console.error("Error converting file to text:", textError);
-      text = "Content could not be extracted properly. Please try a different file format.";
+      console.error("Error extracting text from file:", textError);
+      text = "Content could not be extracted properly. Please try a different file format or ensure the file is not corrupted.";
     }
 
     console.log(`Extracted ${text.length} characters from file`);
@@ -231,6 +240,124 @@ serve(async (req) => {
   }
 });
 
+// Enhanced text extraction function with support for multiple file types
+async function extractTextFromFile(
+  fileData: Blob, 
+  fileExtension: string, 
+  contentType: string
+): Promise<string> {
+  console.log(`Extracting text from ${fileExtension} file (${contentType})`);
+  
+  try {
+    switch (fileExtension) {
+      case 'pdf':
+        return await extractTextFromPDF(fileData);
+      case 'doc':
+      case 'docx':
+        return await extractTextFromWord(fileData);
+      case 'txt':
+        return await extractTextFromPlainText(fileData);
+      default:
+        // Fallback to plain text extraction
+        console.warn(`Unsupported file type ${fileExtension}, attempting plain text extraction`);
+        return await extractTextFromPlainText(fileData);
+    }
+  } catch (error) {
+    console.error(`Error extracting text from ${fileExtension}:`, error);
+    // Fallback to basic text extraction
+    return await extractTextFromPlainText(fileData);
+  }
+}
+
+async function extractTextFromPDF(fileData: Blob): Promise<string> {
+  try {
+    console.log("Extracting text from PDF...");
+    
+    const arrayBuffer = await fileData.arrayBuffer();
+    const typedArray = new Uint8Array(arrayBuffer);
+    
+    // Configure PDF.js to work in Deno environment
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.skypack.dev/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    
+    const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+    console.log(`PDF loaded with ${pdf.numPages} pages`);
+    
+    let fullText = '';
+    
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      try {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        
+        const pageText = textContent.items
+          .filter((item: any) => item.str)
+          .map((item: any) => item.str)
+          .join(' ');
+        
+        fullText += `\n\n--- Page ${pageNum} ---\n${pageText}`;
+        console.log(`Extracted text from page ${pageNum}: ${pageText.length} characters`);
+      } catch (pageError) {
+        console.error(`Error extracting page ${pageNum}:`, pageError);
+        fullText += `\n\n--- Page ${pageNum} ---\n[Error extracting page content]`;
+      }
+    }
+    
+    console.log(`Total PDF text extracted: ${fullText.length} characters`);
+    return fullText;
+  } catch (error) {
+    console.error("PDF extraction failed:", error);
+    throw new Error(`Failed to extract text from PDF: ${error.message}`);
+  }
+}
+
+async function extractTextFromWord(fileData: Blob): Promise<string> {
+  try {
+    console.log("Extracting text from Word document...");
+    
+    const arrayBuffer = await fileData.arrayBuffer();
+    
+    // Use mammoth to extract text from Word documents
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    
+    if (result.messages && result.messages.length > 0) {
+      console.warn("Mammoth warnings:", result.messages);
+    }
+    
+    console.log(`Word text extracted: ${result.value.length} characters`);
+    return result.value || '';
+  } catch (error) {
+    console.error("Word document extraction failed:", error);
+    throw new Error(`Failed to extract text from Word document: ${error.message}`);
+  }
+}
+
+async function extractTextFromPlainText(fileData: Blob): Promise<string> {
+  try {
+    console.log("Extracting plain text...");
+    
+    // Try different encodings to handle various text files
+    const encodings = ['utf-8', 'utf-16', 'iso-8859-1'];
+    
+    for (const encoding of encodings) {
+      try {
+        const text = await fileData.text();
+        if (text && text.trim().length > 0) {
+          console.log(`Text extracted with ${encoding}: ${text.length} characters`);
+          return text;
+        }
+      } catch (encodingError) {
+        console.warn(`Failed to decode with ${encoding}:`, encodingError);
+        continue;
+      }
+    }
+    
+    throw new Error("Could not decode text file with any supported encoding");
+  } catch (error) {
+    console.error("Plain text extraction failed:", error);
+    throw new Error(`Failed to extract plain text: ${error.message}`);
+  }
+}
+
 function sanitizeText(text: string): string {
   if (!text) return "";
   
@@ -255,33 +382,24 @@ function processTextIntoSegments(text: string, materialId: string) {
     }];
   }
 
-  const lines = sanitizedText.split("\n").filter(line => line.trim().length > 0);
+  console.log(`Processing ${sanitizedText.length} characters into segments`);
+
+  // Enhanced preprocessing for better segmentation
+  const preprocessedText = preprocessText(sanitizedText);
+  const lines = preprocessedText.split("\n").filter(line => line.trim().length > 0);
   const segments: { material_id: string, title: string, text: string }[] = [];
   
   let currentSegmentTitle = "Introduction";
   let currentSegmentText = "";
   let segmentCount = 0;
-  const minSegmentLength = 100; // Minimum characters per segment
-  const maxSegmentLength = 5000; // Maximum characters per segment
+  const minSegmentLength = 150; // Increased minimum for better content chunks
+  const maxSegmentLength = 3000; // Optimal size for AI processing
   
   for (const line of lines) {
     const trimmedLine = line.trim();
     
-    // Enhanced heading detection with better patterns
-    const isHeading = (
-      // All caps heading (but not too long)
-      (trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 5 && trimmedLine.length < 100 && /[A-Z]/.test(trimmedLine))
-      // Numbered sections
-      || /^(chapter|section|part|unit|lesson|module)\s+\d+/i.test(trimmedLine)
-      // Roman numerals
-      || /^[IVXivx]+\.\s+/i.test(trimmedLine)
-      // Decimal numbering
-      || /^\d+(\.\d+)*\s+/.test(trimmedLine)
-      // Markdown headers
-      || /^#{1,6}\s+/.test(trimmedLine)
-      // Lines ending with colon (but not too long)
-      || (trimmedLine.endsWith(':') && trimmedLine.length < 80 && trimmedLine.length > 5)
-    );
+    // Advanced heading detection with comprehensive patterns
+    const isHeading = detectHeading(trimmedLine);
     
     if (isHeading && currentSegmentText.trim().length >= minSegmentLength) {
       // Save current segment if it has substantial content
@@ -338,9 +456,71 @@ function processTextIntoSegments(text: string, materialId: string) {
   // Filter out segments that are too small
   const validSegments = segments.filter(s => s.text.length >= minSegmentLength);
   
-  return validSegments.length > 0 ? validSegments : [{
+  const finalSegments = validSegments.length > 0 ? validSegments : [{
     material_id: materialId,
-    title: "Content",
+    title: "Content", 
     text: sanitizeText(sanitizedText)
   }];
+
+  console.log(`Final segmentation: ${finalSegments.length} segments created`);
+  return finalSegments;
+}
+
+// Enhanced text preprocessing for better structure detection
+function preprocessText(text: string): string {
+  return text
+    // Normalize page breaks and headers
+    .replace(/--- Page \d+ ---/g, '\n\n')
+    // Fix broken sentences across lines
+    .replace(/([a-z])\n([a-z])/g, '$1 $2')
+    // Preserve paragraph breaks
+    .replace(/\n\s*\n/g, '\n\n')
+    // Normalize bullet points
+    .replace(/^\s*[•·▪▫‣⁃]\s+/gm, '• ')
+    // Normalize numbered lists
+    .replace(/^\s*\d+\.\s+/gm, (match) => match.trim() + ' ')
+    // Clean up excessive whitespace
+    .replace(/[ \t]+/g, ' ')
+    .trim();
+}
+
+// Advanced heading detection with multiple patterns
+function detectHeading(line: string): boolean {
+  const trimmedLine = line.trim();
+  
+  // Skip very short or very long lines
+  if (trimmedLine.length < 3 || trimmedLine.length > 120) {
+    return false;
+  }
+  
+  const patterns = [
+    // Academic patterns
+    /^(chapter|section|part|unit|lesson|module|topic|appendix|introduction|conclusion|summary|abstract|references|bibliography)\s+\d*:?\s*/i,
+    
+    // Numbered patterns
+    /^\d+(\.\d+)*\s+[A-Z].*/,  // 1.1 Title, 2.3.1 Subtitle
+    /^[IVXivx]+\.\s+[A-Z].*/,  // Roman numerals: I. Title
+    
+    // Markdown and formatting
+    /^#{1,6}\s+.*/,            // Markdown headers
+    /^\*{1,3}[^*]+\*{1,3}$/,   // Bold/italic formatting
+    /^_{1,3}[^_]+_{1,3}$/,     // Underscore formatting
+    
+    // Content-based patterns
+    /^[A-Z][A-Z\s]{4,}[A-Z]$/,               // ALL CAPS (but not too short)
+    /^[A-Z][a-z\s]+:$/,                      // Title Case ending with colon
+    /^.+:$/,                                 // Any line ending with colon (questions, definitions)
+    
+    // Academic keywords
+    /^(definition|theorem|proof|example|exercise|problem|solution|note|remark|observation|proposition|lemma|corollary)(\s+\d+)?:?\s*/i,
+    
+    // Question patterns
+    /^(what|why|how|when|where|which|who)\s+.*\?$/i,
+    
+    // Special formatting indicators
+    /^\[.+\]$/,                              // Bracketed text
+    /^\(.+\)$/,                              // Parenthesized text (if not too long)
+  ];
+  
+  return patterns.some(pattern => pattern.test(trimmedLine));
 }

@@ -254,30 +254,35 @@ export const EnhancedChatContainer = () => {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full max-h-full bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-      {/* Simple Header */}
-      <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-700 p-3 sm:p-4">
+    <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+      {/* Enhanced Header with better spacing */}
+      <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className="relative">
-              <Bot className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
-              {isProcessing && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-              )}
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg">
+                <Bot className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                {isProcessing && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-sm" />
+                )}
+              </div>
             </div>
             <div>
-              <h1 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
                 CARITAS AI Chat
               </h1>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Your intelligent academic companion
+              </p>
               {chatStats.assistantMessages > 0 && (
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {chatStats.userMessages} messages • Avg {chatStats.avgResponseTime.toFixed(0)}ms
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {chatStats.userMessages} messages • Avg {chatStats.avgResponseTime.toFixed(0)}ms response
                 </p>
               )}
             </div>
           </div>
           
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-2">
             {messages.length > 0 && (
               <>
                 <Button
@@ -285,20 +290,22 @@ export const EnhancedChatContainer = () => {
                   size="sm"
                   onClick={refreshChat}
                   disabled={isProcessing}
-                  className="text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-3"
+                  className="text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                   title="Refresh chat"
                 >
-                  <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 ${isProcessing ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-4 w-4 ${isProcessing ? 'animate-spin' : ''}`} />
+                  <span className="sr-only sm:not-sr-only sm:ml-2 text-sm">Refresh</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={clearHistory}
                   disabled={isProcessing}
-                  className="text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 h-8 w-8 p-0 sm:h-auto sm:w-auto sm:px-3"
+                  className="text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-slate-300 dark:border-slate-600 transition-colors"
                   title="Clear history"
                 >
-                  <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only sm:not-sr-only sm:ml-2 text-sm">Clear</span>
                 </Button>
               </>
             )}
@@ -306,11 +313,11 @@ export const EnhancedChatContainer = () => {
         </div>
       </div>
 
-      {/* Chat Content */}
+      {/* Chat Content with optimized spacing */}
       <div className="flex-1 overflow-hidden min-h-0">
         <div 
           ref={chatContainerRef}
-          className="h-full overflow-y-auto p-3 sm:p-4 scroll-smooth"
+          className="h-full overflow-y-auto px-4 sm:px-6 py-6 scroll-smooth"
         >
           {isLoadingHistory ? (
             // Loading skeleton
@@ -424,8 +431,8 @@ export const EnhancedChatContainer = () => {
         </div>
       </div>
 
-      {/* Input Area */}
-      <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 p-3 sm:p-4">
+      {/* Enhanced Input Area */}
+      <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 px-4 sm:px-6 py-4">
         <EnhancedChatInput 
           onSendMessage={handleSendMessage} 
           disabled={isProcessing || isLoadingHistory}

@@ -40,7 +40,7 @@ export const CTASection = ({ onGetStarted }: CTASectionProps) => {
           <Button 
             variant="outline"
             size="lg"
-            className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg font-semibold rounded-xl backdrop-blur-sm"
+            className="border-white/30 text-caritas hover:bg-white/10 px-8 py-4 text-lg font-semibold rounded-xl backdrop-blur-sm"
             onClick={() => window.location.href = '/dashboard'}
           >
             View Dashboard

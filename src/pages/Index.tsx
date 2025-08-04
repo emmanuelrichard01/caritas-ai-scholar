@@ -121,7 +121,7 @@ const Index = () => {
                 Empowering students with AI-driven academic assistance for better learning outcomes and academic success.
               </p>
               <div className="text-sm text-slate-400">
-                © 2024 CARITAS AI. All rights reserved.
+                © 2025 CARITAS AI. All rights reserved.
               </div>
             </div>
             

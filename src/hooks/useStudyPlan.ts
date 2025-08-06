@@ -548,31 +548,34 @@ function generateSmartSessions(
   const sessions: StudySession[] = [];
   
   const workingDays = getWorkingDays(preferences.studyDays, effectiveDuration);
-  const subjectSchedule = createDeadlineAwareSchedule(subjects, workingDays);
   const timeSlots = generateTimeSlots(preferences);
   
+  // Create balanced distribution of subjects across all working days
+  const totalHours = subjects.reduce((sum, s) => sum + s.estimatedHours, 0);
+  const hoursPerDay = Math.min(totalHours / workingDays.length, preferences.dailyStudyHours);
+  
   workingDays.forEach((day, index) => {
-    const tasks = distributeDailyTasksWithDeadlines(
-      subjectSchedule, 
+    const tasks = generateBalancedDailyTasks(
+      subjects, 
       preferences, 
       index, 
-      day
+      day,
+      hoursPerDay,
+      workingDays.length
     );
     
-    if (tasks.length > 0) {
-      const totalDuration = tasks.reduce((sum, task) => sum + task.duration, 0);
-      const completedTasks = tasks.filter(task => task.completed).length;
-      
-      sessions.push({
-        id: `session-${index}`,
-        date: day.toISOString().split('T')[0],
-        startTime: timeSlots.start,
-        endTime: timeSlots.end,
-        tasks,
-        totalDuration,
-        completionRate: tasks.length > 0 ? completedTasks / tasks.length : 0
-      });
-    }
+    const totalDuration = tasks.reduce((sum, task) => sum + task.duration, 0);
+    const completedTasks = tasks.filter(task => task.completed).length;
+    
+    sessions.push({
+      id: `session-${index}`,
+      date: day.toISOString().split('T')[0],
+      startTime: timeSlots.start,
+      endTime: timeSlots.end,
+      tasks,
+      totalDuration,
+      completionRate: tasks.length > 0 ? completedTasks / tasks.length : 0
+    });
   });
   
   return sessions;
@@ -666,28 +669,32 @@ function generateTimeSlots(preferences: StudyPreferences) {
   return timeSlotMap[primarySlot] || timeSlotMap.morning;
 }
 
-function distributeDailyTasksWithDeadlines(
-  subjectSchedule: Map<number, StudySubject[]>,
-  preferences: StudyPreferences, 
+function generateBalancedDailyTasks(
+  subjects: StudySubject[],
+  preferences: StudyPreferences,
   dayIndex: number,
-  currentDate: Date
+  currentDate: Date,
+  targetHoursPerDay: number,
+  totalDays: number
 ): StudyTask[] {
   const tasks: StudyTask[] = [];
   const totalMinutes = preferences.dailyStudyHours * 60;
   const sessionDuration = preferences.sessionDuration;
   const breakDuration = preferences.breakDuration;
   
+  if (subjects.length === 0) return tasks;
+  
   let remainingTime = totalMinutes;
   let taskId = 0;
   
-  // Get subjects scheduled for this day
-  const daySubjects = subjectSchedule.get(dayIndex) || [];
-  const uniqueSubjects = Array.from(new Set(daySubjects));
+  // Create a balanced distribution of subjects across all days
+  // Each subject should appear on multiple days based on its importance and deadline
+  const subjectsForToday = getSubjectsForDay(subjects, dayIndex, totalDays);
   
-  if (uniqueSubjects.length === 0) return tasks;
+  if (subjectsForToday.length === 0) return tasks;
   
   // Distribute time among subjects based on priority and deadline urgency
-  uniqueSubjects.forEach((subject, subjectIndex) => {
+  subjectsForToday.forEach((subject, subjectIndex) => {
     if (remainingTime <= 0) return;
     
     // Calculate time allocation based on deadline urgency
@@ -701,7 +708,7 @@ function distributeDailyTasksWithDeadlines(
       : 1;
     
     const priorityMultiplier = { high: 1.5, medium: 1, low: 0.7 }[subject.priority];
-    const baseTime = Math.floor(remainingTime / (uniqueSubjects.length - subjectIndex));
+    const baseTime = Math.floor(remainingTime / (subjectsForToday.length - subjectIndex));
     const timeAllocation = Math.min(
       baseTime * urgencyMultiplier * priorityMultiplier,
       remainingTime
@@ -745,7 +752,7 @@ function distributeDailyTasksWithDeadlines(
     remainingTime -= studyTime;
     
     // Add break if there's more time and it's not the last subject
-    if (remainingTime > breakDuration && subjectIndex < uniqueSubjects.length - 1) {
+    if (remainingTime > breakDuration && subjectIndex < subjectsForToday.length - 1) {
       tasks.push({
         id: `break-${dayIndex}-${taskId++}`,
         subjectId: "break",
@@ -762,6 +769,60 @@ function distributeDailyTasksWithDeadlines(
   });
   
   return tasks;
+}
+
+function getSubjectsForDay(subjects: StudySubject[], dayIndex: number, totalDays: number): StudySubject[] {
+  if (subjects.length === 0) return [];
+  
+  // Sort subjects by deadline urgency and priority for consistent distribution
+  const sortedSubjects = [...subjects].sort((a, b) => {
+    const priorityWeight = { high: 3, medium: 2, low: 1 };
+    
+    // Calculate days until deadline
+    const now = new Date();
+    const daysUntilA = a.deadline ? Math.ceil((a.deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 365;
+    const daysUntilB = b.deadline ? Math.ceil((b.deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 365;
+    
+    // Prioritize by deadline first, then by priority
+    if (daysUntilA !== daysUntilB) {
+      return daysUntilA - daysUntilB;
+    }
+    
+    return priorityWeight[b.priority] - priorityWeight[a.priority];
+  });
+  
+  const subjectsForToday: StudySubject[] = [];
+  
+  // Ensure each subject appears on multiple days based on its requirements
+  sortedSubjects.forEach((subject, subjectIndex) => {
+    // Calculate how many days this subject should appear
+    const totalHoursForSubject = subject.estimatedHours;
+    const daysNeeded = Math.ceil(totalHoursForSubject / 2); // Roughly 2 hours per day max per subject
+    const frequency = Math.max(1, Math.ceil(daysNeeded / totalDays * subjects.length));
+    
+    // Determine if this subject should appear today
+    const shouldAppearToday = (dayIndex + subjectIndex) % Math.max(1, Math.floor(totalDays / frequency)) === 0;
+    
+    // Also include subjects with urgent deadlines more frequently
+    const daysUntilDeadline = subject.deadline 
+      ? Math.ceil((subject.deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      : 365;
+    
+    const isUrgent = daysUntilDeadline <= 7;
+    const shouldAppearDueToUrgency = isUrgent && dayIndex < Math.min(7, totalDays);
+    
+    if (shouldAppearToday || shouldAppearDueToUrgency) {
+      subjectsForToday.push(subject);
+    }
+  });
+  
+  // Ensure at least one subject per day if we have subjects
+  if (subjectsForToday.length === 0 && sortedSubjects.length > 0) {
+    const subjectIndex = dayIndex % sortedSubjects.length;
+    subjectsForToday.push(sortedSubjects[subjectIndex]);
+  }
+  
+  return subjectsForToday;
 }
 
 function generateTaskDescription(subjectName: string, taskType: string, deadline?: Date): string {

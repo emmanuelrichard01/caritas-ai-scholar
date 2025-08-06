@@ -60,42 +60,114 @@ export const GPACalculatorForm = ({
   };
 
   const exportData = () => {
-    const dataStr = JSON.stringify(courses, null, 2);
+    // Create enhanced export data with metadata
+    const exportData = {
+      version: "1.0",
+      exportDate: new Date().toISOString(),
+      totalCourses: courses.length,
+      validCourses: courses.filter(c => c.courseCode.trim() !== "" && c.creditLoad > 0).length,
+      courses: courses,
+      metadata: {
+        appName: "GPA Calculator",
+        format: "Lovable StudyBuddy Export"
+      }
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
-    const exportFileDefaultName = 'gpa-courses.json';
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().split('T')[0];
+    const exportFileDefaultName = `gpa-courses-${timestamp}.json`;
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
     
-    toast.success("Courses exported successfully!");
+    toast.success(`${courses.length} courses exported successfully!`);
   };
 
   const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.type !== 'application/json') {
-        toast.error("Please select a valid JSON file");
-        return;
-      }
+    if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const importedCourses = JSON.parse(e.target?.result as string);
-          if (Array.isArray(importedCourses) && importedCourses.length > 0) {
-            setCourses(importedCourses);
-            toast.success("Courses imported successfully!");
-          } else {
-            toast.error("Invalid course data format");
-          }
-        } catch (error) {
-          toast.error("Error reading file. Please check the format.");
+    // Enhanced file validation
+    if (!file.type.includes('json') && !file.name.endsWith('.json')) {
+      toast.error("Please select a valid JSON file");
+      return;
+    }
+
+    // Check file size (limit to 1MB)
+    if (file.size > 1024 * 1024) {
+      toast.error("File too large. Please select a file smaller than 1MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const fileContent = JSON.parse(e.target?.result as string);
+        
+        // Handle both new format (with metadata) and legacy format (direct array)
+        let coursesToImport: Course[] = [];
+        
+        if (Array.isArray(fileContent)) {
+          // Legacy format - direct array of courses
+          coursesToImport = fileContent;
+        } else if (fileContent.courses && Array.isArray(fileContent.courses)) {
+          // New format - with metadata
+          coursesToImport = fileContent.courses;
+        } else {
+          toast.error("Invalid file format. Expected courses data.");
+          return;
         }
-      };
-      reader.readAsText(file);
+
+        // Validate course structure
+        const validCourses = coursesToImport.filter((course: any) => {
+          return course && 
+                 typeof course.id === 'number' && 
+                 typeof course.courseCode === 'string' && 
+                 typeof course.creditLoad === 'number' && 
+                 typeof course.grade === 'string' &&
+                 ['A', 'B', 'C', 'D', 'E', 'F'].includes(course.grade);
+        });
+
+        if (validCourses.length === 0) {
+          toast.error("No valid courses found in the file");
+          return;
+        }
+
+        // Reassign IDs to prevent conflicts
+        const coursesWithNewIds = validCourses.map((course: Course, index: number) => ({
+          ...course,
+          id: index + 1
+        }));
+
+        setCourses(coursesWithNewIds);
+        
+        const skippedCount = coursesToImport.length - validCourses.length;
+        if (skippedCount > 0) {
+          toast.success(`${validCourses.length} courses imported successfully! ${skippedCount} invalid entries were skipped.`);
+        } else {
+          toast.success(`${validCourses.length} courses imported successfully!`);
+        }
+        
+      } catch (error) {
+        console.error('Import error:', error);
+        toast.error("Error reading file. Please check if it's a valid JSON file.");
+      }
+    };
+    
+    reader.onerror = () => {
+      toast.error("Error reading file. Please try again.");
+    };
+    
+    reader.readAsText(file);
+    
+    // Reset file input
+    if (event.target) {
+      event.target.value = '';
     }
   };
 
@@ -119,31 +191,53 @@ export const GPACalculatorForm = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Import/Export Controls */}
-      <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-        <h3 className="text-sm font-medium mb-3 dark:text-white">Course Management</h3>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={exportData}>
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-slate-800 dark:to-slate-700 p-4 rounded-lg border border-blue-200 dark:border-slate-600">
+        <h3 className="text-sm font-medium mb-3 dark:text-white flex items-center gap-2">
+          Course Management
+          <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+            {courses.length} course{courses.length !== 1 ? 's' : ''}
+          </span>
+        </h3>
+        <div className="flex flex-wrap gap-2 mb-3">
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={exportData}
+            disabled={courses.length === 0}
+            className="bg-white dark:bg-slate-800 hover:bg-green-50 dark:hover:bg-green-900/20"
+          >
             <Download className="mr-2 h-4 w-4" />
-            Export
+            Export Data
           </Button>
           <Button 
             type="button" 
             variant="outline" 
             size="sm" 
             onClick={() => fileInputRef.current?.click()}
+            className="bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20"
           >
             <Upload className="mr-2 h-4 w-4" />
-            Import
+            Import Data
           </Button>
-          <Button type="button" variant="outline" size="sm" onClick={addMultipleCourses}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={addMultipleCourses}
+            className="bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+          >
             <PlusCircle className="mr-2 h-4 w-4" />
             Add 5 Courses
           </Button>
         </div>
+        <p className="text-xs text-slate-600 dark:text-slate-400">
+          Export your courses to backup or share. Import supports both new and legacy formats.
+        </p>
         <input
           ref={fileInputRef}
           type="file"
-          accept=".json"
+          accept=".json,application/json"
           onChange={importData}
           style={{ display: 'none' }}
         />

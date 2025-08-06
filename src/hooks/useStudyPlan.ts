@@ -493,7 +493,7 @@ export const useStudyPlan = () => {
 function calculateOptimalDuration(subjects: StudySubject[], preferences: StudyPreferences): number {
   if (subjects.length === 0) return 14; // Default fallback
   
-  // Find the earliest deadline
+  // Find all unique deadlines
   const deadlines = subjects.filter(s => s.deadline).map(s => s.deadline!);
   
   if (deadlines.length === 0) {
@@ -506,37 +506,51 @@ function calculateOptimalDuration(subjects: StudySubject[], preferences: StudyPr
     return Math.min(Math.max(bufferDays, 7), 90); // Between 7-90 days
   }
   
+  // Find the latest deadline to ensure we cover all subjects
+  const latestDeadline = new Date(Math.max(...deadlines.map(d => d.getTime())));
   const earliestDeadline = new Date(Math.min(...deadlines.map(d => d.getTime())));
   
-  // Calculate days until earliest deadline
+  // Calculate days until latest deadline (to cover all subjects)
   const now = new Date();
-  const daysUntilDeadline = Math.ceil((earliestDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const daysUntilLatestDeadline = Math.ceil((latestDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const daysUntilEarliestDeadline = Math.ceil((earliestDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   
   // Ensure minimum planning period
-  const minDays = 3;
+  const minDays = 5;
   const maxDays = 120; // Maximum 4 months
   
   // Calculate workload-based duration
   const totalHours = subjects.reduce((sum, s) => sum + s.estimatedHours, 0);
   const workloadDays = Math.ceil(totalHours / preferences.dailyStudyHours);
   
-  // Determine optimal duration considering both deadline and workload
+  // Determine optimal duration considering both deadlines and workload
   let optimalDuration;
   
-  if (daysUntilDeadline <= minDays) {
-    // Very urgent - use minimum time
-    optimalDuration = Math.max(daysUntilDeadline - 1, 1);
-  } else if (workloadDays > daysUntilDeadline) {
-    // Insufficient time - warn user but use available time
+  if (daysUntilEarliestDeadline <= minDays) {
+    // Very urgent - use time until earliest deadline but ensure minimum coverage
+    optimalDuration = Math.max(daysUntilEarliestDeadline, minDays);
+  } else if (workloadDays > daysUntilLatestDeadline) {
+    // Insufficient time - warn user but use available time until latest deadline
     console.warn('Insufficient time for planned workload');
-    optimalDuration = Math.max(daysUntilDeadline - 2, minDays); // Leave buffer
+    optimalDuration = Math.max(daysUntilLatestDeadline - 1, minDays);
   } else {
-    // Normal case - use workload-based duration with buffer
-    const bufferDays = Math.ceil(workloadDays * 0.3); // 30% buffer
-    optimalDuration = Math.min(workloadDays + bufferDays, daysUntilDeadline - 1);
+    // Normal case - use the greater of workload-based duration or time until latest deadline
+    // This ensures we have enough time for all subjects and respect all deadlines
+    const bufferDays = Math.ceil(workloadDays * 0.2); // 20% buffer
+    const workloadWithBuffer = workloadDays + bufferDays;
+    
+    // Use the time until latest deadline if it's reasonable, otherwise use workload estimation
+    if (daysUntilLatestDeadline <= workloadWithBuffer * 1.5) {
+      optimalDuration = Math.max(daysUntilLatestDeadline - 1, workloadWithBuffer);
+    } else {
+      optimalDuration = workloadWithBuffer;
+    }
   }
   
-  return Math.min(Math.max(optimalDuration, minDays), maxDays);
+  const finalDuration = Math.min(Math.max(optimalDuration, minDays), maxDays);
+  console.log(`Calculated study plan duration: ${finalDuration} days for ${subjects.length} subjects`);
+  
+  return finalDuration;
 }
 
 function generateSmartSessions(
@@ -793,33 +807,63 @@ function getSubjectsForDay(subjects: StudySubject[], dayIndex: number, totalDays
   
   const subjectsForToday: StudySubject[] = [];
   
-  // Ensure each subject appears on multiple days based on its requirements
+  // Better distribution algorithm: ensure each subject appears across multiple days
   sortedSubjects.forEach((subject, subjectIndex) => {
-    // Calculate how many days this subject should appear
+    // Calculate how many days this subject needs based on its estimated hours
     const totalHoursForSubject = subject.estimatedHours;
-    const daysNeeded = Math.ceil(totalHoursForSubject / 2); // Roughly 2 hours per day max per subject
-    const frequency = Math.max(1, Math.ceil(daysNeeded / totalDays * subjects.length));
+    const hoursPerDay = 2; // Target 2 hours per subject per day
+    const daysNeeded = Math.max(1, Math.ceil(totalHoursForSubject / hoursPerDay));
     
-    // Determine if this subject should appear today
-    const shouldAppearToday = (dayIndex + subjectIndex) % Math.max(1, Math.floor(totalDays / frequency)) === 0;
+    // Calculate spread: how often this subject should appear
+    const spreadDays = Math.max(1, Math.floor(totalDays / Math.min(daysNeeded, totalDays)));
     
-    // Also include subjects with urgent deadlines more frequently
+    // Check if this subject should appear today using multiple distribution strategies
+    const basicDistribution = dayIndex % spreadDays === subjectIndex % spreadDays;
+    const rotationPattern = (dayIndex + subjectIndex) % subjects.length === subjectIndex;
+    const intensivePattern = dayIndex < daysNeeded; // Appear in early days for intensive study
+    
+    // Special handling for urgent subjects (deadline within 7 days)
     const daysUntilDeadline = subject.deadline 
       ? Math.ceil((subject.deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
       : 365;
     
     const isUrgent = daysUntilDeadline <= 7;
-    const shouldAppearDueToUrgency = isUrgent && dayIndex < Math.min(7, totalDays);
+    const isHighPriority = subject.priority === "high";
     
-    if (shouldAppearToday || shouldAppearDueToUrgency) {
+    // Urgent subjects appear more frequently
+    const urgentPattern = isUrgent && (dayIndex % 2 === 0 || dayIndex < daysUntilDeadline);
+    
+    // High priority subjects appear more frequently  
+    const priorityPattern = isHighPriority && dayIndex % Math.max(1, Math.floor(totalDays / 3)) === 0;
+    
+    // Subject should appear if any pattern matches
+    const shouldAppear = basicDistribution || rotationPattern || intensivePattern || urgentPattern || priorityPattern;
+    
+    if (shouldAppear) {
       subjectsForToday.push(subject);
     }
   });
   
-  // Ensure at least one subject per day if we have subjects
+  // Ensure we have at least one subject per day and don't have too many
   if (subjectsForToday.length === 0 && sortedSubjects.length > 0) {
+    // Fallback: round-robin assignment
     const subjectIndex = dayIndex % sortedSubjects.length;
     subjectsForToday.push(sortedSubjects[subjectIndex]);
+  } else if (subjectsForToday.length > 3) {
+    // Limit to maximum 3 subjects per day for better focus
+    const urgent = subjectsForToday.filter(s => s.deadline && 
+      Math.ceil((s.deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) <= 7);
+    const highPriority = subjectsForToday.filter(s => s.priority === "high");
+    const others = subjectsForToday.filter(s => !urgent.includes(s) && !highPriority.includes(s));
+    
+    // Keep urgent + high priority + some others
+    const finalSelection = [
+      ...urgent.slice(0, 2),
+      ...highPriority.filter(s => !urgent.includes(s)).slice(0, 2),
+      ...others.slice(0, Math.max(1, 3 - urgent.length - highPriority.filter(s => !urgent.includes(s)).length))
+    ];
+    
+    return finalSelection.slice(0, 3);
   }
   
   return subjectsForToday;

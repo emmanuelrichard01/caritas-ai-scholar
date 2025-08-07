@@ -10,6 +10,14 @@ import { HistoryFilters } from "@/components/history/HistoryFilters";
 import { HistoryEmptyState } from "@/components/history/HistoryEmptyState";
 import { HistorySkeleton } from "@/components/history/HistorySkeleton";
 import { AuthModal } from "@/components/auth/AuthModal";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 // Lazy load the history list for better performance
 const HistoryList = lazy(() => import("@/components/history/HistoryList").then(module => ({ default: module.HistoryList })));
@@ -22,33 +30,64 @@ interface HistoryItem {
   created_at: string;
 }
 
+interface HistoryResponse {
+  data: HistoryItem[];
+  totalCount: number;
+  totalPages: number;
+}
+
 const History = () => {
   const { user } = useAuth();
   const { isAuthenticated, showAuthModal, closeAuthModal, loading: authLoading } = useAuthGuard();
   const queryClient = useQueryClient();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
   
-  // Fetch chat history with optimized query
-  const { data: history = [], isLoading, error } = useQuery({
-    queryKey: ["chatHistory", user?.id, sortOrder, categoryFilter],
-    queryFn: async () => {
-      if (!user) return [];
+  const ITEMS_PER_PAGE = 10;
+  
+  // Fetch chat history with pagination
+  const { data: historyResponse, isLoading, error } = useQuery({
+    queryKey: ["chatHistory", user?.id, sortOrder, categoryFilter, currentPage],
+    queryFn: async (): Promise<HistoryResponse> => {
+      if (!user) return { data: [], totalCount: 0, totalPages: 0 };
       
-      let query = supabase
+      // First get total count for pagination
+      let countQuery = supabase
+        .from("chat_history")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      
+      if (categoryFilter !== "all") {
+        countQuery = countQuery.eq("category", categoryFilter);
+      }
+      
+      const { count, error: countError } = await countQuery;
+      if (countError) throw countError;
+      
+      const totalCount = count || 0;
+      const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+      
+      // Then get paginated data
+      let dataQuery = supabase
         .from("chat_history")
         .select("id, title, content, category, created_at")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: sortOrder === "asc" });
+        .order("created_at", { ascending: sortOrder === "asc" })
+        .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
       
       if (categoryFilter !== "all") {
-        query = query.eq("category", categoryFilter);
+        dataQuery = dataQuery.eq("category", categoryFilter);
       }
       
-      const { data, error } = await query;
-      
+      const { data, error } = await dataQuery;
       if (error) throw error;
-      return data as HistoryItem[];
+      
+      return {
+        data: data as HistoryItem[],
+        totalCount,
+        totalPages
+      };
     },
     enabled: !!user && isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -57,12 +96,24 @@ const History = () => {
 
   // Memoize filtered and processed data
   const processedHistory = useMemo(() => {
+    const history = historyResponse?.data || [];
     return history.map(item => ({
       ...item,
       // Ensure content is properly formatted
       content: item.content || "No content available"
     }));
-  }, [history]);
+  }, [historyResponse?.data]);
+  
+  // Reset to page 1 when filters change
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value);
+    setCurrentPage(1);
+  };
+  
+  const handleSortToggle = () => {
+    setSortOrder(prev => prev === "desc" ? "asc" : "desc");
+    setCurrentPage(1);
+  };
   
   // Delete history item mutation with optimistic updates
   const deleteItemMutation = useMutation({
@@ -85,8 +136,17 @@ const History = () => {
 
       // Optimistically update to the new value
       queryClient.setQueryData(
-        ["chatHistory", user?.id, sortOrder, categoryFilter],
-        (old: HistoryItem[] | undefined) => old?.filter(item => item.id !== deletedId) || []
+        ["chatHistory", user?.id, sortOrder, categoryFilter, currentPage],
+        (old: HistoryResponse | undefined) => {
+          if (!old) return { data: [], totalCount: 0, totalPages: 0 };
+          const newData = old.data.filter(item => item.id !== deletedId);
+          return {
+            ...old,
+            data: newData,
+            totalCount: Math.max(0, old.totalCount - 1),
+            totalPages: Math.ceil(Math.max(0, old.totalCount - 1) / ITEMS_PER_PAGE)
+          };
+        }
       );
 
       return { previousHistory };
@@ -95,7 +155,7 @@ const History = () => {
       // Rollback on error
       if (context?.previousHistory) {
         queryClient.setQueryData(
-          ["chatHistory", user?.id, sortOrder, categoryFilter],
+          ["chatHistory", user?.id, sortOrder, categoryFilter, currentPage],
           context.previousHistory
         );
       }
@@ -132,12 +192,12 @@ const History = () => {
       await queryClient.cancelQueries({ queryKey: ["chatHistory"] });
 
       // Snapshot the previous value
-      const previousHistory = queryClient.getQueryData(["chatHistory", user?.id, sortOrder, categoryFilter]);
+      const previousHistory = queryClient.getQueryData(["chatHistory", user?.id, sortOrder, categoryFilter, currentPage]);
 
       // Optimistically update to empty array
       queryClient.setQueryData(
-        ["chatHistory", user?.id, sortOrder, categoryFilter],
-        []
+        ["chatHistory", user?.id, sortOrder, categoryFilter, currentPage],
+        { data: [], totalCount: 0, totalPages: 0 }
       );
 
       return { previousHistory };
@@ -146,7 +206,7 @@ const History = () => {
       // Rollback on error
       if (context?.previousHistory) {
         queryClient.setQueryData(
-          ["chatHistory", user?.id, sortOrder, categoryFilter],
+          ["chatHistory", user?.id, sortOrder, categoryFilter, currentPage],
           context.previousHistory
         );
       }
@@ -173,8 +233,10 @@ const History = () => {
     clearHistoryMutation.mutate();
   };
   
-  const toggleSortOrder = () => {
-    setSortOrder(prev => prev === "desc" ? "asc" : "desc");
+  // Handle page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Show auth modal if not authenticated
@@ -220,10 +282,10 @@ const History = () => {
         <HistoryFilters
           sortOrder={sortOrder}
           categoryFilter={categoryFilter}
-          historyCount={processedHistory.length}
+          historyCount={historyResponse?.totalCount || 0}
           isClearing={clearHistoryMutation.isPending}
-          onSortToggle={toggleSortOrder}
-          onCategoryChange={setCategoryFilter}
+          onSortToggle={handleSortToggle}
+          onCategoryChange={handleCategoryChange}
           onClearHistory={handleClearHistory}
         />
 
@@ -232,13 +294,80 @@ const History = () => {
         ) : processedHistory.length === 0 ? (
           <HistoryEmptyState categoryFilter={categoryFilter} />
         ) : (
-          <Suspense fallback={<HistorySkeleton />}>
-            <HistoryList
-              history={processedHistory}
-              onDeleteItem={handleDeleteItem}
-              isDeleting={deleteItemMutation.isPending}
-            />
-          </Suspense>
+          <>
+            <Suspense fallback={<HistorySkeleton />}>
+              <HistoryList
+                history={processedHistory}
+                onDeleteItem={handleDeleteItem}
+                isDeleting={deleteItemMutation.isPending}
+              />
+            </Suspense>
+            
+            {/* Pagination Controls */}
+            {historyResponse && historyResponse.totalPages > 1 && (
+              <div className="mt-8 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage > 1) {
+                            handlePageChange(currentPage - 1);
+                          }
+                        }}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    
+                    {/* Page numbers */}
+                    {Array.from({ length: Math.min(5, historyResponse.totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (historyResponse.totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= historyResponse.totalPages - 2) {
+                        pageNum = historyResponse.totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(pageNum);
+                            }}
+                            isActive={currentPage === pageNum}
+                            className="cursor-pointer"
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage < historyResponse.totalPages) {
+                            handlePageChange(currentPage + 1);
+                          }
+                        }}
+                        className={currentPage === historyResponse.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </>
         )}
       </PageLayout>
       <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />

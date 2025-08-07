@@ -1,13 +1,18 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense, lazy } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageLayout } from "@/components/PageLayout";
 import { Loader2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { supabase } from "@/integrations/supabase/client";
 import { HistoryFilters } from "@/components/history/HistoryFilters";
-import { HistoryList } from "@/components/history/HistoryList";
 import { HistoryEmptyState } from "@/components/history/HistoryEmptyState";
+import { HistorySkeleton } from "@/components/history/HistorySkeleton";
+import { AuthModal } from "@/components/auth/AuthModal";
+
+// Lazy load the history list for better performance
+const HistoryList = lazy(() => import("@/components/history/HistoryList").then(module => ({ default: module.HistoryList })));
 
 interface HistoryItem {
   id: string;
@@ -19,6 +24,7 @@ interface HistoryItem {
 
 const History = () => {
   const { user } = useAuth();
+  const { isAuthenticated, showAuthModal, closeAuthModal, loading: authLoading } = useAuthGuard();
   const queryClient = useQueryClient();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -44,7 +50,7 @@ const History = () => {
       if (error) throw error;
       return data as HistoryItem[];
     },
-    enabled: !!user,
+    enabled: !!user && isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
   });
@@ -171,6 +177,24 @@ const History = () => {
     setSortOrder(prev => prev === "desc" ? "asc" : "desc");
   };
 
+  // Show auth modal if not authenticated
+  if (!isAuthenticated && !authLoading) {
+    return (
+      <>
+        <PageLayout 
+          title="Chat History" 
+          subtitle="Review your past conversations with Caritas AI"
+          icon={<Clock className="h-6 w-6" />}
+        >
+          <div className="text-center py-16">
+            <p className="text-muted-foreground">Please sign in to view your chat history.</p>
+          </div>
+        </PageLayout>
+        <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
+      </>
+    );
+  }
+
   // Show error state
   if (error) {
     return (
@@ -187,36 +211,38 @@ const History = () => {
   }
   
   return (
-    <PageLayout 
-      title="Chat History" 
-      subtitle="Review your past conversations with Caritas AI"
-      icon={<Clock className="h-6 w-6" />}
-    >
-      <HistoryFilters
-        sortOrder={sortOrder}
-        categoryFilter={categoryFilter}
-        historyCount={processedHistory.length}
-        isClearing={clearHistoryMutation.isPending}
-        onSortToggle={toggleSortOrder}
-        onCategoryChange={setCategoryFilter}
-        onClearHistory={handleClearHistory}
-      />
-
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-16 lg:py-24">
-          <Loader2 className="h-8 w-8 lg:h-12 lg:w-12 animate-spin text-primary mb-4" />
-          <p className="text-sm lg:text-base text-muted-foreground">Loading your conversation history...</p>
-        </div>
-      ) : processedHistory.length === 0 ? (
-        <HistoryEmptyState categoryFilter={categoryFilter} />
-      ) : (
-        <HistoryList
-          history={processedHistory}
-          onDeleteItem={handleDeleteItem}
-          isDeleting={deleteItemMutation.isPending}
+    <>
+      <PageLayout 
+        title="Chat History" 
+        subtitle="Review your past conversations with Caritas AI"
+        icon={<Clock className="h-6 w-6" />}
+      >
+        <HistoryFilters
+          sortOrder={sortOrder}
+          categoryFilter={categoryFilter}
+          historyCount={processedHistory.length}
+          isClearing={clearHistoryMutation.isPending}
+          onSortToggle={toggleSortOrder}
+          onCategoryChange={setCategoryFilter}
+          onClearHistory={handleClearHistory}
         />
-      )}
-    </PageLayout>
+
+        {isLoading ? (
+          <HistorySkeleton />
+        ) : processedHistory.length === 0 ? (
+          <HistoryEmptyState categoryFilter={categoryFilter} />
+        ) : (
+          <Suspense fallback={<HistorySkeleton />}>
+            <HistoryList
+              history={processedHistory}
+              onDeleteItem={handleDeleteItem}
+              isDeleting={deleteItemMutation.isPending}
+            />
+          </Suspense>
+        )}
+      </PageLayout>
+      <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
+    </>
   );
 };
 

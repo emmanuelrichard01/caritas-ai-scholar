@@ -2,7 +2,7 @@
 export const StatsSection = () => {
   const stats = [
     {
-      number: "10K+",
+      number: "1.8K+",
       label: "Students Helped",
       description: "Academic success stories"
     },
@@ -17,8 +17,8 @@ export const StatsSection = () => {
       description: "Always ready to help"
     },
     {
-      number: "50+",
-      label: "Study Tools",
+      number: "10+",
+      label: "Impactful Study Tools",
       description: "Comprehensive toolkit"
     }
   ];

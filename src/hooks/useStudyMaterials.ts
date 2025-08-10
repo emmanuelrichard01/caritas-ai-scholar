@@ -41,20 +41,37 @@ export const useStudyMaterials = () => {
         throw new Error("Failed to fetch material: " + error.message);
       }
       
-      if (!materialWithSegments.segments || materialWithSegments.segments.length === 0) {
+      let usedSegments = materialWithSegments.segments || [];
+      if (!usedSegments || usedSegments.length === 0) {
         const uploadTime = new Date(materialWithSegments.uploaded_at);
         const now = new Date();
         const timeDiff = now.getTime() - uploadTime.getTime();
-        
-        if (timeDiff < 30000) {
-          throw new Error("Material is still being processed. Please wait a moment and try again.");
-        } else {
-          throw new Error("No content found for this material. The file may not have been processed correctly.");
+        // Poll for segments briefly if processing may still be running
+        const maxAttempts = 5;
+        for (let attempt = 0; attempt < maxAttempts && (!usedSegments || usedSegments.length === 0); attempt++) {
+          const delay = 1000 + attempt * 500;
+          await new Promise((res) => setTimeout(res, delay));
+          const { data: polled, error: pollError } = await supabase
+            .from('segments')
+            .select('id,title,text')
+            .eq('material_id', materialId);
+          if (!pollError && polled && polled.length > 0) {
+            usedSegments = polled;
+            break;
+          }
+        }
+        if (!usedSegments || usedSegments.length === 0) {
+          if (timeDiff < 30000) {
+            throw new Error("Material is still being processed. Please wait a moment and try again.");
+          } else {
+            throw new Error("No content found for this material. The file may not have been processed correctly.");
+          }
         }
       }
       
       // Combine segments efficiently with better structure
-      const fullContent = materialWithSegments.segments
+      const sourceSegments = usedSegments as { id: string; title: string; text: string }[];
+      const fullContent = sourceSegments
         .map(segment => {
           // Clean and structure the content better
           const cleanTitle = segment.title?.trim() || "Section";

@@ -3,8 +3,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 // Import file processing libraries
-import * as pdfjsLib from "https://cdn.skypack.dev/pdfjs-dist@3.11.174";
-import mammoth from "https://cdn.skypack.dev/mammoth@1.6.0";
+import * as pdfjsLib from "https://esm.sh/pdfjs-dist@3.11.174/build/pdf.mjs";
+import mammoth from "https://esm.sh/mammoth@1.6.0/mammoth.browser.min.js";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -277,7 +277,7 @@ async function extractTextFromPDF(fileData: Blob): Promise<string> {
     const typedArray = new Uint8Array(arrayBuffer);
     
     // Configure PDF.js to work in Deno environment
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.skypack.dev/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://esm.sh/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
     
     const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
     console.log(`PDF loaded with ${pdf.numPages} pages`);

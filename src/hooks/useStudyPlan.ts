@@ -618,28 +618,50 @@ function generateSmartSessions(
   const effectiveDuration = duration || calculateOptimalDuration(subjects, preferences);
   const sessions: StudySession[] = [];
   
+  if (subjects.length === 0) {
+    console.warn("No subjects provided for session generation");
+    return sessions;
+  }
+  
   const workingDays = getWorkingDays(preferences.studyDays, effectiveDuration);
+  
+  if (workingDays.length === 0) {
+    console.warn("No working days available for session generation");
+    return sessions;
+  }
+  
   const timeSlots = generateTimeSlots(preferences);
   
-  // Create balanced distribution of subjects across all working days
+  // Validate that we have reasonable data
   const totalHours = subjects.reduce((sum, s) => sum + s.estimatedHours, 0);
-  const hoursPerDay = Math.min(totalHours / workingDays.length, preferences.dailyStudyHours);
+  if (totalHours === 0) {
+    console.warn("Total study hours is 0, cannot generate meaningful sessions");
+    return sessions;
+  }
+  
+  console.log(`Generating sessions for ${subjects.length} subjects over ${workingDays.length} days`);
+  console.log(`Total study hours: ${totalHours}, Subjects:`, subjects.map(s => `${s.name} (${s.estimatedHours}h)`));
+  
+  // Create deadline-aware schedule
+  const subjectSchedule = createDeadlineAwareSchedule(subjects, workingDays);
   
   workingDays.forEach((day, index) => {
-    const tasks = generateBalancedDailyTasks(
+    const tasks = generateDynamicDailyTasks(
       subjects, 
       preferences, 
       index, 
       day,
-      hoursPerDay,
-      workingDays.length
+      workingDays.length,
+      subjectSchedule.get(index) || []
     );
     
     const totalDuration = tasks.reduce((sum, task) => sum + task.duration, 0);
     const completedTasks = tasks.filter(task => task.completed).length;
     
+    console.log(`Day ${index + 1} (${day.toDateString()}): ${tasks.length} tasks, ${totalDuration} minutes`);
+    
     sessions.push({
-      id: `session-${index}`,
+      id: `session-${Date.now()}-${index}`, // More unique IDs
       date: day.toISOString().split('T')[0],
       startTime: timeSlots.start,
       endTime: timeSlots.end,
@@ -649,6 +671,7 @@ function generateSmartSessions(
     });
   });
   
+  console.log(`Generated ${sessions.length} sessions with total ${sessions.reduce((sum, s) => sum + s.tasks.length, 0)} tasks`);
   return sessions;
 }
 
@@ -740,13 +763,13 @@ function generateTimeSlots(preferences: StudyPreferences) {
   return timeSlotMap[primarySlot] || timeSlotMap.morning;
 }
 
-function generateBalancedDailyTasks(
+function generateDynamicDailyTasks(
   subjects: StudySubject[],
   preferences: StudyPreferences,
   dayIndex: number,
   currentDate: Date,
-  targetHoursPerDay: number,
-  totalDays: number
+  totalDays: number,
+  scheduledSubjects: StudySubject[]
 ): StudyTask[] {
   const tasks: StudyTask[] = [];
   const totalMinutes = preferences.dailyStudyHours * 60;
@@ -758,34 +781,61 @@ function generateBalancedDailyTasks(
   let remainingTime = totalMinutes;
   let taskId = 0;
   
-  // Create a balanced distribution of subjects across all days
-  // Each subject should appear on multiple days based on its importance and deadline
-  const subjectsForToday = getSubjectsForDay(subjects, dayIndex, totalDays);
+  // Use the deadline-aware scheduled subjects if available, otherwise fallback
+  const subjectsForToday = scheduledSubjects.length > 0 ? 
+    scheduledSubjects : 
+    getSubjectsForDay(subjects, dayIndex, totalDays);
   
-  if (subjectsForToday.length === 0) return tasks;
+  if (subjectsForToday.length === 0) {
+    console.warn(`No subjects scheduled for day ${dayIndex + 1}`);
+    return tasks;
+  }
   
-  // Distribute time among subjects based on priority and deadline urgency
+  console.log(`Day ${dayIndex + 1}: Scheduling ${subjectsForToday.length} subjects:`, 
+    subjectsForToday.map(s => s.name));
+  
+  // Distribute time among subjects based on priority, deadline urgency, and workload
   subjectsForToday.forEach((subject, subjectIndex) => {
-    if (remainingTime <= 0) return;
+    if (remainingTime <= 15) return; // Keep minimum 15 minutes for meaningful study
     
-    // Calculate time allocation based on deadline urgency
+    // Calculate deadline urgency with more accurate calculation
     const daysUntilDeadline = subject.deadline 
       ? Math.ceil((subject.deadline.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
       : 365;
     
-    // More time for subjects with closer deadlines
-    const urgencyMultiplier = subject.deadline 
-      ? Math.max(0.5, Math.min(2, 8 / Math.max(1, daysUntilDeadline)))
-      : 1;
+    // Calculate how much time this subject needs based on remaining hours
+    const remainingHours = Math.max(0, subject.estimatedHours - (subject.completedHours || 0));
+    const subjectProgress = subject.completedHours ? subject.completedHours / subject.estimatedHours : 0;
     
-    const priorityMultiplier = { high: 1.5, medium: 1, low: 0.7 }[subject.priority];
-    const baseTime = Math.floor(remainingTime / (subjectsForToday.length - subjectIndex));
-    const timeAllocation = Math.min(
-      baseTime * urgencyMultiplier * priorityMultiplier,
-      remainingTime
-    );
+    // More sophisticated time allocation
+    const urgencyMultiplier = subject.deadline ? 
+      Math.max(0.3, Math.min(3, 15 / Math.max(1, daysUntilDeadline))) : 1;
     
-    const studyTime = Math.max(30, Math.min(sessionDuration, timeAllocation));
+    const priorityMultiplier = { high: 1.8, medium: 1.2, low: 0.8 }[subject.priority];
+    const progressMultiplier = Math.max(0.5, 1 - subjectProgress); // Less time for nearly complete subjects
+    
+    // Calculate fair base allocation
+    const totalWeight = subjectsForToday.reduce((sum, s, i) => {
+      if (i >= subjectIndex) {
+        const sUrgency = s.deadline ? Math.max(0.3, Math.min(3, 15 / Math.max(1, Math.ceil((s.deadline.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))))) : 1;
+        const sPriority = { high: 1.8, medium: 1.2, low: 0.8 }[s.priority];
+        const sProgress = Math.max(0.5, 1 - (s.completedHours ? s.completedHours / s.estimatedHours : 0));
+        return sum + (sUrgency * sPriority * sProgress);
+      }
+      return sum;
+    }, 0);
+    
+    const subjectWeight = urgencyMultiplier * priorityMultiplier * progressMultiplier;
+    const fairShare = remainingTime * (subjectWeight / totalWeight);
+    
+    // Ensure reasonable bounds
+    const minTime = Math.min(30, remainingTime);
+    const maxTime = Math.min(sessionDuration * 1.5, remainingTime);
+    const timeAllocation = Math.max(minTime, Math.min(maxTime, fairShare));
+    
+    const studyTime = Math.round(timeAllocation);
+    
+    console.log(`  ${subject.name}: ${studyTime}min (urgency: ${urgencyMultiplier.toFixed(1)}, priority: ${priorityMultiplier}, progress: ${(subjectProgress * 100).toFixed(0)}%)`);
     
     // Determine task type based on deadline proximity and day pattern
     let taskType: string;
@@ -809,30 +859,30 @@ function generateBalancedDailyTasks(
     }
     
     tasks.push({
-      id: `task-${dayIndex}-${taskId++}`,
+      id: `task-${Date.now()}-${dayIndex}-${taskId++}`, // More unique task IDs
       subjectId: subject.id,
       title: `${taskType.charAt(0).toUpperCase() + taskType.slice(1)} ${subject.name}`,
-      description: generateTaskDescription(subject.name, taskType, subject.deadline),
-      duration: Math.round(studyTime),
+      description: generateTaskDescription(subject.name, taskType, subject.deadline, daysUntilDeadline),
+      duration: studyTime,
       type: taskType as any,
       completed: false,
-      scheduledAt: currentDate,
+      scheduledAt: new Date(currentDate), // Ensure proper date object
       difficulty
     });
     
     remainingTime -= studyTime;
     
-    // Add break if there's more time and it's not the last subject
-    if (remainingTime > breakDuration && subjectIndex < subjectsForToday.length - 1) {
+    // Add break if there's sufficient time and it's not the last subject
+    if (remainingTime >= breakDuration && subjectIndex < subjectsForToday.length - 1 && studyTime >= 45) {
       tasks.push({
-        id: `break-${dayIndex}-${taskId++}`,
+        id: `break-${Date.now()}-${dayIndex}-${taskId++}`,
         subjectId: "break",
         title: "Break Time",
         description: "Rest and recharge for better focus",
         duration: breakDuration,
         type: "break",
         completed: false,
-        scheduledAt: currentDate,
+        scheduledAt: new Date(currentDate),
         difficulty: "easy"
       });
       remainingTime -= breakDuration;
@@ -926,8 +976,9 @@ function getSubjectsForDay(subjects: StudySubject[], dayIndex: number, totalDays
   return subjectsForToday;
 }
 
-function generateTaskDescription(subjectName: string, taskType: string, deadline?: Date): string {
-  const isUrgent = deadline && deadline.getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000; // 7 days
+function generateTaskDescription(subjectName: string, taskType: string, deadline?: Date, daysUntilDeadline?: number): string {
+  const isUrgent = (daysUntilDeadline !== undefined && daysUntilDeadline <= 7) || 
+    (deadline && deadline.getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000);
   
   const descriptions = {
     study: isUrgent ? [

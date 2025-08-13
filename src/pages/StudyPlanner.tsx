@@ -1,9 +1,9 @@
 
 import { Calendar } from "lucide-react";
 import { PageLayout } from "@/components/PageLayout";
-import { StudyPlanSetup } from "@/components/studyplanner/StudyPlanSetup";
+import { SimpleStudyPlanSetup } from "@/components/studyplanner/SimpleStudyPlanSetup";
 import { StudyPlanDisplay } from "@/components/studyplanner/StudyPlanDisplay";
-import { SavedPlansManager } from "@/components/studyplanner/SavedPlansManager";
+import { SimpleSavedPlansManager } from "@/components/studyplanner/SimpleSavedPlansManager";
 import { useStudyPlan } from "@/hooks/useStudyPlan";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -55,11 +55,11 @@ const StudyPlanner = () => {
   }
 
   return (
-    <PageLayout
-      title="AI Study Planner"
-      subtitle="Create intelligent, personalized study schedules that adapt to your learning patterns"
-      icon={<Calendar className="h-6 w-6" />}
-    >
+      <PageLayout
+        title="AI Study Planner"
+        subtitle="Create personalized study schedules that fit your goals and deadlines"
+        icon={<Calendar className="h-6 w-6" />}
+      >
       <div className="space-y-6 sm:space-y-8">
         {/* Loading State */}
         {isLoading && (
@@ -75,7 +75,7 @@ const StudyPlanner = () => {
 
         {/* Saved Plans Manager */}
         {!isLoading && (
-          <SavedPlansManager
+          <SimpleSavedPlansManager
             currentPlan={currentPlan}
             savedPlans={savedPlans}
             onCreateNew={createNewPlan}
@@ -88,7 +88,7 @@ const StudyPlanner = () => {
 
         {/* Study Plan Setup */}
         {!isLoading && currentPlan && (
-          <StudyPlanSetup
+          <SimpleStudyPlanSetup
             subjects={currentPlan.subjects}
             preferences={currentPlan.preferences}
             onAddSubject={addSubject}

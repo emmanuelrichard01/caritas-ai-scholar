@@ -108,6 +108,21 @@ const deserializeSubjects = (subjects: any[]): StudySubject[] => {
   }));
 };
 
+// Helper function to remove expired subjects
+const removeExpiredSubjects = (subjects: StudySubject[]): StudySubject[] => {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0); // Set to start of today for fair comparison
+  
+  return subjects.filter(subject => {
+    if (!subject.deadline) return true; // Keep subjects without deadlines
+    
+    const deadline = new Date(subject.deadline);
+    deadline.setHours(23, 59, 59, 999); // Set to end of deadline day
+    
+    return deadline >= now; // Keep subjects whose deadline hasn't passed
+  });
+};
+
 export const useStudyPlan = () => {
   const { user } = useAuth();
   const [currentPlan, setCurrentPlan] = useState<StudyPlan | null>(null);
@@ -135,20 +150,25 @@ export const useStudyPlan = () => {
 
       if (error) throw error;
 
-      const plans = data?.map(plan => ({
-        id: plan.id,
-        title: plan.title,
-        description: plan.description,
-        subjects: deserializeSubjects((plan.subjects as unknown) as any[]),
-        preferences: (plan.preferences as unknown) as StudyPreferences,
-        sessions: (plan.sessions as unknown) as StudySession[],
-        analytics: (plan.analytics as unknown) as any,
-        duration: (plan as any).duration || 14,
-        totalHours: (plan as any).totalHours || 0,
-        isActive: plan.is_active,
-        createdAt: plan.created_at,
-        updatedAt: plan.updated_at
-      })) || [];
+      const plans = data?.map(plan => {
+        const rawSubjects = deserializeSubjects((plan.subjects as unknown) as any[]);
+        const cleanedSubjects = removeExpiredSubjects(rawSubjects);
+        
+        return {
+          id: plan.id,
+          title: plan.title,
+          description: plan.description,
+          subjects: cleanedSubjects,
+          preferences: (plan.preferences as unknown) as StudyPreferences,
+          sessions: (plan.sessions as unknown) as StudySession[],
+          analytics: (plan.analytics as unknown) as any,
+          duration: (plan as any).duration || 14,
+          totalHours: (plan as any).totalHours || 0,
+          isActive: plan.is_active,
+          createdAt: plan.created_at,
+          updatedAt: plan.updated_at
+        };
+      }) || [];
 
       setSavedPlans(plans);
     } catch (error) {
@@ -159,22 +179,32 @@ export const useStudyPlan = () => {
   const loadActivePlan = async () => {
     if (!user) return;
     
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('study_plans')
         .select('*')
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
 
       if (data) {
-        const plan: StudyPlan = {
+        const rawSubjects = deserializeSubjects((data.subjects as unknown) as any[]);
+        const cleanedSubjects = removeExpiredSubjects(rawSubjects);
+        
+        // Check if any subjects were removed
+        const removedCount = rawSubjects.length - cleanedSubjects.length;
+        if (removedCount > 0) {
+          toast.info(`Removed ${removedCount} expired subject${removedCount > 1 ? 's' : ''} from your study plan`);
+        }
+        
+        const plan = {
           id: data.id,
           title: data.title,
           description: data.description,
-          subjects: deserializeSubjects((data.subjects as unknown) as any[]),
+          subjects: cleanedSubjects,
           preferences: (data.preferences as unknown) as StudyPreferences,
           sessions: (data.sessions as unknown) as StudySession[],
           analytics: (data.analytics as unknown) as any,
@@ -184,10 +214,22 @@ export const useStudyPlan = () => {
           createdAt: data.created_at,
           updatedAt: data.updated_at
         };
+        
+        // If subjects were removed, update the plan in database
+        if (removedCount > 0) {
+          await savePlan(plan, true);
+        }
+        
         setCurrentPlan(plan);
+      } else {
+        createNewPlan();
       }
     } catch (error) {
       console.error('Error loading active plan:', error);
+      toast.error("Failed to load your study plan");
+      createNewPlan();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -401,6 +443,20 @@ export const useStudyPlan = () => {
       return;
     }
     
+    // Clean expired subjects before generating plan
+    const cleanedSubjects = removeExpiredSubjects(currentPlan.subjects);
+    const removedCount = currentPlan.subjects.length - cleanedSubjects.length;
+    
+    if (removedCount > 0) {
+      toast.info(`Removed ${removedCount} expired subject${removedCount > 1 ? 's' : ''} before generating plan`);
+      setCurrentPlan(prev => prev ? { ...prev, subjects: cleanedSubjects } : null);
+    }
+    
+    if (cleanedSubjects.length === 0) {
+      toast.error("No active subjects remaining. Please add subjects with valid deadlines.");
+      return;
+    }
+    
     setIsGenerating(true);
     
     try {
@@ -408,18 +464,19 @@ export const useStudyPlan = () => {
       await new Promise(resolve => setTimeout(resolve, 2500));
       
       // Calculate dynamic duration based on earliest deadline and workload
-      const dynamicDuration = calculateOptimalDuration(currentPlan.subjects, currentPlan.preferences);
+      const dynamicDuration = calculateOptimalDuration(cleanedSubjects, currentPlan.preferences);
       
       const sessions = generateSmartSessions(
-        currentPlan.subjects,
+        cleanedSubjects,
         currentPlan.preferences,
         dynamicDuration
       );
       
-      const analytics = calculateAnalytics(sessions, currentPlan.subjects);
+      const analytics = calculateAnalytics(sessions, cleanedSubjects);
       
       setCurrentPlan(prev => prev ? {
         ...prev,
+        subjects: cleanedSubjects,
         sessions,
         analytics,
         duration: dynamicDuration,

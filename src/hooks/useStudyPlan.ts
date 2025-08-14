@@ -735,20 +735,24 @@ function getWorkingDays(studyDays: string[], duration: number): Date[] {
   const days: Date[] = [];
   const today = new Date();
   let currentDate = new Date(today);
+  let calendarDaysChecked = 0;
+  const maxCalendarDays = Math.max(duration * 2, 365); // Account for non-study days
   
-  while (days.length < duration) {
+  console.log(`Looking for ${duration} working days from selected study days:`, studyDays);
+  
+  while (days.length < duration && calendarDaysChecked < maxCalendarDays) {
     const dayName = currentDate.toLocaleDateString('en', { weekday: 'long' }).toLowerCase();
+    
     if (studyDays.includes(dayName)) {
       days.push(new Date(currentDate));
+      console.log(`Added working day ${days.length}: ${currentDate.toDateString()} (${dayName})`);
     }
-    currentDate.setDate(currentDate.getDate() + 1);
     
-    // Prevent infinite loop
-    if (currentDate.getTime() - today.getTime() > 365 * 24 * 60 * 60 * 1000) {
-      break;
-    }
+    currentDate.setDate(currentDate.getDate() + 1);
+    calendarDaysChecked++;
   }
   
+  console.log(`Generated ${days.length} working days out of requested ${duration} days`);
   return days;
 }
 

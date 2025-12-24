@@ -4,17 +4,26 @@ import { cn } from "@/lib/utils"
 
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
-      className
-    )}
-    {...props}
-  />
-))
+  React.HTMLAttributes<HTMLDivElement> & {
+    variant?: 'default' | 'glass' | 'elevated' | 'interactive' | 'bordered'
+  }
+>(({ className, variant = 'default', ...props }, ref) => {
+  const variants = {
+    default: "rounded-xl border bg-card text-card-foreground shadow-soft",
+    glass: "glass-card rounded-xl text-card-foreground",
+    elevated: "rounded-xl bg-card text-card-foreground shadow-elevated border-0",
+    interactive: "rounded-xl border bg-card text-card-foreground shadow-soft hover:shadow-medium transition-all duration-300 hover:-translate-y-0.5 cursor-pointer",
+    bordered: "rounded-xl border-2 bg-card text-card-foreground",
+  }
+  
+  return (
+    <div
+      ref={ref}
+      className={cn(variants[variant], className)}
+      {...props}
+    />
+  )
+})
 Card.displayName = "Card"
 
 const CardHeader = React.forwardRef<
@@ -36,7 +45,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
+      "text-xl font-semibold leading-none tracking-tight",
       className
     )}
     {...props}
@@ -50,7 +59,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-sm text-muted-foreground leading-relaxed", className)}
     {...props}
   />
 ))

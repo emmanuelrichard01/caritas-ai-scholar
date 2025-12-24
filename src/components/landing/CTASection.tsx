@@ -8,48 +8,65 @@ interface CTASectionProps {
 
 export const CTASection = ({ onGetStarted }: CTASectionProps) => {
   return (
-    <section className="py-24 bg-gradient-to-br from-caritas to-caritas-light relative overflow-hidden">
-      <div className="absolute inset-0 bg-black/20" />
-      <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.1))]" />
+    <section className="py-24 sm:py-32 relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-caritas via-caritas to-caritas-dark" />
+      
+      {/* Pattern overlay */}
+      <div 
+        className="absolute inset-0 opacity-10"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+        }}
+      />
+      
+      {/* Glow effects */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-white/5 rounded-full blur-3xl" />
       
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 mb-8">
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-8 border border-white/20">
           <Sparkles className="h-4 w-4 text-white" />
-          <span className="text-white text-sm font-medium">Start Your Journey Today</span>
+          <span className="text-white/90 text-sm font-medium">Start Your Journey Today</span>
         </div>
         
-        <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-          Ready to Transform Your 
+        {/* Heading */}
+        <h2 className="heading-1 text-white mb-6">
+          Ready to Transform Your
           <br />
           Academic Experience?
         </h2>
         
-        <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed">
+        {/* Description */}
+        <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto leading-relaxed">
           Join thousands of students who are already using CARITAS AI to achieve their academic goals and unlock their full potential.
         </p>
         
+        {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Button 
             onClick={onGetStarted}
-            size="lg"
-            className="bg-white text-caritas hover:bg-white/90 px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+            size="xl"
+            className="bg-white text-caritas hover:bg-white/90 shadow-elevated hover:shadow-elevated group"
           >
             Get Started Now
-            <ArrowRight className="ml-2 h-5 w-5" />
+            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
           </Button>
           <Button 
             variant="outline"
-            size="lg"
-            className="border-white/30 text-caritas hover:bg-white/10 hover:text-white px-8 py-4 text-lg font-semibold rounded-xl backdrop-blur-sm"
+            size="xl"
+            className="border-white/30 bg-white/5 text-white hover:bg-white/10 backdrop-blur-sm"
             onClick={() => window.location.href = '/dashboard'}
           >
             View Dashboard
           </Button>
         </div>
         
-        <div className="mt-8 text-white/80 text-sm">
+        {/* Trust text */}
+        <p className="mt-8 text-white/60 text-sm">
           No credit card required • Start immediately • Free to use
-        </div>
+        </p>
       </div>
     </section>
   );

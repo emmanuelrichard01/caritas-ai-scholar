@@ -4,87 +4,102 @@ import {
   Calculator, 
   Calendar, 
   Search, 
-  BookOpen, 
   Brain,
   Target,
-  Zap
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const FeaturesSection = () => {
   const features = [
     {
-      icon: <GraduationCap className="h-8 w-8" />,
+      icon: GraduationCap,
       title: "Course Assistant",
       description: "Upload materials and generate comprehensive study aids including notes, flashcards, and quizzes tailored to your content.",
-      color: "from-blue-500 to-blue-600"
+      gradient: "from-blue-500/20 to-blue-600/20",
+      iconColor: "text-blue-600 dark:text-blue-400"
     },
     {
-      icon: <Calculator className="h-8 w-8" />,
+      icon: Calculator,
       title: "GPA Calculator",
       description: "Track and calculate your academic performance with our intelligent GPA calculator and grade management system.",
-      color: "from-green-500 to-green-600"
+      gradient: "from-emerald-500/20 to-emerald-600/20",
+      iconColor: "text-emerald-600 dark:text-emerald-400"
     },
     {
-      icon: <Calendar className="h-8 w-8" />,
+      icon: Calendar,
       title: "Study Planner",
       description: "Create personalized study schedules and manage your academic timeline with AI-powered planning assistance.",
-      color: "from-purple-500 to-purple-600"
+      gradient: "from-violet-500/20 to-violet-600/20",
+      iconColor: "text-violet-600 dark:text-violet-400"
     },
     {
-      icon: <Search className="h-8 w-8" />,
+      icon: Search,
       title: "Research Assistant",
       description: "Get help with academic research, find credible sources, and organize your research materials efficiently.",
-      color: "from-orange-500 to-orange-600"
+      gradient: "from-amber-500/20 to-amber-600/20",
+      iconColor: "text-amber-600 dark:text-amber-400"
     },
     {
-      icon: <Brain className="h-8 w-8" />,
+      icon: Brain,
       title: "AI Chat Support",
       description: "Get instant answers to academic questions with our intelligent chatbot trained on educational content.",
-      color: "from-caritas to-caritas-light"
+      gradient: "from-caritas/20 to-caritas-light/20",
+      iconColor: "text-caritas"
     },
     {
-      icon: <Target className="h-8 w-8" />,
+      icon: Target,
       title: "Goal Tracking",
       description: "Set academic goals and track your progress with personalized insights and recommendations.",
-      color: "from-teal-500 to-teal-600"
+      gradient: "from-teal-500/20 to-teal-600/20",
+      iconColor: "text-teal-600 dark:text-teal-400"
     }
   ];
 
   return (
-    <section id="features" className="py-24 bg-slate-50/50 dark:bg-slate-900/50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Powerful Features for 
-            <span className="bg-gradient-to-r from-caritas to-caritas-light bg-clip-text text-transparent"> Academic Success</span>
+    <section id="features" className="py-24 sm:py-32 relative">
+      <div className="absolute inset-0 gradient-subtle" />
+      
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section header */}
+        <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+          <p className="caption uppercase tracking-widest text-caritas mb-4 animate-fade-in">
+            Features
+          </p>
+          <h2 className="heading-2 mb-6 animate-fade-in-up">
+            Everything you need for{' '}
+            <span className="text-gradient-brand">academic success</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Everything you need to excel in your academic journey, powered by cutting-edge AI technology.
+          <p className="body-large animate-fade-in-up delay-200">
+            Powerful AI-driven tools designed to help you excel in your academic journey.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <Card 
-              key={index} 
-              className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm"
-            >
-              <CardHeader className="pb-4">
-                <div className={`inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${feature.color} text-white mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                  {feature.icon}
-                </div>
-                <CardTitle className="text-xl font-semibold group-hover:text-caritas transition-colors">
-                  {feature.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-base leading-relaxed">
-                  {feature.description}
-                </CardDescription>
-              </CardContent>
-            </Card>
-          ))}
+        {/* Features grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 stagger-children">
+          {features.map((feature, index) => {
+            const Icon = feature.icon;
+            return (
+              <Card 
+                key={index} 
+                variant="interactive"
+                className="group"
+              >
+                <CardHeader className="pb-4">
+                  <div className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${feature.gradient} mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon className={`h-7 w-7 ${feature.iconColor}`} />
+                  </div>
+                  <CardTitle className="text-lg group-hover:text-caritas transition-colors duration-200">
+                    {feature.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-base">
+                    {feature.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </section>

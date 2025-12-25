@@ -437,11 +437,13 @@
   }
   
   .transition-smooth {
-    @apply transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)];
+    @apply transition-all duration-300;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .transition-spring {
-    @apply transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)];
+    @apply transition-all duration-500;
+    transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 }
 

@@ -1,5 +1,4 @@
-
-import { MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -9,36 +8,31 @@ interface NavigationHeaderProps {
   onToggleSidebar: () => void;
 }
 
-export const NavigationHeader = ({ isCollapsed, isMobile, onToggleSidebar }: NavigationHeaderProps) => {
+export const NavigationHeader = ({ isCollapsed, onToggleSidebar }: NavigationHeaderProps) => {
   return (
-    <div className={cn(
-      "hidden md:flex h-16 items-center gap-2 border-b px-4 bg-caritas/5 dark:bg-caritas/10 relative",
-      isCollapsed ? "justify-center" : "justify-between"
-    )}>
-      {!isCollapsed && (
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-caritas flex items-center justify-center">
-            <MessageSquare className="h-4 w-4 text-white" />
-          </div>
-          <span className="font-semibold text-foreground">CARITAS AI</span>
-        </div>
+    <div
+      className={cn(
+        "hidden md:flex h-16 items-center gap-2 border-b border-border/60 px-4 relative",
+        isCollapsed ? "justify-center" : "justify-between"
       )}
-      {isCollapsed && (
-        <div className="h-8 w-8 rounded-lg bg-caritas flex items-center justify-center">
-          <MessageSquare className="h-4 w-4 text-white" />
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="h-8 w-8 rounded-xl bg-foreground text-background flex items-center justify-center shadow-subtle flex-shrink-0">
+          <Sparkles className="h-4 w-4" />
         </div>
-      )}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 absolute right-[-12px] top-[28px] bg-background dark:bg-slate-900 shadow border z-50"
-        onClick={onToggleSidebar}
-      >
-        {isCollapsed ? (
-          <ChevronRight className="h-4 w-4" />
-        ) : (
-          <ChevronLeft className="h-4 w-4" />
+        {!isCollapsed && (
+          <span className="font-semibold text-foreground tracking-tight truncate">CARITAS AI</span>
         )}
+      </div>
+
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-7 w-7 rounded-full absolute right-[-14px] top-[28px] bg-background shadow-soft border-border/60 z-50 hover:bg-muted"
+        onClick={onToggleSidebar}
+        title={isCollapsed ? "Expand" : "Collapse"}
+      >
+        {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
       </Button>
     </div>
   );

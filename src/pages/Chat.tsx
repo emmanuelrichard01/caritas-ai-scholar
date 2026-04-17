@@ -19,10 +19,10 @@ const Chat = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Welcome to CARITAS AI</h2>
-          <p className="text-muted-foreground mb-6">Please sign in to start chatting</p>
+      <div className="flex h-screen bg-background overflow-hidden items-center justify-center">
+        <div className="text-center animate-fade-in-up">
+          <h2 className="heading-2 mb-3">Welcome to CARITAS AI</h2>
+          <p className="text-muted-foreground">Please sign in to start chatting</p>
         </div>
         <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
       </div>
@@ -30,14 +30,15 @@ const Chat = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Navigation onCollapseChange={setIsCollapsed} />
-      
-      <div className={cn(
-        "flex-1 transition-all duration-300 ease-in-out flex flex-col",
-        isMobile ? 'pt-16' : isCollapsed ? 'pl-[70px]' : 'pl-[260px]'
-      )}>
-        {/* Full-screen chat container with proper spacing */}
+
+      <div
+        className={cn(
+          "flex-1 transition-smooth flex flex-col",
+          isMobile ? "pt-16" : isCollapsed ? "pl-[70px]" : "pl-[260px]"
+        )}
+      >
         <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-hidden">
           <div className="h-full">
             <EnhancedChatContainer />

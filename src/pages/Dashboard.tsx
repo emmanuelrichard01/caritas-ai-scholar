@@ -314,18 +314,18 @@ const Dashboard = () => {
       subtitle="Your personalized learning hub with insights and progress tracking"
       icon={<Sparkles className="h-6 w-6" />}
     >
-      <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
+      <div className="space-y-6 sm:space-y-8 w-full max-w-full overflow-x-hidden">
         {/* Header Actions */}
         <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            Last updated: {new Date().toLocaleTimeString()}
+          <div className="caption">
+            Last updated · {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </div>
           <button
             onClick={handleRefresh}
             disabled={loading}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-background border rounded-md hover:bg-muted transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-smooth focus-ring rounded-lg disabled:opacity-50"
           >
-            <TrendingUp className="h-4 w-4" />
+            <TrendingUp className="h-3.5 w-3.5" />
             Refresh
           </button>
         </div>
@@ -381,22 +381,19 @@ const Dashboard = () => {
           />
         </div>
         
-        {/* Performance Metrics - New addition for better UX insights */}
+        {/* Subtle progress indicator */}
         {!loading && stats.totalInteractions > 0 && (
-          <Card className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
-            <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
-              <TrendingUp className="h-4 w-4" />
-              <span className="font-medium">Learning Progress:</span>
-              <span>
-                {stats.totalInteractions > 10 ? 'Great momentum!' : 
-                 stats.totalInteractions > 5 ? 'Good progress!' : 
-                 'Just getting started!'}
+          <div className="flex items-center justify-between gap-3 px-5 py-3 rounded-xl bg-foreground/[0.03] border border-border/60 animate-fade-in">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <TrendingUp className="h-4 w-4 text-success" />
+              <span className="font-medium text-foreground">
+                {stats.totalInteractions > 10 ? "Great momentum"
+                  : stats.totalInteractions > 5 ? "Good progress"
+                  : "Just getting started"}
               </span>
-              <span className="ml-auto text-xs">
-                Last updated: {new Date().toLocaleTimeString()}
-              </span>
+              <span>· keep it up</span>
             </div>
-          </Card>
+          </div>
         )}
       </div>
       <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />

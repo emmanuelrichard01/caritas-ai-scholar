@@ -1,7 +1,5 @@
-
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { navigationItems } from "@/components/ui/NavigationItems";
 
 interface NavigationMenuProps {
@@ -11,36 +9,50 @@ interface NavigationMenuProps {
 
 export const NavigationMenu = ({ isCollapsed, isMobile }: NavigationMenuProps) => {
   const location = useLocation();
+  const showLabels = !isCollapsed || isMobile;
 
   return (
-    <div className="flex-1 overflow-y-auto pt-4 md:pt-0">
-      <div className="px-3 py-2">
-        <div className="space-y-1">
-          {navigationItems.map((item) => (
-            <Button
-              key={item.href}
-              variant={location.pathname === item.href ? "secondary" : "ghost"}
-              className={cn(
-                "w-full justify-start gap-3 text-left font-normal h-auto min-h-[44px]",
-                isCollapsed && !isMobile ? "px-2 justify-center" : "px-3"
-              )}
-              onClick={() => window.location.href = item.href}
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {(!isCollapsed || isMobile) && (
-                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                  <span className="text-sm font-medium truncate">{item.label}</span>
-                  {item.description && !isCollapsed && (
-                    <span className="text-xs text-muted-foreground truncate leading-tight">
-                      {item.description}
-                    </span>
+    <nav className="flex-1 overflow-y-auto pt-4 md:pt-3 px-3">
+      <ul className="space-y-0.5">
+        {navigationItems.map((item) => {
+          const active = location.pathname === item.href;
+          return (
+            <li key={item.href}>
+              <Link
+                to={item.href}
+                title={!showLabels ? item.label : undefined}
+                className={cn(
+                  "group relative flex items-center gap-3 rounded-xl text-sm transition-smooth focus-ring",
+                  showLabels ? "px-3 py-2.5" : "p-2.5 justify-center",
+                  active
+                    ? "bg-foreground/[0.06] text-foreground font-medium"
+                    : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
+                )}
+              >
+                {active && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r-full bg-foreground" />
+                )}
+                <item.icon
+                  className={cn(
+                    "h-[18px] w-[18px] shrink-0 transition-smooth",
+                    active ? "text-foreground" : "text-foreground/60 group-hover:text-foreground"
                   )}
-                </div>
-              )}
-            </Button>
-          ))}
-        </div>
-      </div>
-    </div>
+                />
+                {showLabels && (
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="truncate leading-tight">{item.label}</span>
+                    {item.description && !isCollapsed && (
+                      <span className="text-[11px] text-muted-foreground/70 truncate leading-tight mt-0.5">
+                        {item.description}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 };

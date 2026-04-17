@@ -1,14 +1,12 @@
-
-import { Bot, User, Copy, ThumbsUp, ThumbsDown, CheckCircle } from 'lucide-react';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import { FormattedContent } from '@/components/FormattedContent';
+import { Sparkles, User, Copy, ThumbsUp, ThumbsDown, CheckCircle, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { FormattedContent } from "@/components/FormattedContent";
 
 interface Message {
-  role: 'user' | 'assistant' | 'system' | 'error';
+  role: "user" | "assistant" | "system" | "error";
   content: string;
   timestamp?: Date;
 }
@@ -19,142 +17,100 @@ interface EnhancedChatMessageProps {
 }
 
 export const EnhancedChatMessage = ({ message, isUser }: EnhancedChatMessageProps) => {
-  const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null);
+  const [feedback, setFeedback] = useState<"positive" | "negative" | null>(null);
   const [copied, setCopied] = useState(false);
+  const isError = message.role === "error";
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(message.content);
       setCopied(true);
-      toast.success('Message copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      toast.error('Failed to copy message');
+      toast.success("Copied to clipboard");
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast.error("Failed to copy");
     }
   };
 
-  const handleFeedback = (type: 'positive' | 'negative') => {
-    if (feedback === type) {
-      setFeedback(null);
-      toast.info('Feedback removed');
-    } else {
-      setFeedback(type);
-      toast.success(type === 'positive' ? 'Thanks for the positive feedback!' : 'Thanks for the feedback, we\'ll improve!');
-    }
+  const handleFeedback = (type: "positive" | "negative") => {
+    setFeedback(feedback === type ? null : type);
   };
 
   return (
-    <div className={cn(
-      "group flex gap-2 sm:gap-3 animate-fade-in max-w-4xl",
-      isUser ? "flex-row-reverse ml-auto" : "flex-row"
-    )}>
+    <div className={cn("group flex gap-3 animate-fade-in", isUser ? "flex-row-reverse" : "flex-row")}>
       {/* Avatar */}
-      <div className={cn(
-        "flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center",
-        isUser 
-          ? "bg-slate-600" 
-          : "bg-blue-600"
-      )}>
+      <div
+        className={cn(
+          "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-subtle",
+          isUser
+            ? "bg-foreground/[0.06] text-foreground/70 border border-border/60"
+            : isError
+            ? "bg-destructive/10 text-destructive"
+            : "bg-foreground text-background"
+        )}
+      >
         {isUser ? (
-          <User className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+          <User className="h-3.5 w-3.5" />
+        ) : isError ? (
+          <AlertCircle className="h-3.5 w-3.5" />
         ) : (
-          <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+          <Sparkles className="h-3.5 w-3.5" />
         )}
       </div>
 
-      {/* Message Content */}
-      <div className={cn(
-        "flex-1 min-w-0",
-        isUser ? "flex flex-col items-end" : "flex flex-col items-start"
-      )}>
-        {/* Header */}
-        <div className={cn(
-          "flex items-center gap-2 mb-1",
-          isUser ? "flex-row-reverse" : "flex-row"
-        )}>
-          <span className="font-medium text-sm text-slate-900 dark:text-white">
+      {/* Body */}
+      <div className={cn("flex-1 min-w-0 max-w-[85%]", isUser ? "flex flex-col items-end" : "flex flex-col items-start")}>
+        <div className={cn("flex items-baseline gap-2 mb-1", isUser ? "flex-row-reverse" : "flex-row")}>
+          <span className="text-xs font-medium text-foreground">
             {isUser ? "You" : "CARITAS AI"}
           </span>
           {message.timestamp && (
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </span>
           )}
         </div>
 
-        {/* Message Bubble */}
-        <Card className={cn(
-          "p-2 sm:p-3 max-w-[90%] sm:max-w-[85%] border-0",
-          isUser 
-            ? "bg-blue-600 text-white" 
-            : message.role === 'error'
-            ? "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800"
-            : "bg-slate-50 dark:bg-slate-800"
-        )}>
-          {isUser ? (
-            <p className="text-white leading-relaxed whitespace-pre-wrap text-sm">
-              {message.content}
-            </p>
-          ) : (
-            <FormattedContent 
-              content={message.content} 
-              variant="chat"
-              className={cn(
-                "max-w-none text-sm",
-                message.role === 'error' && "text-red-800 dark:text-red-200"
-              )}
-            />
+        <div
+          className={cn(
+            "px-4 py-3 rounded-2xl border text-[14px] leading-relaxed transition-smooth",
+            isUser
+              ? "bg-foreground text-background border-foreground rounded-tr-md"
+              : isError
+              ? "bg-destructive/5 border-destructive/20 text-foreground rounded-tl-md"
+              : "bg-card border-border/60 text-foreground rounded-tl-md"
           )}
-        </Card>
+        >
+          {isUser ? (
+            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+          ) : (
+            <FormattedContent content={message.content} variant="chat" className="max-w-none" />
+          )}
+        </div>
 
-        {/* Action Buttons */}
-        {!isUser && (
-          <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCopy}
-              className="h-7 px-2 text-xs hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400"
-            >
-              {copied ? (
-                <>
-                  <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
-                  Copied
-                </>
-              ) : (
-                <>
-                  <Copy className="h-3 w-3 mr-1" />
-                  Copy
-                </>
-              )}
+        {/* Actions */}
+        {!isUser && !isError && (
+          <div className="flex items-center gap-0.5 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <Button variant="ghost" size="iconSm" onClick={handleCopy} className="h-7 w-7 text-muted-foreground hover:text-foreground" title="Copy">
+              {copied ? <CheckCircle className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
             </Button>
-            
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() => handleFeedback('positive')}
-              className={cn(
-                "h-7 px-2 text-xs hover:bg-slate-100 dark:hover:bg-slate-700",
-                feedback === 'positive' 
-                  ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400" 
-                  : "text-slate-600 dark:text-slate-400"
-              )}
+              size="iconSm"
+              onClick={() => handleFeedback("positive")}
+              className={cn("h-7 w-7", feedback === "positive" ? "text-success" : "text-muted-foreground hover:text-foreground")}
+              title="Helpful"
             >
-              <ThumbsUp className="h-3 w-3" />
+              <ThumbsUp className="h-3.5 w-3.5" />
             </Button>
-            
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() => handleFeedback('negative')}
-              className={cn(
-                "h-7 px-2 text-xs hover:bg-slate-100 dark:hover:bg-slate-700",
-                feedback === 'negative' 
-                  ? "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400" 
-                  : "text-slate-600 dark:text-slate-400"
-              )}
+              size="iconSm"
+              onClick={() => handleFeedback("negative")}
+              className={cn("h-7 w-7", feedback === "negative" ? "text-destructive" : "text-muted-foreground hover:text-foreground")}
+              title="Not helpful"
             >
-              <ThumbsDown className="h-3 w-3" />
+              <ThumbsDown className="h-3.5 w-3.5" />
             </Button>
           </div>
         )}

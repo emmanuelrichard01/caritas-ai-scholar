@@ -81,15 +81,14 @@ const Navigation = ({ onCollapseChange }: NavigationProps) => {
       )}
 
       {/* Sidebar */}
-      <div 
+      <div
         className={cn(
-          "fixed left-0 flex flex-col border-r bg-background/95 backdrop-blur-lg transition-all duration-300 ease-in-out",
-          "dark:bg-slate-900/95 dark:border-slate-800",
-          // Desktop styles
+          "fixed left-0 flex flex-col border-r border-border/60 glass transition-smooth",
           "md:translate-x-0 md:top-0 md:h-full md:z-50",
           isCollapsed ? "md:w-[70px]" : "md:w-[260px]",
-          // Mobile styles  
-          isMobileMenuOpen ? "translate-x-0 top-16 w-[280px] h-[93vh] z-50" : "-translate-x-full top-16 w-[280px] h-[93vh] z-50"
+          isMobileMenuOpen
+            ? "translate-x-0 top-16 w-[280px] h-[93vh] z-50"
+            : "-translate-x-full top-16 w-[280px] h-[93vh] z-50"
         )}
       >
         <NavigationHeader 

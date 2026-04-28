@@ -1,26 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
 export const useAuthGuard = () => {
   const { user, loading } = useAuth();
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!loading && !user) {
-      setShowAuthModal(true);
-    } else if (user) {
-      setShowAuthModal(false);
+      navigate('/auth', { state: { from: location.pathname }, replace: true });
     }
-  }, [user, loading]);
-
-  const closeAuthModal = () => {
-    setShowAuthModal(false);
-  };
+  }, [user, loading, navigate, location.pathname]);
 
   return {
     isAuthenticated: !!user,
-    showAuthModal,
-    closeAuthModal,
     loading
   };
 };

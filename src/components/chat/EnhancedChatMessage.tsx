@@ -41,12 +41,12 @@ export const EnhancedChatMessage = ({ message, isUser }: EnhancedChatMessageProp
       {/* Avatar */}
       <div
         className={cn(
-          "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-subtle",
+          "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm",
           isUser
-            ? "bg-foreground/[0.06] text-foreground/70 border border-border/60"
+            ? "bg-brand/10 text-brand border border-brand/20"
             : isError
             ? "bg-destructive/10 text-destructive"
-            : "bg-foreground text-background"
+            : "bg-brand text-white"
         )}
       >
         {isUser ? (
@@ -73,12 +73,12 @@ export const EnhancedChatMessage = ({ message, isUser }: EnhancedChatMessageProp
 
         <div
           className={cn(
-            "px-4 py-3 rounded-2xl border text-[14px] leading-relaxed transition-smooth",
+            "px-5 py-3.5 rounded-3xl text-[15px] leading-relaxed transition-smooth shadow-sm",
             isUser
-              ? "bg-foreground text-background border-foreground rounded-tr-md"
+              ? "bg-brand text-white rounded-tr-sm"
               : isError
-              ? "bg-destructive/5 border-destructive/20 text-foreground rounded-tl-md"
-              : "bg-card border-border/60 text-foreground rounded-tl-md"
+              ? "bg-destructive/5 border border-destructive/20 text-foreground rounded-tl-sm"
+              : "bg-card border border-border/40 text-foreground rounded-tl-sm shadow-soft"
           )}
         >
           {isUser ? (

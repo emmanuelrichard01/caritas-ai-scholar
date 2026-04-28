@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { HistoryFilters } from "@/components/history/HistoryFilters";
 import { HistoryEmptyState } from "@/components/history/HistoryEmptyState";
 import { HistorySkeleton } from "@/components/history/HistorySkeleton";
-import { AuthModal } from "@/components/auth/AuthModal";
+
 import {
   Pagination,
   PaginationContent,
@@ -38,7 +38,7 @@ interface HistoryResponse {
 
 const History = () => {
   const { user } = useAuth();
-  const { isAuthenticated, showAuthModal, closeAuthModal, loading: authLoading } = useAuthGuard();
+  const { isAuthenticated, loading: authLoading } = useAuthGuard();
   const queryClient = useQueryClient();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -239,22 +239,9 @@ const History = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Show auth modal if not authenticated
+  // Return null while redirecting
   if (!isAuthenticated && !authLoading) {
-    return (
-      <>
-        <PageLayout 
-          title="Chat History" 
-          subtitle="Review your past conversations with Caritas AI"
-          icon={<Clock className="h-6 w-6" />}
-        >
-          <div className="text-center py-16">
-            <p className="text-muted-foreground">Please sign in to view your chat history.</p>
-          </div>
-        </PageLayout>
-        <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
-      </>
-    );
+    return null;
   }
 
   // Show error state
@@ -262,7 +249,7 @@ const History = () => {
     return (
       <PageLayout 
         title="Chat History" 
-        subtitle="Review your past conversations with Caritas AI"
+        subtitle={`Review your past conversations with ${APP_CONFIG.brand.name}`}
         icon={<Clock className="h-6 w-6" />}
       >
         <div className="text-center py-12">
@@ -276,7 +263,7 @@ const History = () => {
     <>
       <PageLayout 
         title="Chat History" 
-        subtitle="Review your past conversations with Caritas AI"
+        subtitle={`Review your past conversations with ${APP_CONFIG.brand.name}`}
         icon={<Clock className="h-6 w-6" />}
       >
         <HistoryFilters
@@ -370,7 +357,6 @@ const History = () => {
           </>
         )}
       </PageLayout>
-      <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
     </>
   );
 };

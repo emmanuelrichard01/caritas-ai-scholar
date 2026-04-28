@@ -1,11 +1,12 @@
+import { APP_CONFIG } from '@/config/app';
 
 export const universityInfo = {
-  name: "Caritas University",
-  location: "Amorji-Nike, Enugu State, Nigeria",
+  name: APP_CONFIG.university.name,
+  location: "Main Campus",
   founded: 2005,
-  type: "Private Catholic University",
+  type: "Private University",
   motto: "Excellence and Service",
-  website: "https://www.caritasuni.edu.ng/",
+  website: `https://www.${APP_CONFIG.university.slug}.edu.ng/`,
   
   faculties: [
     {
@@ -112,24 +113,19 @@ export const universityInfo = {
   values: [
     "Academic Excellence",
     "Character Formation",
-    "Service to God and Humanity",
-    "Innovation and Research",
-    "Social Justice and Peace",
-    "Environmental Stewardship"
+    "Service to Humanity",
+    "Innovation and Research"
   ],
   
   contact: {
-    address: "Caritas University, Amorji-Nike, P.M.B. 01784, Enugu, Nigeria",
-    phone: "+234 42 259 048",
-    email: "info@caritasuni.edu.ng",
-    registrar: "registrar@caritasuni.edu.ng",
-    admissions: "admissions@caritasuni.edu.ng"
+    address: `${APP_CONFIG.university.name}, Main Campus`,
+    phone: "+234 000 000 000",
+    email: `info@${APP_CONFIG.university.slug}.edu.ng`,
+    registrar: `registrar@${APP_CONFIG.university.slug}.edu.ng`,
+    admissions: `admissions@${APP_CONFIG.university.slug}.edu.ng`
   },
   
   accreditation: [
-    "National Universities Commission (NUC)",
-    "Medical and Dental Council of Nigeria (MDCN)",
-    "Council for the Regulation of Engineering in Nigeria (COREN)",
-    "Nigerian Bar Association (NBA) for Law programs"
+    "National Universities Commission (NUC)"
   ]
 };

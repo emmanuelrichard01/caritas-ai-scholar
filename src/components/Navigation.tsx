@@ -83,8 +83,8 @@ const Navigation = ({ onCollapseChange }: NavigationProps) => {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed left-0 flex flex-col border-r border-border/60 glass transition-smooth",
-          "md:translate-x-0 md:top-0 md:h-full md:z-50",
+          "fixed left-0 flex flex-col border-r border-border/40 bg-card transition-smooth",
+          "md:translate-x-0 md:top-0 md:h-full md:z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)]",
           isCollapsed ? "md:w-[70px]" : "md:w-[260px]",
           isMobileMenuOpen
             ? "translate-x-0 top-16 w-[280px] h-[93vh] z-50"

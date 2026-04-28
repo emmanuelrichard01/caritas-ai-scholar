@@ -189,13 +189,13 @@ export const EnhancedChatContainer = () => {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full bg-card rounded-2xl border border-border/60 shadow-soft overflow-hidden">
-      {/* Header — minimal, glass */}
-      <header className="flex-shrink-0 border-b border-border/60 glass px-5 sm:px-6 py-4">
+    <div className="flex flex-col h-full bg-card rounded-[2rem] border border-border/40 shadow-3d overflow-hidden">
+      {/* Header — minimal */}
+      <header className="flex-shrink-0 border-b border-border/40 bg-card/80 backdrop-blur-md px-5 sm:px-8 py-5 z-10">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="relative w-9 h-9 rounded-xl bg-foreground text-background flex items-center justify-center shadow-subtle">
-              <Sparkles className="h-4 w-4" />
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="relative w-11 h-11 rounded-xl bg-brand/10 text-brand flex items-center justify-center shadow-sm border border-brand/20">
+              <Sparkles className="h-5 w-5" />
               {isProcessing && (
                 <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-success rounded-full ring-2 ring-card animate-pulse" />
               )}
@@ -242,10 +242,10 @@ export const EnhancedChatContainer = () => {
             </div>
           ) : isFirstMessage && messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center max-w-2xl mx-auto animate-fade-in-up">
-              <div className="w-14 h-14 rounded-2xl bg-foreground/[0.04] border border-border/60 flex items-center justify-center mb-5">
-                <MessageSquare className="h-6 w-6 text-foreground/60" />
+              <div className="w-16 h-16 rounded-2xl bg-brand/5 border border-brand/10 flex items-center justify-center mb-6 shadow-sm">
+                <MessageSquare className="h-7 w-7 text-brand" />
               </div>
-              <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-2">
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-3">
                 What can I help with?
               </h2>
               <p className="text-sm text-muted-foreground mb-8 max-w-md">
@@ -258,14 +258,14 @@ export const EnhancedChatContainer = () => {
                     key={s.title}
                     onClick={() => handleSendMessage(s.prompt)}
                     style={{ animationDelay: `${i * 50}ms` }}
-                    className="group text-left p-4 rounded-xl border border-border/60 bg-card hover:border-foreground/20 hover:shadow-soft hover:-translate-y-0.5 transition-smooth focus-ring animate-fade-in-up opacity-0"
+                    className="group text-left p-5 rounded-2xl border border-border/40 bg-card hover:border-brand/30 hover:shadow-soft hover:-translate-y-1 transition-all duration-300 focus-ring animate-fade-in-up opacity-0 shadow-sm"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-foreground/[0.04] flex items-center justify-center text-foreground/70 transition-smooth group-hover:bg-foreground group-hover:text-background flex-shrink-0">
-                        <s.icon className="h-4 w-4" />
+                    <div className="flex items-start gap-4">
+                      <div className="h-10 w-10 rounded-xl bg-brand/5 flex items-center justify-center text-brand transition-smooth group-hover:bg-brand group-hover:text-white flex-shrink-0 shadow-sm border border-brand/10">
+                        <s.icon className="h-5 w-5" />
                       </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-foreground">{s.title}</div>
+                      <div className="min-w-0 pt-0.5">
+                        <div className="text-[15px] font-bold text-foreground">{s.title}</div>
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{s.prompt}</p>
                       </div>
                     </div>
@@ -299,8 +299,8 @@ export const EnhancedChatContainer = () => {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 border-t border-border/60 glass px-4 sm:px-6 py-4">
-        <div className="max-w-3xl mx-auto">
+      <div className="flex-shrink-0 border-t border-border/40 bg-card/80 backdrop-blur-md px-4 sm:px-6 py-5 z-10">
+        <div className="max-w-4xl mx-auto">
           <EnhancedChatInput
             onSendMessage={handleSendMessage}
             disabled={isProcessing || isLoadingHistory}

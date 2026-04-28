@@ -37,9 +37,9 @@ export const WelcomeCard = ({ profile, stats, loading = false }: WelcomeCardProp
   ];
 
   return (
-    <Card variant="elevated" className="relative overflow-hidden p-6 sm:p-8 gradient-mesh animate-fade-in-up">
+    <Card className="relative overflow-hidden p-6 sm:p-8 bg-card shadow-3d border-border/40 rounded-3xl animate-fade-in-up">
       {/* Subtle floating orb */}
-      <div className="pointer-events-none absolute -top-24 -right-24 w-64 h-64 rounded-full bg-foreground/[0.03] blur-3xl" />
+      <div className="pointer-events-none absolute -top-24 -right-24 w-64 h-64 rounded-full bg-brand/5 blur-3xl" />
 
       <div className="relative z-10 flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

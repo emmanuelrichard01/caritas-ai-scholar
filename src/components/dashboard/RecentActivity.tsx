@@ -49,10 +49,10 @@ const formatRelative = (dateString: string) => {
 
 export const RecentActivityList = ({ recentActivities, loading, onRefresh }: RecentActivityProps) => {
   return (
-    <Card variant="default" className="p-6 sm:p-7 animate-fade-in-up">
+    <Card className="p-6 sm:p-7 bg-card shadow-3d border-border/40 rounded-3xl animate-fade-in-up">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h3 className="text-base font-semibold tracking-tight text-foreground">Recent Activity</h3>
+          <h3 className="text-base font-bold tracking-tight text-foreground">Recent Activity</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Your latest interactions</p>
         </div>
         {onRefresh && (

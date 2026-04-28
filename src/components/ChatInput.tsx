@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Send } from "lucide-react";
 import { FormEvent, useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { APP_CONFIG } from "@/config/app";
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -49,8 +50,8 @@ const ChatInput = ({ onSendMessage, disabled = false, showPromptSuggestions = fa
     <form onSubmit={handleSubmit} className="w-full">
       <div className={cn(
         "relative flex items-end rounded-2xl border bg-background shadow-sm transition-all duration-200",
-        isFocused ? "ring-2 ring-caritas/20 border-caritas/30" : "border-border",
-        "hover:border-caritas/40"
+        isFocused ? "ring-2 ring-brand/20 border-brand/30" : "border-border",
+        "hover:border-brand/40"
       )}>
         <Textarea
           ref={textareaRef}
@@ -59,7 +60,7 @@ const ChatInput = ({ onSendMessage, disabled = false, showPromptSuggestions = fa
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask about Caritas University, study tips, or academic guidance..."
+          placeholder={`Ask about ${APP_CONFIG.university.name}, study tips, or academic guidance...`}
           className="flex-1 min-h-[52px] max-h-[120px] resize-none bg-transparent border-0 p-4 pr-12 focus-visible:ring-0 focus:outline-none placeholder:text-muted-foreground/60 text-sm"
           disabled={disabled}
           rows={1}
@@ -68,7 +69,7 @@ const ChatInput = ({ onSendMessage, disabled = false, showPromptSuggestions = fa
           type="submit" 
           size="icon"
           disabled={disabled || !inputValue.trim()}
-          className="absolute right-2 bottom-2 h-8 w-8 bg-caritas hover:bg-caritas-light transition-all duration-200 rounded-lg shadow-sm"
+          className="absolute right-2 bottom-2 h-8 w-8 bg-brand hover:bg-brand-light transition-all duration-200 rounded-lg shadow-sm"
         >
           <Send className="h-4 w-4" />
         </Button>

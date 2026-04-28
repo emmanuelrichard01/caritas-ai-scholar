@@ -13,7 +13,6 @@ import { RecentActivityList } from "@/components/dashboard/RecentActivity";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AuthModal } from "@/components/auth/AuthModal";
 
 interface ActivityData {
   category: string;
@@ -37,7 +36,7 @@ interface DashboardStats {
 
 const Dashboard = () => {
   const { user, profile } = useAuth();
-  const { isAuthenticated, showAuthModal, closeAuthModal } = useAuthGuard();
+  const { isAuthenticated } = useAuthGuard();
   const [activityData, setActivityData] = useState<ActivityData[]>([]);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
@@ -277,22 +276,9 @@ const Dashboard = () => {
     </div>
   );
   
-  // Auth guard
+  // Return null while redirecting
   if (!isAuthenticated) {
-    return (
-      <>
-        <PageLayout
-          title="Dashboard"
-          subtitle="Your personalized learning hub with insights and progress tracking"
-          icon={<Sparkles className="h-6 w-6" />}
-        >
-          <div className="text-center py-16">
-            <p className="text-muted-foreground">Please sign in to view your dashboard.</p>
-          </div>
-        </PageLayout>
-        <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
-      </>
-    );
+    return null;
   }
 
   // Show loading skeleton for better UX
@@ -396,7 +382,6 @@ const Dashboard = () => {
           </div>
         )}
       </div>
-      <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
     </PageLayout>
   );
 };

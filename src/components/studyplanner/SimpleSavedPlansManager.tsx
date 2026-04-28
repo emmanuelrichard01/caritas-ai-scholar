@@ -103,39 +103,39 @@ export const SimpleSavedPlansManager = ({
 
       {/* Saved Plans */}
       {savedPlans.length === 0 ? (
-        <Card className="p-8 text-center border-dashed">
+        <Card className="p-8 text-center border-dashed border-border/40 bg-card shadow-sm">
           <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-          <h3 className="font-medium mb-2">No saved plans yet</h3>
+          <h3 className="font-semibold text-foreground mb-2">No saved plans yet</h3>
           <p className="text-sm text-muted-foreground mb-4">
             Create your first study plan to get started
           </p>
-          <Button onClick={onCreateNew} variant="outline">
+          <Button onClick={onCreateNew} variant="outline" className="border-border/40 hover:bg-muted/50">
             Create Your First Plan
           </Button>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {savedPlans.slice(0, 6).map((plan) => (
-            <Card key={plan.id} className="p-4 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-3">
+            <Card key={plan.id} className="p-5 bg-card shadow-sm border border-border/40 hover:shadow-soft hover:-translate-y-1 transition-all duration-300 rounded-2xl group">
+              <div className="flex items-start justify-between mb-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-medium truncate">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <h4 className="font-bold text-foreground truncate">
                       {plan.title}
                     </h4>
                     {plan.isActive && (
-                      <Badge variant="default" className="text-xs">
+                      <Badge className="text-[10px] bg-brand/10 text-brand hover:bg-brand/20 border-transparent px-1.5 py-0">
                         Active
                       </Badge>
                     )}
                   </div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-3">
-                    <span className="flex items-center gap-1">
-                      <BookOpen className="h-3 w-3" />
+                  <div className="text-xs text-muted-foreground flex items-center gap-3">
+                    <span className="flex items-center gap-1.5">
+                      <BookOpen className="h-3.5 w-3.5" />
                       {plan.subjects.length} subjects
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5" />
                       {formatDate(plan.updatedAt!)}
                     </span>
                   </div>
@@ -143,10 +143,10 @@ export const SimpleSavedPlansManager = ({
                 <Button
                   onClick={() => onDeletePlan(plan.id!)}
                   variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                  size="iconSm"
+                  className="h-8 w-8 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
 
@@ -154,9 +154,9 @@ export const SimpleSavedPlansManager = ({
                 onClick={() => onLoadPlan(plan)}
                 variant="outline"
                 size="sm"
-                className="w-full"
+                className="w-full bg-background border-border/40 hover:bg-muted/50 transition-smooth group-hover:border-brand/30"
               >
-                <Play className="h-3 w-3 mr-2" />
+                <Play className="h-3.5 w-3.5 mr-2" />
                 Load Plan
               </Button>
             </Card>

@@ -71,10 +71,10 @@ export default {
 					DEFAULT: 'hsl(var(--info))',
 					foreground: 'hsl(var(--info-foreground))'
 				},
-				caritas: {
-					DEFAULT: 'hsl(var(--caritas))',
-					light: 'hsl(var(--caritas-light))',
-					dark: 'hsl(var(--caritas-dark))',
+				brand: {
+					DEFAULT: 'hsl(var(--brand))',
+					light: 'hsl(var(--brand-light))',
+					dark: 'hsl(var(--brand-dark))',
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',

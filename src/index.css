@@ -57,10 +57,10 @@
     --sidebar-border: 240 5.9% 90%;
     --sidebar-ring: 240 5.9% 10%;
     
-    /* Brand colors - refined caritas */
-    --caritas: 0 72% 35%;
-    --caritas-light: 0 65% 50%;
-    --caritas-dark: 0 75% 25%;
+    /* Brand colors - Dynamic Token System */
+    --brand: 0 72% 35%;
+    --brand-light: 0 65% 50%;
+    --brand-dark: 0 75% 25%;
   }
 
   .dark {
@@ -105,9 +105,9 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 240 4.9% 83.9%;
     
-    --caritas: 0 65% 55%;
-    --caritas-light: 0 60% 65%;
-    --caritas-dark: 0 70% 45%;
+    --brand: 0 65% 55%;
+    --brand-light: 0 60% 65%;
+    --brand-dark: 0 70% 45%;
   }
 }
 
@@ -245,10 +245,15 @@
                 0 16px 48px -8px hsl(var(--foreground) / 0.1);
   }
   
+  .shadow-3d {
+    box-shadow: 0 20px 40px -10px hsl(var(--foreground) / 0.1),
+                0 0 0 1px hsl(var(--foreground) / 0.05);
+  }
+  
   .shadow-glow {
-    box-shadow: 0 0 0 1px hsl(var(--caritas) / 0.1),
-                0 4px 16px -2px hsl(var(--caritas) / 0.2),
-                0 8px 32px -4px hsl(var(--caritas) / 0.15);
+    box-shadow: 0 0 0 1px hsl(var(--brand) / 0.1),
+                0 4px 16px -2px hsl(var(--brand) / 0.2),
+                0 8px 32px -4px hsl(var(--brand) / 0.15);
   }
   
   /* Glass morphism */
@@ -262,7 +267,7 @@
   
   /* Premium gradients */
   .gradient-brand {
-    @apply bg-gradient-to-br from-[hsl(var(--caritas))] via-[hsl(var(--caritas-light))] to-[hsl(var(--caritas))];
+    @apply bg-gradient-to-br from-[hsl(var(--brand))] via-[hsl(var(--brand-light))] to-[hsl(var(--brand))];
   }
   
   .gradient-subtle {
@@ -275,7 +280,7 @@
   
   .gradient-mesh {
     background: 
-      radial-gradient(at 0% 0%, hsl(var(--caritas) / 0.08) 0%, transparent 50%),
+      radial-gradient(at 0% 0%, hsl(var(--brand) / 0.08) 0%, transparent 50%),
       radial-gradient(at 100% 0%, hsl(var(--info) / 0.06) 0%, transparent 50%),
       radial-gradient(at 100% 100%, hsl(var(--warning) / 0.05) 0%, transparent 50%),
       radial-gradient(at 0% 100%, hsl(var(--success) / 0.04) 0%, transparent 50%);
@@ -283,7 +288,13 @@
   
   /* Text gradients */
   .text-gradient-brand {
-    @apply bg-gradient-to-r from-[hsl(var(--caritas))] to-[hsl(var(--caritas-light))] bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[hsl(var(--brand))] to-[hsl(var(--brand-light))] bg-clip-text text-transparent;
+  }
+  
+  /* Dotted background */
+  .bg-dotted {
+    background-image: radial-gradient(hsl(var(--foreground) / 0.1) 1px, transparent 1px);
+    background-size: 16px 16px;
   }
 }
 

@@ -23,7 +23,7 @@ const buttonVariants = cva(
           "text-primary underline-offset-4 hover:underline",
         // Premium variants
         brand:
-          "bg-gradient-to-r from-caritas to-caritas-light text-white shadow-glow hover:shadow-elevated hover:brightness-110",
+          "bg-gradient-to-r from-brand to-brand-light text-white shadow-glow hover:shadow-elevated hover:brightness-110",
         glass:
           "glass hover:bg-background/90 text-foreground shadow-soft hover:shadow-medium",
         soft:

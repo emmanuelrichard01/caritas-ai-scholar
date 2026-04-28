@@ -25,17 +25,17 @@ export const NavigationMenu = ({ isCollapsed, isMobile }: NavigationMenuProps) =
                   "group relative flex items-center gap-3 rounded-xl text-sm transition-smooth focus-ring",
                   showLabels ? "px-3 py-2.5" : "p-2.5 justify-center",
                   active
-                    ? "bg-foreground/[0.06] text-foreground font-medium"
-                    : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
+                    ? "bg-brand/10 text-brand font-semibold shadow-sm border border-brand/20"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent"
                 )}
               >
                 {active && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r-full bg-foreground" />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-brand" />
                 )}
                 <item.icon
                   className={cn(
                     "h-[18px] w-[18px] shrink-0 transition-smooth",
-                    active ? "text-foreground" : "text-foreground/60 group-hover:text-foreground"
+                    active ? "text-brand" : "text-muted-foreground group-hover:text-foreground"
                   )}
                 />
                 {showLabels && (

@@ -2,8 +2,7 @@
 import { useState, useEffect } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { ModernChatContainer } from '@/components/chat/ModernChatContainer';
-import Navigation from '@/components/Navigation';
+
 import { HeroSection } from '@/components/landing/HeroSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
 import { StatsSection } from '@/components/landing/StatsSection';
@@ -13,13 +12,16 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { APP_CONFIG } from '@/config/app';
+
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
   const isMobile = useIsMobile();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [showChat, setShowChat] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   useEffect(() => {
     setIsCollapsed(isMobile);
@@ -31,25 +33,13 @@ const Index = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleGetStarted = () => setShowChat(true);
-
-  if (showChat) {
-    return (
-      <div className="flex min-h-screen bg-background">
-        <Navigation onCollapseChange={setIsCollapsed} />
-        <div className={cn(
-          "flex-1 transition-all duration-300",
-          isMobile ? "pt-16" : isCollapsed ? "pl-[70px]" : "pl-[260px]"
-        )}>
-          <div className="h-full p-2 sm:p-4">
-            <div className="h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)] rounded-2xl overflow-hidden shadow-elevated">
-              <ModernChatContainer />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleGetStarted = () => {
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/auth');
+    }
+  };
   
   return (
     <div className="min-h-screen bg-background">
@@ -61,11 +51,11 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-caritas to-caritas-light flex items-center justify-center shadow-soft">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-brand to-brand-light flex items-center justify-center shadow-soft">
                 <MessageSquare className="h-4 w-4 text-white" />
               </div>
               <div>
-                <span className="font-semibold text-lg text-gradient-brand">CARITAS AI</span>
+                <span className="font-semibold text-lg text-gradient-brand">{APP_CONFIG.brand.name}</span>
               </div>
             </div>
             
@@ -111,15 +101,15 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="lg:col-span-2">
               <div className="flex items-center gap-3 mb-6">
-                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-caritas to-caritas-light flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-brand to-brand-light flex items-center justify-center shadow-glow">
                   <MessageSquare className="h-4 w-4 text-white" />
                 </div>
-                <span className="font-semibold text-lg">CARITAS AI</span>
+                <span className="font-semibold text-lg">{APP_CONFIG.brand.name}</span>
               </div>
               <p className="text-background/70 max-w-md leading-relaxed mb-6">
                 Empowering students with AI-driven academic assistance for better learning outcomes.
               </p>
-              <p className="text-sm text-background/50">© 2025 CARITAS AI. All rights reserved.</p>
+              <p className="text-sm text-background/50">© {new Date().getFullYear()} {APP_CONFIG.brand.name}. All rights reserved.</p>
             </div>
             
             <div>

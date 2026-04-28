@@ -16,9 +16,9 @@ interface ActivityChartProps {
 
 export const ActivityChart = ({ activityData, loading }: ActivityChartProps) => {
   return (
-    <Card variant="default" className="p-6 sm:p-7 h-full animate-fade-in-up">
+    <Card className="p-6 sm:p-7 h-full bg-card shadow-3d border-border/40 rounded-3xl animate-fade-in-up">
       <div className="mb-6">
-        <h3 className="text-base font-semibold tracking-tight text-foreground">Learning Activity</h3>
+        <h3 className="text-base font-bold tracking-tight text-foreground">Learning Activity</h3>
         <p className="text-xs text-muted-foreground mt-0.5">Distribution by category</p>
       </div>
 

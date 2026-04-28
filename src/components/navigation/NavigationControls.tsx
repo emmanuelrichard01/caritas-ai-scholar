@@ -26,7 +26,7 @@ export const NavigationControls = ({
         variant="ghost"
         onClick={onToggleTheme}
         className={cn(
-          "transition-smooth text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]",
+          "transition-smooth text-muted-foreground hover:text-foreground hover:bg-muted/50",
           showLabels ? "w-full justify-start gap-3 px-3" : "w-10 h-10 p-0 justify-center mx-auto"
         )}
         title="Toggle theme"
@@ -39,7 +39,7 @@ export const NavigationControls = ({
         variant="ghost"
         onClick={onShowApiInfo}
         className={cn(
-          "transition-smooth text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]",
+          "transition-smooth text-muted-foreground hover:text-foreground hover:bg-muted/50",
           showLabels ? "w-full justify-start gap-3 px-3" : "w-10 h-10 p-0 justify-center mx-auto"
         )}
         title="API Status"
@@ -48,7 +48,7 @@ export const NavigationControls = ({
         {showLabels && <span className="text-sm">API Status</span>}
       </Button>
 
-      <div className="pt-1 mt-1 border-t border-border/60">
+      <div className="pt-1 mt-1 border-t border-border/40">
         <NavbarProfile isCollapsed={isCollapsed && !isMobile} />
       </div>
     </div>

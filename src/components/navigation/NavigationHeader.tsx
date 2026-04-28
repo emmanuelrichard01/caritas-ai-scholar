@@ -12,12 +12,12 @@ export const NavigationHeader = ({ isCollapsed, onToggleSidebar }: NavigationHea
   return (
     <div
       className={cn(
-        "hidden md:flex h-16 items-center gap-2 border-b border-border/60 px-4 relative",
+        "hidden md:flex h-16 items-center gap-2 border-b border-border/40 px-4 relative",
         isCollapsed ? "justify-center" : "justify-between"
       )}
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="h-8 w-8 rounded-xl bg-foreground text-background flex items-center justify-center shadow-subtle flex-shrink-0">
+        <div className="h-8 w-8 rounded-xl bg-brand/10 text-brand flex items-center justify-center shadow-sm border border-brand/20 flex-shrink-0">
           <Sparkles className="h-4 w-4" />
         </div>
         {!isCollapsed && (

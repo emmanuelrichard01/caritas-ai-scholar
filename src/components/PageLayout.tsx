@@ -20,7 +20,8 @@ export const PageLayout = ({ title, subtitle, icon, children, actions }: PageLay
   }, [isMobile]);
 
   return (
-    <div className="flex min-h-screen bg-background gradient-radial">
+    <div className="flex min-h-screen bg-background relative overflow-hidden">
+      <div className="absolute inset-0 bg-dotted opacity-50 dark:opacity-20 pointer-events-none" />
       <Navigation onCollapseChange={setIsCollapsed} />
 
       <div

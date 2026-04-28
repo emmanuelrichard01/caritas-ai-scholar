@@ -51,8 +51,8 @@ export const EnhancedChatInput = ({
     <form onSubmit={handleSubmit} className="w-full">
       <div
         className={cn(
-          "relative flex items-end gap-2 p-2 pl-4 rounded-2xl border bg-card transition-smooth",
-          isFocused ? "border-foreground/30 shadow-soft" : "border-border/60 hover:border-foreground/20"
+          "relative flex items-end gap-2 p-2 pl-4 rounded-[1.25rem] border bg-card transition-smooth shadow-sm",
+          isFocused ? "border-brand/40 shadow-soft" : "border-border/40 hover:border-brand/20"
         )}
       >
         <Textarea
@@ -87,9 +87,9 @@ export const EnhancedChatInput = ({
             type="submit"
             disabled={!canSend}
             size="iconSm"
-            variant="default"
+            variant="brand"
             className={cn(
-              "rounded-full h-9 w-9 transition-smooth",
+              "rounded-xl h-10 w-10 transition-smooth",
               canSend ? "scale-100 opacity-100" : "scale-95 opacity-50"
             )}
             title="Send"

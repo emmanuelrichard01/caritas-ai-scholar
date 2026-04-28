@@ -86,27 +86,34 @@ export const StatsSection = () => {
   return (
     <section className="py-20 relative overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-r from-caritas/5 via-transparent to-caritas/5" />
+      <div className="absolute inset-0 bg-gradient-to-r from-brand/5 via-transparent to-brand/5" />
       
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-          {stats.map((stat, index) => (
-            <div 
-              key={index} 
-              className="text-center group"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <div className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gradient-brand mb-2 transition-transform group-hover:scale-105">
-                <AnimatedNumber value={stat.number} />
+        <div className="glass-card rounded-3xl p-8 sm:p-12 border border-brand/10 bg-background/40">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+            {stats.map((stat, index) => (
+              <div 
+                key={index} 
+                className="text-center group relative"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                {/* Subtle divider for grid (except last item) */}
+                {index < stats.length - 1 && (
+                  <div className="hidden lg:block absolute -right-6 top-1/2 -translate-y-1/2 w-px h-16 bg-border/50" />
+                )}
+                
+                <div className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gradient-brand mb-2 transition-transform group-hover:scale-105">
+                  <AnimatedNumber value={stat.number} />
+                </div>
+                <div className="text-base sm:text-lg font-semibold text-foreground mb-1">
+                  {stat.label}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {stat.description}
+                </div>
               </div>
-              <div className="text-base sm:text-lg font-semibold text-foreground mb-1">
-                {stat.label}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {stat.description}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>

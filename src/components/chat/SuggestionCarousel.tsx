@@ -8,11 +8,13 @@ interface SuggestionCarouselProps {
   onSelectSuggestion: (suggestion: string) => void;
 }
 
+import { APP_CONFIG } from '@/config/app';
+
 const suggestions = [
   {
     icon: <BookOpen className="h-4 w-4" />,
     text: "Available courses",
-    query: "What are the available courses at Caritas University?"
+    query: `What are the available courses at ${APP_CONFIG.university.name}?`
   },
   {
     icon: <Search className="h-4 w-4" />,

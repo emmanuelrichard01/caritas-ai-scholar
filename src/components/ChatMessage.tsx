@@ -51,7 +51,7 @@ const ChatMessage = ({ message, isUser, isLoading = false }: ChatMessageProps) =
             "h-8 w-8 md:h-10 md:w-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm",
             isUser 
               ? "bg-gradient-to-br from-slate-600 to-slate-700" 
-              : "bg-gradient-to-br from-caritas to-caritas-light"
+              : "bg-gradient-to-br from-brand to-brand-light"
           )}>
             {isUser ? (
               <User className="h-4 w-4 md:h-5 md:w-5 text-white" />
@@ -74,9 +74,9 @@ const ChatMessage = ({ message, isUser, isLoading = false }: ChatMessageProps) =
             {isLoading ? (
               <div className="flex items-center space-x-2 py-4">
                 <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-caritas rounded-full animate-pulse"></div>
-                  <div className="w-2 h-2 bg-caritas rounded-full animate-pulse [animation-delay:0.2s]"></div>
-                  <div className="w-2 h-2 bg-caritas rounded-full animate-pulse [animation-delay:0.4s]"></div>
+                  <div className="w-2 h-2 bg-brand rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-brand rounded-full animate-pulse [animation-delay:0.2s]"></div>
+                  <div className="w-2 h-2 bg-brand rounded-full animate-pulse [animation-delay:0.4s]"></div>
                 </div>
                 <span className="text-sm text-muted-foreground">
                   Thinking carefully about your question...

@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 // Import file processing libraries
-import * as pdfjsLib from "https://esm.sh/pdfjs-dist@3.11.174/build/pdf.mjs";
+import { extractText, getDocumentProxy } from "https://esm.sh/unpdf@0.12.1";
 import mammoth from "https://esm.sh/mammoth@1.6.0/mammoth.browser.min.js";
 
 const corsHeaders = {
@@ -272,41 +272,26 @@ async function extractTextFromFile(
 async function extractTextFromPDF(fileData: Blob): Promise<string> {
   try {
     console.log("Extracting text from PDF...");
-    
+
     const arrayBuffer = await fileData.arrayBuffer();
-    const typedArray = new Uint8Array(arrayBuffer);
-    
-    // Configure PDF.js to work in Deno environment
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://esm.sh/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-    
-    const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
-    console.log(`PDF loaded with ${pdf.numPages} pages`);
-    
-    let fullText = '';
-    
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      try {
-        const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent();
-        
-        const pageText = textContent.items
-          .filter((item: any) => item.str)
-          .map((item: any) => item.str)
-          .join(' ');
-        
-        fullText += `\n\n--- Page ${pageNum} ---\n${pageText}`;
-        console.log(`Extracted text from page ${pageNum}: ${pageText.length} characters`);
-      } catch (pageError) {
-        console.error(`Error extracting page ${pageNum}:`, pageError);
-        fullText += `\n\n--- Page ${pageNum} ---\n[Error extracting page content]`;
-      }
+    if (arrayBuffer.byteLength > 15 * 1024 * 1024) {
+      throw new Error(`PDF too large: ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)}MB (max 15MB)`);
     }
-    
-    console.log(`Total PDF text extracted: ${fullText.length} characters`);
+
+    const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
+    const { totalPages, text } = await extractText(pdf, { mergePages: false });
+
+    let fullText = "";
+    const pages = Array.isArray(text) ? text : [text];
+    pages.forEach((pageText, i) => {
+      fullText += `\n\n--- Page ${i + 1} ---\n${pageText ?? ""}`;
+    });
+
+    console.log(`Extracted ${fullText.length} characters from ${totalPages} page(s)`);
     return fullText;
   } catch (error) {
     console.error("PDF extraction failed:", error);
-    throw new Error(`Failed to extract text from PDF: ${error.message}`);
+    throw new Error(`Failed to extract text from PDF: ${(error as Error).message}`);
   }
 }
 

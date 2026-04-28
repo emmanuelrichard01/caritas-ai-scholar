@@ -155,7 +155,7 @@ Do not commit secrets — only the publishable (anon) key belongs in the fronten
 ### Edge Function Secrets (Supabase → Settings → Functions)
 | Secret | Used by |
 |---|---|
-| `GOOGLE_AI_KEY` | `process-ai-query`, `process-chat`, `generate-study-aids`, `api-info` |
+| `GOOGLE_AI_KEY` | `process-ai-query`, `generate-study-aids`, `api-info` |
 | `OPENROUTER_KEY` | `process-ai-query` (alternate provider), `api-info` |
 | `OPENAI_API_KEY` | Optional fallback for AI calls |
 | `SERPER_API_KEY` | `search-academic-results`, `api-info` |

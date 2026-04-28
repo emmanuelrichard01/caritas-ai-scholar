@@ -1,473 +1,418 @@
-# CARITAS AI Scholar
+# Caritas — AI Study Companion
 
-<div align="center">
+> A premium, Apple-inspired AI study platform for university students. Caritas unifies an AI tutor, course material analyzer, study planner, GPA calculator, research assistant and history workspace into one focused, minimal experience.
 
-![CARITAS AI Scholar](https://img.shields.io/badge/CARITAS-AI%20Scholar-blue?style=for-the-badge&logo=graduation-cap)
-![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
-
-**An intelligent academic companion that empowers students with AI-driven assistance for better learning outcomes and academic success.**
-
-[🚀 Live Demo](https://caritas-ai-scholar.vercel.app) • [📖 Documentation](#documentation) • [🤝 Contributing](#contributing) • [💬 Support](#support)
-
-</div>
+Built for **Caritas University** (~3,000 students) with a FAANG-level UI/UX bar: clean typography, glass surfaces, semantic design tokens, smooth motion, and full responsive support across desktop, tablet, and mobile.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [✨ Features](#-features)
-- [🛠️ Tech Stack](#️-tech-stack)
-- [🚀 Quick Start](#-quick-start)
-- [🌐 Deployment](#-deployment)
-- [🗄️ Database Schema](#️-database-schema)
-- [🔧 Configuration](#-configuration)
-- [📊 Key Features](#-key-features)
-- [🎯 Performance](#-performance)
-- [🔒 Security](#-security)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
+1. [Overview](#overview)
+2. [Tech Stack](#tech-stack)
+3. [Project Structure](#project-structure)
+4. [Getting Started](#getting-started)
+5. [Environment & Secrets](#environment--secrets)
+6. [Design System](#design-system)
+7. [Application Routes & Pages](#application-routes--pages)
+8. [Core Features](#core-features)
+9. [Authentication](#authentication)
+10. [Database Schema](#database-schema)
+11. [Edge Functions (Supabase)](#edge-functions-supabase)
+12. [Frontend Hooks](#frontend-hooks)
+13. [Storage Buckets](#storage-buckets)
+14. [Document Parsing Pipeline](#document-parsing-pipeline)
+15. [State Management & Data Flow](#state-management--data-flow)
+16. [Deployment](#deployment)
+17. [Security Notes](#security-notes)
+18. [Contributing](#contributing)
 
-## ✨ Features
+---
 
-### 🎯 Core Capabilities
+## Overview
 
-| Feature | Description | Status |
-|---------|-------------|---------|
-| **🤖 AI Chat Assistant** | Intelligent conversational AI for instant academic help | ✅ Active |
-| **📚 Course Assistant** | Upload materials and generate study aids (summaries, flashcards, quizzes) | ✅ Active |
-| **📅 Study Planner** | AI-powered personalized study scheduling with intelligent optimization | ✅ Enhanced |
-| **📊 GPA Calculator** | Track and calculate your academic performance | ✅ Active |
-| **🔍 Research Assistant** | AI-powered academic research and citation help | ✅ Active |
-| **📈 Analytics Dashboard** | Personalized learning analytics and real-time progress tracking | ✅ Active |
+Caritas is a single-page React application backed by Supabase (Postgres, Auth, Storage, Edge Functions). It exposes seven primary student workflows through a unified, gated experience:
 
-### 🌟 Advanced Features
+- **AI Chat** — conversational tutor with context-aware responses
+- **Dashboard** — activity overview, quick actions, recent history
+- **GPA Calculator** — semester and cumulative GPA with grade weighting
+- **Study Planner** — dynamic, duration-aware schedule generation
+- **Course Assistant** — upload materials, generate notes/quizzes/flashcards
+- **Research Assistant** — academic search with insights and saved library
+- **History** — searchable archive of every AI interaction
 
-- **📋 Smart Study Planning**: Generates optimal study schedules based on deadlines, priorities, and learning patterns
-- **💾 Plan Persistence**: Save, load, and manage multiple personalized study plans with cloud sync
-- **📄 Document Processing**: Upload PDFs, DOCX files for automatic analysis and content extraction
-- **🎯 Study Tools Generation**: Auto-creates flashcards, quizzes, and summaries from uploaded materials
-- **📊 Real-time Analytics**: Track learning progress and study habits with live dashboard updates
-- **📱 Mobile-First Design**: Fully responsive design optimized for all devices (320px+)
-- **🌙 Theme Support**: Dark/light mode with system preference detection
-- **⚡ Production Ready**: Fully configured for deployment with CORS support and optimizations
+All "key" pages (Chat, Dashboard, History, feature tools) are gated behind a modern auth modal. The landing page is public.
 
-## 🛠️ Tech Stack
+---
 
-### Frontend
-- **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite (fast development and optimized builds)
-- **Styling**: Tailwind CSS with custom design system
-- **Components**: Shadcn/UI (customizable component library)
-- **Routing**: React Router DOM v6
-- **State Management**: TanStack Query + Zustand
-- **Charts**: Recharts for analytics visualization
-- **Icons**: Lucide React
+## Tech Stack
 
-### Backend & Services
-- **Database**: Supabase (PostgreSQL with real-time capabilities)
-- **Authentication**: Supabase Auth (multiple providers supported)
-- **API**: Supabase Edge Functions (Deno runtime)
-- **File Storage**: Supabase Storage with automatic optimization
-- **AI Integration**: 
-  - OpenAI (GPT models)
-  - Google AI (Gemini)
-  - OpenRouter (multiple model access)
+| Layer | Technology |
+|---|---|
+| Framework | React 18 + Vite 5 + TypeScript 5 |
+| Styling | Tailwind CSS 3 + semantic HSL tokens + `tailwindcss-animate` |
+| UI primitives | shadcn/ui (Radix UI) |
+| Routing | react-router-dom v6 |
+| Data | @tanstack/react-query v5 |
+| Forms | react-hook-form + zod |
+| Charts | recharts |
+| Icons | lucide-react |
+| Theming | next-themes (light/dark/system) |
+| Toasts | sonner |
+| Backend | Supabase (Postgres 15, Auth, Storage, Edge Functions on Deno) |
+| AI Providers | Google AI (Gemini), OpenRouter, OpenAI, Serper (web search) |
+| Document parsing | pdf-parse, mammoth, jsonrepair |
 
-### Development & Deployment
-- **Package Manager**: npm/yarn
-- **Deployment**: Vercel (optimized for production)
-- **CI/CD**: GitHub Actions ready
-- **Monitoring**: Built-in error tracking and analytics
+---
 
-## 🚀 Quick Start
+## Project Structure
+
+```
+.
+├── api/                          # Vercel serverless shims (proxy, hello, slug router)
+├── public/                       # Static assets
+├── src/
+│   ├── components/
+│   │   ├── auth/                 # AuthModal
+│   │   ├── chat/                 # Enhanced chat UI (container, input, message, suggestions)
+│   │   ├── course/               # Course material upload, library, study tools
+│   │   ├── dashboard/            # Welcome card, quick actions, activity chart, recent activity
+│   │   ├── gpa/                  # GPA form + results
+│   │   ├── history/              # History list, card, filters, modal, skeleton, empty state
+│   │   ├── landing/              # Hero, Features, Stats, CTA
+│   │   ├── navigation/           # Header, menu, controls, mobile header
+│   │   ├── research/             # Search bar, results, insights, library, error
+│   │   ├── studyplanner/         # Setup, form, display, saved plans, tips
+│   │   ├── studytools/           # Flashcards, quizzes, notes, chatbot, tabs
+│   │   ├── ui/                   # shadcn primitives
+│   │   ├── Navigation.tsx        # Sidebar shell
+│   │   └── PageLayout.tsx        # Auth-gated layout wrapper
+│   ├── data/                     # Static chat responses & university info
+│   ├── hooks/                    # useAuth, useAIProcessor, useResearch, useStudyPlan, ...
+│   ├── integrations/supabase/    # Generated client + types (DO NOT edit types.ts)
+│   ├── pages/                    # Route components
+│   ├── types/                    # Shared TS types (ai, auth, gpa, database)
+│   ├── utils/                    # aiUtils (history persistence), researchUtils
+│   ├── index.css                 # Design tokens (HSL) + global styles
+│   └── main.tsx                  # App entry
+├── supabase/
+│   ├── config.toml               # Supabase project config
+│   └── functions/                # Deno edge functions (see below)
+├── tailwind.config.ts
+├── vite.config.ts
+└── vercel.json
+```
+
+---
+
+## Getting Started
 
 ### Prerequisites
+- Node.js 18+ (or Bun)
+- A Supabase project (already wired)
 
-Ensure you have the following installed:
-- **Node.js** 18+ ([Download](https://nodejs.org/))
-- **npm** or **yarn**
-- **Supabase account** ([Sign up](https://supabase.com))
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/caritas-ai-scholar.git
-   cd caritas-ai-scholar
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
-
-3. **Environment Configuration**
-   
-   Create a `.env.local` file in the root directory:
-   ```env
-   VITE_SUPABASE_URL=your_supabase_project_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-4. **Start the development server**
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
-
-5. **Open your browser**
-   
-   Navigate to `http://localhost:5173` to see the application running.
-
-### Development Commands
+### Install & run
 
 ```bash
-# Start development server
+# install
+npm install        # or: bun install
+
+# dev server (Vite, default http://localhost:5173)
 npm run dev
 
-# Build for production
+# production build
 npm run build
 
-# Preview production build
+# development-mode build (source maps, dev flags)
+npm run build:dev
+
+# preview built bundle
 npm run preview
 
-# Run linting
+# lint
 npm run lint
-
-# Type checking
-npm run type-check
 ```
 
-## 🌐 Deployment
-
-### Vercel (Recommended)
-
-**One-Click Deploy:**
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/caritas-ai-scholar)
-
-**Manual Deployment:**
-
-1. **Install Vercel CLI**
-   ```bash
-   npm i -g vercel
-   ```
-
-2. **Deploy to Vercel**
-   ```bash
-   vercel --prod
-   ```
-
-3. **Configure Environment Variables**
-   
-   In your Vercel dashboard, add:
-   ```
-   VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-### Alternative Platforms
-
-**Netlify:**
-```bash
-npm run build
-# Upload the dist/ folder to Netlify
+The `.env` file is **auto-populated** by Lovable with:
 ```
-
-**Docker:**
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "run", "preview"]
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_PUBLISHABLE_KEY=...
+VITE_SUPABASE_PROJECT_ID=...
 ```
-
-## 🗄️ Database Schema
-
-The application uses Supabase PostgreSQL with the following core tables:
-
-### Primary Tables
-
-| Table | Description | Key Features |
-|-------|-------------|--------------|
-| `profiles` | User profile information | Auth integration, preferences |
-| `chat_history` | AI conversation history | Message threading, context |
-| `study_plans` | Personalized study schedules | AI-generated, user customizable |
-| `materials` | Uploaded course materials | File metadata, processing status |
-| `segments` | Processed document segments | Vector embeddings, searchable |
-| `flashcards` | Generated study flashcards | AI-created from materials |
-| `quizzes` | Practice quiz questions | Adaptive difficulty |
-| `summaries` | AI-generated content summaries | Key concepts extraction |
-
-### Database Features
-- **Row Level Security (RLS)**: Data isolation per user
-- **Real-time Subscriptions**: Live updates across devices
-- **Vector Search**: Semantic search capabilities
-- **Automatic Backups**: Point-in-time recovery
-- **Performance Optimization**: Indexed queries and caching
-
-## 🔧 Configuration
-
-### Supabase Setup
-
-1. **Create a new Supabase project**
-   - Go to [supabase.com](https://supabase.com)
-   - Create a new project
-   - Note your project URL and anon key
-
-2. **Database Migration**
-   ```bash
-   # Run the included SQL migrations
-   npx supabase db push
-   ```
-
-3. **Authentication Setup**
-   - Enable email authentication
-   - Configure OAuth providers (optional)
-   - Set up email templates
-
-4. **Edge Functions Deployment**
-   ```bash
-   # Deploy AI processing functions
-   npx supabase functions deploy
-   ```
-
-### AI API Configuration
-
-Set up the following secrets in your Supabase Edge Functions:
-
-```bash
-# Required API keys
-supabase secrets set OPENAI_API_KEY=your_openai_key
-supabase secrets set GOOGLE_AI_KEY=your_google_ai_key
-supabase secrets set OPENROUTER_KEY=your_openrouter_key
-supabase secrets set SERPER_API_KEY=your_serper_key
-```
-
-### CORS Configuration
-
-The project includes optimized CORS settings for:
-- Supabase API communication
-- Edge Functions integration
-- Real-time subscriptions
-- File upload/download operations
-
-## 📊 Key Features
-
-### 🧠 AI Study Planner
-
-The enhanced study planner provides:
-
-- **Dynamic Scheduling**: AI calculates optimal study duration based on deadlines and workload
-- **Subject Prioritization**: Intelligent ranking based on deadlines and difficulty
-- **Workload Distribution**: Even distribution of study sessions across available time
-- **Progress Tracking**: Visual completion tracking with analytics
-- **Plan Management**: Save, load, and manage multiple study plans
-- **Automatic Cleanup**: Expired subjects are automatically removed
-
-### 📚 Course Assistant
-
-Advanced document processing capabilities:
-
-- **Multi-format Support**: PDF, DOCX, TXT files
-- **Content Extraction**: Smart text extraction with formatting preservation
-- **AI Analysis**: Automatic key concept identification
-- **Study Tools Generation**: 
-  - Interactive flashcards
-  - Practice quizzes with explanations
-  - Comprehensive summaries
-- **Material Library**: Organized storage with search functionality
-
-### 🤖 AI Chat Integration
-
-Intelligent conversational assistance:
-
-- **Context Awareness**: Understands your academic subjects and materials
-- **Multi-model Support**: Leverages multiple AI providers for best results
-- **Conversation Memory**: Maintains context across sessions
-- **Smart Suggestions**: Provides relevant prompts and guidance
-
-### 📈 Analytics Dashboard
-
-Comprehensive learning insights:
-
-- **Real-time Metrics**: Live updates of study progress
-- **Visual Analytics**: Charts and graphs for progress tracking
-- **Learning Patterns**: AI-identified study habits and recommendations
-- **Performance Insights**: Detailed analysis of academic performance
-
-## 🎯 Performance
-
-### Optimization Features
-
-- **Code Splitting**: Automatic route-based bundling
-- **Lazy Loading**: Components loaded on demand
-- **Image Optimization**: Automatic compression and WebP conversion
-- **API Caching**: Smart caching with TanStack Query
-- **Mobile Performance**: Optimized bundle sizes for mobile devices
-- **Progressive Loading**: Skeleton states and smooth transitions
-
-### Performance Metrics
-
-- **First Contentful Paint**: < 1.5s
-- **Largest Contentful Paint**: < 2.5s
-- **Cumulative Layout Shift**: < 0.1
-- **Mobile Performance Score**: 90+
-- **Desktop Performance Score**: 95+
-
-## 🔒 Security
-
-### Security Measures
-
-- **Row Level Security (RLS)**: Database-level access control
-- **Authentication**: Secure JWT-based authentication
-- **Input Validation**: Client and server-side validation
-- **CORS Protection**: Properly configured cross-origin policies
-- **API Rate Limiting**: Protection against abuse
-- **Data Encryption**: End-to-end encryption for sensitive data
-- **Secure Headers**: Content Security Policy and security headers
-
-### Privacy & Data Protection
-
-- **GDPR Compliant**: Privacy-first design
-- **Data Minimization**: Only collect necessary data
-- **User Control**: Full control over data deletion
-- **Secure Storage**: Encrypted storage for all user data
-
-## 🤝 Contributing
-
-We welcome contributions from the community! Here's how to get started:
-
-### Development Setup
-
-1. **Fork the repository**
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-3. **Make your changes**
-4. **Run tests and linting**
-   ```bash
-   npm run lint
-   npm run type-check
-   ```
-5. **Commit your changes**
-   ```bash
-   git commit -m 'Add amazing feature'
-   ```
-6. **Push to your branch**
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-7. **Open a Pull Request**
-
-### Contribution Guidelines
-
-- Follow the existing code style and conventions
-- Add tests for new features
-- Update documentation as needed
-- Ensure all checks pass before submitting
-- Keep pull requests focused and atomic
-
-### Code of Conduct
-
-Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
-
-## 📊 Analytics & Monitoring
-
-### Built-in Analytics
-
-- **User Engagement**: Track feature usage and user interactions
-- **Performance Monitoring**: Real-time performance metrics
-- **Error Tracking**: Automatic error reporting and debugging
-- **Usage Statistics**: Detailed insights into app usage patterns
-
-### Monitoring Tools
-
-- **Real-time Dashboards**: Live monitoring of app health
-- **Alert System**: Automatic notifications for critical issues
-- **Performance Insights**: Detailed performance analysis
-- **User Behavior Analytics**: Understanding user patterns
-
-## 🎨 Customization
-
-### Theming System
-
-- **Design Tokens**: Semantic color and spacing system
-- **Component Variants**: Extensible component library
-- **Responsive Design**: Mobile-first breakpoint system
-- **Dark/Light Mode**: Automatic theme switching
-- **Custom Branding**: Easy brand customization
-
-### Customization Options
-
-```css
-/* Custom color palette */
-:root {
-  --primary: your-primary-color;
-  --secondary: your-secondary-color;
-  --accent: your-accent-color;
-}
-```
-
-## 🆘 Support
-
-### Getting Help
-
-- **Documentation**: Comprehensive guides and tutorials
-- **Community**: Join our Discord community
-- **Issues**: Report bugs on GitHub
-- **Email Support**: support@caritas-ai.com
-
-### Resources
-
-- [📖 Full Documentation](https://docs.caritas-ai.com)
-- [💬 Discord Community](https://discord.gg/caritas-ai)
-- [🐛 Bug Reports](https://github.com/your-username/caritas-ai-scholar/issues)
-- [💡 Feature Requests](https://github.com/your-username/caritas-ai-scholar/discussions)
-
-## 📄 License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-### Built With
-
-- [Lovable](https://lovable.dev) - AI-powered web development platform
-- [Shadcn/UI](https://ui.shadcn.com) - Beautiful and accessible UI components
-- [Lucide](https://lucide.dev) - Beautiful and consistent icons
-- [Supabase](https://supabase.com) - Open source Firebase alternative
-- [Vercel](https://vercel.com) - Platform for frontend developers
-
-### Special Thanks
-
-- Open source community for amazing tools and libraries
-- Beta testers for valuable feedback and suggestions
-- Contributors who helped shape this project
+Do not commit secrets — only the publishable (anon) key belongs in the frontend.
 
 ---
 
-<div align="center">
+## Environment & Secrets
 
-**CARITAS AI Scholar** - Empowering students with intelligent academic assistance 🎓
+### Frontend (`.env`)
+| Variable | Purpose |
+|---|---|
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Anon key (safe in browser) |
+| `VITE_SUPABASE_PROJECT_ID` | Project ref |
 
-[![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen?style=for-the-badge)]()
-[![Mobile](https://img.shields.io/badge/Mobile-Optimized-blue?style=for-the-badge)]()
-[![Real-time](https://img.shields.io/badge/Real--time-Enabled-purple?style=for-the-badge)]()
+### Edge Function Secrets (Supabase → Settings → Functions)
+| Secret | Used by |
+|---|---|
+| `GOOGLE_AI_KEY` | `process-ai-query`, `process-chat`, `generate-study-aids`, `api-info` |
+| `OPENROUTER_KEY` | `process-ai-query` (alternate provider), `api-info` |
+| `OPENAI_API_KEY` | Optional fallback for AI calls |
+| `SERPER_API_KEY` | `search-academic-results`, `api-info` |
+| `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` | Internal — auto-injected into edge runtime |
+| `SUPABASE_DB_URL` | Direct DB access (server-side only) |
 
-**[🚀 Get Started](https://caritas-ai-scholar.vercel.app)** | **[📖 Documentation](#documentation)** | **[💬 Community](#support)**
+> ⚠️ **Never** expose `SUPABASE_SERVICE_ROLE_KEY` to the browser or pass it as a caller token.
 
-Made with ❤️ by the CARITAS AI team
+---
 
-</div>
+## Design System
+
+The visual language is defined by **semantic HSL tokens** in `src/index.css` and exposed via Tailwind in `tailwind.config.ts`. Components must consume tokens (`bg-background`, `text-foreground`, `border-border/60`) — never hardcoded colors (`bg-blue-600`).
+
+Highlights:
+- **Aesthetic**: Apple/Linear minimalism — generous spacing, hairline borders, glass morphism, restrained motion.
+- **Surfaces**: `bg-foreground/[0.04]`, frosted blur backdrops, subtle radial gradients in `PageLayout`.
+- **Motion**: `transition-smooth` and `transition-spring` utilities with custom cubic-bezier timing functions defined as raw CSS (not via `@apply ease-[...]`).
+- **Theming**: light, dark, and system via `next-themes` with `attribute="class"`.
+- **Typography**: Tailwind defaults + `@tailwindcss/typography` for AI-rendered prose.
+
+See `mem://design/aesthetic-clean-minimal-apple-linear` for the full guideline.
+
+---
+
+## Application Routes & Pages
+
+| Path | Page | Gated | Purpose |
+|---|---|---|---|
+| `/` | `Index` | ❌ | Landing: Hero, Features, Stats, CTA |
+| `/auth` | `Auth` | ❌ | Sign-in / sign-up screen |
+| `/dashboard` | `Dashboard` | ✅ | Welcome, stats, quick actions, recent activity, activity chart |
+| `/chat` | `Chat` | ✅ | Conversational AI tutor (`EnhancedChatContainer`) |
+| `/gpa-calculator` | `GPACalculator` | ✅ | GPA form + computed results |
+| `/study-planner` | `StudyPlanner` | ✅ | Plan setup, generated schedule, saved plans, tips |
+| `/course-assistant` | `CourseAssistant` | ✅ | Upload materials → notes / quiz / flashcards / chatbot |
+| `/research-assistant` | `ResearchAssistant` | ✅ | Academic search, insights, saved library |
+| `/history` | `History` | ✅ | Search/filter all past AI interactions |
+| `*` | `NotFound` | ❌ | 404 |
+
+Gating is enforced by `PageLayout.tsx` + `useAuthGuard`, which renders the `AuthModal` over a blurred preview if the visitor isn't authenticated.
+
+---
+
+## Core Features
+
+### 1. AI Chat (`/chat`)
+- Centered "What can I help with?" welcome screen
+- Asymmetric message bubbles (user bubbles inverted in dark mode)
+- Pill-shaped input with attachment support
+- Suggestion carousel for cold-start prompts
+- Streams responses through `process-ai-query` (Google AI by default, OpenRouter optional)
+- Conversational tone enforced — no generic "Hello there!" openings (see `mem://features/ai-chat-conversational-tone`)
+
+### 2. Dashboard (`/dashboard`)
+- **WelcomeCard** — personalized greeting + animated number counters
+- **QuickActions** — one-click entry to each tool
+- **ActivityChart** — recharts visualization of recent usage
+- **RecentActivity** — last N history entries with deep-links
+
+### 3. GPA Calculator (`/gpa-calculator`)
+- Add/remove courses with credit hours and letter grades
+- Real-time semester GPA + cumulative computation
+- Configurable grading scale (4.0 / 5.0)
+
+### 4. Study Planner (`/study-planner`)
+- **SimpleStudyPlanSetup** — pick courses, study days, hours
+- Dynamic schedule generation that respects total available time and per-subject difficulty (see `mem://features/study-planner-dynamic-duration`)
+- **StudyPlanDisplay** — day-by-day timetable
+- **SimpleSavedPlansManager** — persist/restore plans from `study_plans` table
+- **StudyTips** — context-aware advice
+
+### 5. Course Assistant (`/course-assistant`)
+- **MaterialUploadForm** — upload PDFs, DOCX, TXT to `course-materials` bucket
+- **MaterialLibrary** — browse, preview, delete uploads
+- **StudyToolsGenerator** → tabs:
+  - **NotesDisplay** — AI-summarized study notes
+  - **QuizComponent** — auto-generated MCQs with scoring
+  - **Flashcard** — front/back cards with flip animation
+  - **ChatbotComponent** — material-grounded Q&A
+
+### 6. Research Assistant (`/research-assistant`)
+- **ResearchSearchBar** — query input with filters
+- **ResearchResults** — academic results (title, snippet, source, link)
+- **ResearchInsights** — AI-summarized synthesis across results
+- **ResearchLibrary** — bookmark and revisit findings
+- **ResearchError** — graceful failure state
+
+### 7. History (`/history`)
+- **HistoryList** + **HistoryCard** — paginated archive
+- **HistoryFilters** — by category, date, search text
+- **HistoryDetailModal** — full Q&A view
+- **HistorySkeleton** / **HistoryEmptyState**
+
+---
+
+## Authentication
+
+- Provider: **Supabase Auth** (email/password + OAuth-ready)
+- Session: managed via `useAuth` hook (`src/hooks/useAuth.tsx`)
+- Profile auto-creation: `handle_new_user()` trigger inserts a `profiles` row on signup, copying `full_name` and `avatar_url` from `raw_user_meta_data`
+- Gating: `useAuthGuard` + `AuthModal` (see `mem://features/authentication-gating`)
+- All RLS policies enforce `auth.uid() = user_id` ownership on user-scoped tables
+
+---
+
+## Database Schema
+
+All tables live in `public`. Source of truth: `src/integrations/supabase/types.ts` (auto-generated — never edit).
+
+| Table | Purpose | Key columns |
+|---|---|---|
+| `profiles` | User profile data | `id` (FK auth.users), `full_name`, `avatar_url`, timestamps |
+| `chat_history` | All AI Q&A interactions | `user_id`, `query`, `answer`, `category`, `created_at` |
+| `materials` | Uploaded course material metadata | `user_id`, `title`, `file_path`, `content_type`, `size` |
+| `uploads` | Generic upload records | `user_id`, `file_path`, `metadata` |
+| `segments` | Parsed/chunked material segments | `material_id`, `content`, `order` |
+| `summaries` | AI-generated material summaries | `material_id`, `content` |
+| `flashcards` | Generated flashcards | `material_id`, `front`, `back` |
+| `quizzes` | Generated quiz items | `material_id`, `question`, `options`, `answer` |
+| `study_plans` | Saved study schedules | `user_id`, `name`, `payload` (jsonb) |
+
+### Database Functions
+- `handle_new_user()` — trigger that creates a `profiles` row on `auth.users` insert
+- `update_updated_at_column()` — generic `updated_at` touch trigger
+
+---
+
+## Edge Functions (Supabase)
+
+All edge functions live in `supabase/functions/<name>/index.ts`, run on Deno, and are deployed automatically. Most require JWT (`verify_jwt = true` in `supabase/config.toml`).
+
+### `process-ai-query` 🔐
+General-purpose AI router used by Chat and most tools.
+- **Body**: `{ query, userId, category, additionalData?, provider? }`
+- **Providers**: `google` (Gemini, default) or `openrouter`
+- **Categories**: `default`, `google-ai`, `openrouter`, `course-tutor`, `material-tutor`, `analyze-documents`, `process-course-material`, `study-planner`, `generate-study-aids`, `research`
+- **Returns**: `{ answer: string, ... }`
+
+### `process-chat`
+Lightweight chat-only handler. Used by certain components for streamlined conversational flows.
+
+### `process-course-material` 🔐
+- Parses uploaded materials (PDF / DOCX / TXT)
+- Splits into segments, persists to `segments`
+- Triggers downstream summary generation
+
+### `generate-study-aids` 🔐
+- Input: a material ID (or raw content) + tool type
+- Output: structured notes, quiz items (with `jsonrepair` to recover from malformed model JSON), or flashcards
+- Persists to `summaries`, `quizzes`, `flashcards`
+
+### `upload-course-material`
+- Accepts multipart upload, stores in the private `course-materials` bucket
+- Inserts a `materials` row with metadata
+- Returns signed URL + material record
+
+### `search-academic-results`
+- Wraps **Serper** Google Scholar / Search API
+- Normalizes results for `ResearchResults`
+- Optionally hands results to `process-ai-query` (`category: 'research'`) for synthesis
+
+### `api-info`
+Public health/diagnostics endpoint.
+- Probes Google AI, OpenRouter, and Serper with 5s timeouts
+- Returns availability, quota hints, and timing
+- In-memory rate limit: 100 req/hour per IP
+
+> Configure secrets at **Supabase → Project Settings → Functions** before invoking.
+
+---
+
+## Frontend Hooks
+
+| Hook | Responsibility |
+|---|---|
+| `useAuth` | Session, sign-in/up/out, current user |
+| `useAuthGuard` | Redirect/modal gate for protected pages |
+| `useAIProcessor` | Calls `process-ai-query`, manages loading/result, persists to history |
+| `useDocumentProcessor` | Parses PDFs (pdf-parse) / DOCX (mammoth) client-side when needed |
+| `useMaterials` | CRUD over `materials` + storage |
+| `useStudyMaterials` | Aggregates segments/summaries/quizzes/flashcards per material |
+| `useStudyPlan` | Generation + persistence of study plans |
+| `useResearch` | Drives `search-academic-results` + insights |
+| `useApiConfig` / `useApiStatus` | Surface `api-info` health to UI |
+| `use-mobile` | Responsive breakpoint detection |
+| `use-toast` | Sonner toast helper |
+
+---
+
+## Storage Buckets
+
+| Bucket | Public | Used for |
+|---|---|---|
+| `course-materials` | ❌ | User-uploaded PDFs/DOCX/TXT for the Course Assistant. Access through signed URLs only. |
+
+---
+
+## Document Parsing Pipeline
+
+Supported formats and libraries (see `mem://features/course-assistant-document-parsing`):
+
+| Format | Library |
+|---|---|
+| PDF | `pdf-parse` (server) / PDF.js (client) |
+| DOCX | `mammoth` |
+| TXT / MD | Native `TextDecoder` |
+
+Flow: **Upload → Storage → `process-course-material` → segments → `generate-study-aids` → notes/quiz/flashcards → UI**.
+
+---
+
+## State Management & Data Flow
+
+- **Server state**: `@tanstack/react-query` for caching, retries, and invalidation
+- **Auth state**: React context via `useAuth`
+- **Theme**: `next-themes` provider in `App.tsx`
+- **Forms**: `react-hook-form` + `zod` resolvers
+- **Toasts**: `sonner` + shadcn `<Toaster />`
+
+---
+
+## Deployment
+
+Two supported targets:
+
+### Lovable
+Click **Publish** in the Lovable editor. Edge functions deploy automatically with each change. Custom domains can be attached in Project Settings.
+
+### Vercel
+- `vercel.json` configures the SPA + serverless shims under `api/`
+- `_redirects` ensures SPA fallback for static hosts
+- Set the same Supabase env vars in Vercel Project Settings
+
+---
+
+## Security Notes
+
+- **Roles**: never store roles on `profiles`. If/when roles are introduced, use a dedicated `user_roles` table + a `SECURITY DEFINER` `has_role()` function (per Supabase best practice).
+- **RLS**: enabled on all user-scoped tables; policies enforce `auth.uid() = user_id`.
+- **Service role key**: server-only; accessed inside edge functions via `Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')`.
+- **Rate limiting**: `api-info` includes a basic in-memory limiter; production-grade limiting should move to a shared store (e.g., Upstash) if traffic grows.
+- **Validation**: prefer trigger-based validation over Postgres `CHECK` constraints with non-immutable expressions.
+
+---
+
+## Contributing
+
+1. Create a feature branch.
+2. Follow the design system — only semantic tokens, never hardcoded colors.
+3. Keep components small, focused, and typed.
+4. Use `react-query` for any server interaction.
+5. Run `npm run lint` and `npm run build` before opening a PR.
+6. Update relevant memory docs (`mem://...`) when introducing new conventions.
+
+---
+
+## License
+
+Proprietary — © Caritas University project. All rights reserved.

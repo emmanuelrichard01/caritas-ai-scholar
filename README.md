@@ -295,9 +295,6 @@ General-purpose AI router used by Chat and most tools.
 - **Categories**: `default`, `google-ai`, `openrouter`, `course-tutor`, `material-tutor`, `analyze-documents`, `process-course-material`, `study-planner`, `generate-study-aids`, `research`
 - **Returns**: `{ answer: string, ... }`
 
-### `process-chat`
-Lightweight chat-only handler. Used by certain components for streamlined conversational flows.
-
 ### `process-course-material` 🔐
 - Parses uploaded materials (PDF / DOCX / TXT)
 - Splits into segments, persists to `segments`
@@ -319,10 +316,12 @@ Lightweight chat-only handler. Used by certain components for streamlined conver
 - Optionally hands results to `process-ai-query` (`category: 'research'`) for synthesis
 
 ### `api-info`
-Public health/diagnostics endpoint.
-- Probes Google AI, OpenRouter, and Serper with 5s timeouts
-- Returns availability, quota hints, and timing
-- In-memory rate limit: 100 req/hour per IP
+Public health/diagnostics endpoint for the in-app **System Status** modal.
+- Probes Google Gemini, OpenRouter, and Serper **in parallel** with 5s timeouts
+- Returns per-provider `status`, `latencyMs`, `configured`, optional `meta`
+- 30s in-memory response cache (bypass with `?fresh=1`)
+- Rate limit: 60 req/hour per IP
+- Response shape: `{ timestamp, responseTimeMs, summary: { healthy, total, degraded }, providers: { googleAI, openRouter, serperAI }, cached }`
 
 > Configure secrets at **Supabase → Project Settings → Functions** before invoking.
 
@@ -340,7 +339,7 @@ Public health/diagnostics endpoint.
 | `useStudyMaterials` | Aggregates segments/summaries/quizzes/flashcards per material |
 | `useStudyPlan` | Generation + persistence of study plans |
 | `useResearch` | Drives `search-academic-results` + insights |
-| `useApiConfig` / `useApiStatus` | Surface `api-info` health to UI |
+| `useApiStatus` | Surface `api-info` health to the System Status modal |
 | `use-mobile` | Responsive breakpoint detection |
 | `use-toast` | Sonner toast helper |
 

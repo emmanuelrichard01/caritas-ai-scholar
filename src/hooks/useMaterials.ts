@@ -162,7 +162,7 @@ export function useMaterials() {
   // Generate quiz for a segment
   const generateQuiz = async (segmentId: string): Promise<Quiz[] | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke('course-tutor', {
+      const { data, error } = await supabase.functions.invoke('generate-study-aids', {
         body: {
           segmentId,
           type: 'quiz'
